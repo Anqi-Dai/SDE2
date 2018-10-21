@@ -1,0 +1,128 @@
+{
+    "RF-14-1": {
+        "R1": [
+            "../samples/replicate1/RF-14-1_S1_L001_R1_001.fastq.gz",
+            "../samples/replicate1/RF-14-1_S1_L002_R1_001.fastq.gz",
+            "../samples/replicate1/RF-14-1_S1_L003_R1_001.fastq.gz",
+            "../samples/replicate1/RF-14-1_S1_L004_R1_001.fastq.gz"
+        ],
+        "R2": [
+            "../samples/replicate1/RF-14-1_S1_L001_R2_001.fastq.gz",
+            "../samples/replicate1/RF-14-1_S1_L002_R2_001.fastq.gz",
+            "../samples/replicate1/RF-14-1_S1_L003_R2_001.fastq.gz",
+            "../samples/replicate1/RF-14-1_S1_L004_R2_001.fastq.gz"
+        ]
+    },
+    "RF-14-2": {
+        "R1": [
+            "../samples/replicate1/RF-14-2_S2_L001_R1_001.fastq.gz",
+            "../samples/replicate1/RF-14-2_S2_L002_R1_001.fastq.gz",
+            "../samples/replicate1/RF-14-2_S2_L003_R1_001.fastq.gz",
+            "../samples/replicate1/RF-14-2_S2_L004_R1_001.fastq.gz"
+        ],
+        "R2": [
+            "../samples/replicate1/RF-14-2_S2_L001_R2_001.fastq.gz",
+            "../samples/replicate1/RF-14-2_S2_L002_R2_001.fastq.gz",
+            "../samples/replicate1/RF-14-2_S2_L003_R2_001.fastq.gz",
+            "../samples/replicate1/RF-14-2_S2_L004_R2_001.fastq.gz"
+        ]
+    },
+    "RF-14-3": {
+        "R1": [
+            "../samples/replicate1/RF-14-3_S3_L001_R1_001.fastq.gz",
+            "../samples/replicate1/RF-14-3_S3_L002_R1_001.fastq.gz",
+            "../samples/replicate1/RF-14-3_S3_L003_R1_001.fastq.gz",
+            "../samples/replicate1/RF-14-3_S3_L004_R1_001.fastq.gz"
+        ],
+        "R2": [
+            "../samples/replicate1/RF-14-3_S3_L001_R2_001.fastq.gz",
+            "../samples/replicate1/RF-14-3_S3_L002_R2_001.fastq.gz",
+            "../samples/replicate1/RF-14-3_S3_L003_R2_001.fastq.gz",
+            "../samples/replicate1/RF-14-3_S3_L004_R2_001.fastq.gz"
+        ]
+    },
+    "RF-89-1": {
+        "R1": [
+            "../samples/replicate1/RF-89-1_S4_L001_R1_001.fastq.gz",
+            "../samples/replicate1/RF-89-1_S4_L002_R1_001.fastq.gz",
+            "../samples/replicate1/RF-89-1_S4_L003_R1_001.fastq.gz",
+            "../samples/replicate1/RF-89-1_S4_L004_R1_001.fastq.gz"
+        ],
+        "R2": [
+            "../samples/replicate1/RF-89-1_S4_L001_R2_001.fastq.gz",
+            "../samples/replicate1/RF-89-1_S4_L002_R2_001.fastq.gz",
+            "../samples/replicate1/RF-89-1_S4_L003_R2_001.fastq.gz",
+            "../samples/replicate1/RF-89-1_S4_L004_R2_001.fastq.gz"
+        ]
+    },
+    "RF-89-2": {
+        "R1": [
+            "../samples/replicate1/RF-89-2_S5_L001_R1_001.fastq.gz",
+            "../samples/replicate1/RF-89-2_S5_L002_R1_001.fastq.gz",
+            "../samples/replicate1/RF-89-2_S5_L003_R1_001.fastq.gz",
+            "../samples/replicate1/RF-89-2_S5_L004_R1_001.fastq.gz"
+        ],
+        "R2": [
+            "../samples/replicate1/RF-89-2_S5_L001_R2_001.fastq.gz",
+            "../samples/replicate1/RF-89-2_S5_L002_R2_001.fastq.gz",
+            "../samples/replicate1/RF-89-2_S5_L003_R2_001.fastq.gz",
+            "../samples/replicate1/RF-89-2_S5_L004_R2_001.fastq.gz"
+        ]
+    },
+    "RF-89-3": {
+        "R1": [
+            "../samples/replicate1/RF-89-3_S6_L001_R1_001.fastq.gz",
+            "../samples/replicate1/RF-89-3_S6_L002_R1_001.fastq.gz",
+            "../samples/replicate1/RF-89-3_S6_L003_R1_001.fastq.gz",
+            "../samples/replicate1/RF-89-3_S6_L004_R1_001.fastq.gz"
+        ],
+        "R2": [
+            "../samples/replicate1/RF-89-3_S6_L001_R2_001.fastq.gz",
+            "../samples/replicate1/RF-89-3_S6_L002_R2_001.fastq.gz",
+            "../samples/replicate1/RF-89-3_S6_L003_R2_001.fastq.gz",
+            "../samples/replicate1/RF-89-3_S6_L004_R2_001.fastq.gz"
+        ]
+    },
+    "RF-Control-1": {
+        "R1": [
+            "../samples/replicate1/RF-Control-1_S7_L001_R1_001.fastq.gz",
+            "../samples/replicate1/RF-Control-1_S7_L002_R1_001.fastq.gz",
+            "../samples/replicate1/RF-Control-1_S7_L003_R1_001.fastq.gz",
+            "../samples/replicate1/RF-Control-1_S7_L004_R1_001.fastq.gz"
+        ],
+        "R2": [
+            "../samples/replicate1/RF-Control-1_S7_L001_R2_001.fastq.gz",
+            "../samples/replicate1/RF-Control-1_S7_L002_R2_001.fastq.gz",
+            "../samples/replicate1/RF-Control-1_S7_L003_R2_001.fastq.gz",
+            "../samples/replicate1/RF-Control-1_S7_L004_R2_001.fastq.gz"
+        ]
+    },
+    "RF-Control-2": {
+        "R1": [
+            "../samples/replicate1/RF-Control-2_S8_L001_R1_001.fastq.gz",
+            "../samples/replicate1/RF-Control-2_S8_L002_R1_001.fastq.gz",
+            "../samples/replicate1/RF-Control-2_S8_L003_R1_001.fastq.gz",
+            "../samples/replicate1/RF-Control-2_S8_L004_R1_001.fastq.gz"
+        ],
+        "R2": [
+            "../samples/replicate1/RF-Control-2_S8_L001_R2_001.fastq.gz",
+            "../samples/replicate1/RF-Control-2_S8_L002_R2_001.fastq.gz",
+            "../samples/replicate1/RF-Control-2_S8_L003_R2_001.fastq.gz",
+            "../samples/replicate1/RF-Control-2_S8_L004_R2_001.fastq.gz"
+        ]
+    },
+    "RF-Control-3": {
+        "R1": [
+            "../samples/replicate1/RF-Control-3_S9_L001_R1_001.fastq.gz",
+            "../samples/replicate1/RF-Control-3_S9_L002_R1_001.fastq.gz",
+            "../samples/replicate1/RF-Control-3_S9_L003_R1_001.fastq.gz",
+            "../samples/replicate1/RF-Control-3_S9_L004_R1_001.fastq.gz"
+        ],
+        "R2": [
+            "../samples/replicate1/RF-Control-3_S9_L001_R2_001.fastq.gz",
+            "../samples/replicate1/RF-Control-3_S9_L002_R2_001.fastq.gz",
+            "../samples/replicate1/RF-Control-3_S9_L003_R2_001.fastq.gz",
+            "../samples/replicate1/RF-Control-3_S9_L004_R2_001.fastq.gz"
+        ]
+    }
+}

@@ -1,0 +1,142 @@
+'''
+For the SDE2 project
+(currently the replicate 1 only!!)
+
+* get to know the strandness of the library 
+* concat the individual read files to R1, R2
+* align with flags showing the strandness with STAR
+
+'''
+
+from glob import glob
+import json
+
+sample_dir = '../../samples/replicate1'
+
+file = json.load(open('../samples.json'))
+sample_names = file.keys()
+
+
+rule all:
+    input:
+        expand('{path}/Aligned.sortedByCoord.out.merged.rep1.bam', path = sample_dir)
+
+
+
+# Concatenate the trimmed R1, R2 respectively for each sample
+
+# The input for a snakemake rule could be functions
+def fastq_R1_from_sample_trimmed(wildcards):
+    fns = glob('{}/{}_S*_R1_001_paired.fastq.gz'.format(wildcards.path, wildcards.sample))
+    fns.sort()
+    return fns
+
+
+def fastq_R2_from_sample_trimmed(wildcards):
+    fns = glob('{}/{}_S*_R2_001_paired.fastq.gz'.format(wildcards.path, wildcards.sample))
+    fns.sort()
+    return fns
+
+rule concat_trimmed_reads:
+    input:
+        R1=fastq_R1_from_sample_trimmed,
+        R2=fastq_R2_from_sample_trimmed
+    output:
+        R1='{path}/{sample}__concat_R1_trimmed.fastq.gz',
+        R2='{path}/{sample}__concat_R2_trimmed.fastq.gz'
+    threads:
+        2
+    shell:
+        'cat {input.R1} > {output.R1};'
+        'cat {input.R2} > {output.R2}'
+
+# Trying to decide the library type of the reads. It turns out they are ISR(inward, stranded, read 1 comes from the reverse strand)
+salmon_quant_fns = expand('{path}/salmon_quant/{sample}_salmon_quant', path = sample_dir,  sample = ['RF-Control-2'])
+
+rule salmon_quant_result:
+    input:
+        salmon_quant_fns
+
+rule salmon_quant:
+    input:
+        ref='../../reference/v27/gencode.v27.transcripts.salmon_quasi_index/',
+        R1='{path}/{sample}__concat_R1_trimmed.fastq.gz',
+        R2='{path}/{sample}__concat_R2_trimmed.fastq.gz'
+    output:
+        directory('{path}/salmon_quant/{sample}_salmon_quant')
+    threads:
+        16
+    shell:
+        'salmon quant -i {input.ref} -l A -1 {input.R1} -2 {input.R2} -o {output} -p {threads}'
+
+
+# Align the reads to ref genome using STAR in 2 pass mode and pay attention to the library type (do not need to provide any specific options)
+
+
+star_aln_fns = expand('{path}/{sample}_Aligned.sortedByCoord.out.bam', path = sample_dir,  sample = sample_names)
+
+rule star_aln_result:
+    input:
+        star_aln_fns
+
+rule star_aln:
+    input:
+        ref='../../reference/v27/GENCODE_v27_star_index',
+        R1='{path}/{sample}__concat_R1_trimmed.fastq.gz',
+        R2='{path}/{sample}__concat_R2_trimmed.fastq.gz'
+    output:
+        '{path}/{sample}_Aligned.sortedByCoord.out.bam'
+    params:
+        prefix='{path}/{sample}_'
+    threads:
+        16
+    shell:
+        'STAR   --runThreadN {threads}  \
+                --genomeDir {input.ref} --readFilesIn {input.R1} {input.R2} \
+                --readFilesCommand zcat  \
+                --outFileNamePrefix {params.prefix}   \
+                --outSAMtype BAM SortedByCoordinate \
+                --twopassMode Basic  '
+
+
+# Merge all of the Aligned.sortedByCoord.out.bam files for Annotation (GTF) + Alignment (BAM) supplemented index.
+
+#  I could use a function to represent all of the input bam files from the samples.
+
+def sorted_bam_fns(wildcards):
+    files = expand('{path}/{sample}_Aligned.sortedByCoord.out.bam', path = sample_dir, sample = sample_names)
+    return files
+
+
+rule merge_bam:
+    input:
+        sorted_bam_fns
+    output:
+        '{path}/Aligned.sortedByCoord.out.merged.rep1.bam'
+    threads:        
+        8
+    shell:
+        'samtools merge {output} {input}'
+
+
+# Remove duplicates in the merged bam file
+
+rule rmdup_call:
+    input:
+        '{path}/merged_replicate1__Aligned.sortedByCoord.out.bam'
+    output:
+        '{path}/merged_replicate1_rmdup__Aligned.sortedByCoord.out.bam'
+    threads:
+        2
+    shell:
+        'samtools rmdup {input} {output}'
+
+# index the above file
+
+rule index_call:
+    input:
+        '{path}/merged_replicate1_rmdup__Aligned.sortedByCoord.out.bam'
+    output:
+        '{path}/merged_replicate1_rmdup__Aligned.sortedByCoord.out.bam.bai'
+    shell:
+        'samtools index {input}'
