@@ -1,0 +1,31 @@
+'''
+This Snakefile will try to run Whippet on scc using singularity image
+* Build index using bam file
+* Quantify the PE reads
+
+'''
+
+sample_dir = '../../samples/replicate1'
+
+sample_names = json.load(open('../samples.json')).keys()
+
+rule all:
+    input:
+        
+
+
+rule build_whippet_index:
+    input:
+        dna='/usr4/bs831/adai/bubhub-home/newFlynn/flynn_altstatus/reference/v27/GRCh38.primary_assembly.genome.fa',
+        gtf='/usr4/bs831/adai/bubhub-home/newFlynn/flynn_altstatus/reference/v27/gencode.v27.annotation.gtf',
+        bam='../../samples/replicate1/Aligned.sortedByCoord.out.merged.rep1.rmdup.bam'
+    output:
+        '/usr4/bs831/adai/.julia/v0.6/Whippet/index/graph.jls'
+    shell:
+        'singularity run  --bind /usr4:/usr4 --bind /restricted:/restricted \
+            /restricted/projectnb/flynngrp/adai/singularity.images/julia/julia.simg \
+            /usr4/bs831/adai/.julia/v0.6/Whippet/bin/whippet-index.jl \
+            --fasta {input.dna} \
+            --bam {input.bam} \
+            --gtf {input.gtf} \
+            --suppress-low-tsl --bam-both-novel '
