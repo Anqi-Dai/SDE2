@@ -1,0 +1,47 @@
+'''
+This Snakefile will try to run Whippet on my local mac
+* Build index using gtf only(the bam file option is not mature enough)
+* Quantify the PE reads
+
+'''
+
+import json
+
+abs_local_whippet_dir = '/Users/angelD/.julia/v0.6/Whippet'
+sample_dir = '../../samples/replicate1'
+sample_names = json.load(open('../samples.json')).keys()
+
+rule all:
+    input:
+        expand('{sample_dir}/{sample_names}__concat_R1_trimmed.psi.gz', sample_dir = sample_dir, sample_names = ['RF-14-2'])
+        
+# build index without the bam file, cuz the bam option is not very mature
+
+rule build_index:
+    input:
+        dna='../../reference/v29/hg38.fa.gz',
+        gtf='../../reference/v29/gencode.v29.annotation.gtf.gz'
+    output:
+        abs_local_whippet_dir+'/index/graph.jls'
+    shell:
+        '''
+        /Applications/Julia-0.6.app/Contents/Resources/julia/bin/julia  \
+        /Users/angelD/.julia/v0.6/Whippet/bin/whippet-index.jl \
+        --fasta {input.dna} \
+        --gtf {input.gtf} \
+        --suppress-low-tsl  
+        '''
+
+
+rule quant_PE_reads:
+    input:
+        R1='{sample_dir}/{sample_names}__concat_R1_trimmed.fastq.gz',
+        R2='{sample_dir}/{sample_names}__concat_R2_trimmed.fastq.gz'
+    output:
+        '{sample_dir}/{sample_names}__concat_R1_trimmed.psi.gz' 
+    shell:
+        '''
+        /Applications/Julia-0.6.app/Contents/Resources/julia/bin/julia \
+        /Users/angelD/.julia/v0.6/Whippet/bin/whippet-quant.jl \
+        {input.R1} {input.R2} 
+        '''
