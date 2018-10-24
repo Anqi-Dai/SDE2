@@ -1,9 +1,14 @@
 '''
 This Snakefile will try to run Whippet on scc using singularity image
-* Build index using bam file
+* Build index using gtf only(since bam is not working at the current time due to some software bug)
 * Quantify the PE reads
-
+* using delta to compare the difference between samples
 '''
+
+import os
+
+dna = os.path.realpath('../../reference/v27/GRCh38.primary_assembly.genome.fa')
+gtf=os.path.realpath('../../reference/v27/gencode.v27.annotation.gtf')
 
 sample_dir = '../../samples/replicate1'
 
@@ -11,21 +16,38 @@ sample_names = json.load(open('../samples.json')).keys()
 
 rule all:
     input:
-        
+        '/usr4/bs831/adai/.julia/v0.6/Whippet/index/graph.jls'
 
+# Build index for whippet using gtf only
 
 rule build_whippet_index:
     input:
-        dna='/usr4/bs831/adai/bubhub-home/newFlynn/flynn_altstatus/reference/v27/GRCh38.primary_assembly.genome.fa',
-        gtf='/usr4/bs831/adai/bubhub-home/newFlynn/flynn_altstatus/reference/v27/gencode.v27.annotation.gtf',
-        bam='../../samples/replicate1/Aligned.sortedByCoord.out.merged.rep1.rmdup.bam'
+        dna=dna,
+        gtf=gtf
     output:
         '/usr4/bs831/adai/.julia/v0.6/Whippet/index/graph.jls'
     shell:
-        'singularity run  --bind /usr4:/usr4 --bind /restricted:/restricted \
-            /restricted/projectnb/flynngrp/adai/singularity.images/julia/julia.simg \
+        'singularity run  --bind /usr4:/usr4,/restricted:/restricted,/projectnb:/projectnb \
+            /projectnb/bubhub/singularity/julia.simg \
             /usr4/bs831/adai/.julia/v0.6/Whippet/bin/whippet-index.jl \
             --fasta {input.dna} \
-            --bam {input.bam} \
-            --gtf {input.gtf} \
-            --suppress-low-tsl --bam-both-novel '
+            --gtf {input.gtf}  --suppress-low-tsl '
+
+
+# Quantify the PE reads with whippet
+
+rule quant_PE_reads:
+    input:
+        R1='{sample_dir}/{sample_names}__concat_R1_trimmed.fastq.gz',
+        R2='{sample_dir}/{sample_names}__concat_R2_trimmed.fastq.gz'
+    output:
+        '{sample_dir}/{sample_names}_output.gene.tpm.gz'
+    params:
+        prefix='{sample_dir}/{sample_names}_'
+    shell:
+        'singularity run  --bind /usr4:/usr4,/restricted:/restricted,/projectnb:/projectnb \
+            /projectnb/bubhub/singularity/julia.simg \
+            /usr4/bs831/adai/.julia/v0.6/Whippet/bin/whippet-quant.jl \
+            {input.R1} {input.R2} \
+            -o {params.prefix} '
+
