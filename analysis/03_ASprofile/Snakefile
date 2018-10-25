@@ -84,9 +84,10 @@ rule delta_call_14_cntrl:
         singularity run  --bind /usr4:/usr4,/restricted:/restricted,/projectnb:/projectnb \
             /projectnb/bubhub/singularity/whippet.simg delta \
             -d {sample_dir}   -a  RF-14   -b  RF-Control
+             -o {params.prefix}
         '''
 
-rule output_14)cntrl::
+rule output_14_cntrl:
     input:
         expand('{sample_dir}/RF14_vs_cntrl_output.diff.gz', sample_dir = sample_dir)        
 
@@ -106,6 +107,7 @@ rule delta_call_89_cntrl:
         singularity run  --bind /usr4:/usr4,/restricted:/restricted,/projectnb:/projectnb \
             /projectnb/bubhub/singularity/whippet.simg delta \
             -d {sample_dir}   -a  RF-89   -b  RF-Control
+             -o {params.prefix}
         '''
 
 rule output_89_cntrl:
@@ -129,6 +131,7 @@ rule delta_call_89_14:
         singularity run  --bind /usr4:/usr4,/restricted:/restricted,/projectnb:/projectnb \
             /projectnb/bubhub/singularity/whippet.simg delta \
             -d {sample_dir}   -a  RF-89   -b  RF-14
+             -o {params.prefix}
         '''
 
 rule output_89_14:
