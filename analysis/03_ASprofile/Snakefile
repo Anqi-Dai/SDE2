@@ -4,7 +4,7 @@ This Snakefile will try to run Whippet on scc using singularity image
 * Quantify the PE reads
 * using delta to compare the difference between samples
 '''
-
+from glob import glob
 import os
 
 dna = os.path.realpath('../../reference/v27/GRCh38.primary_assembly.genome.fa')
@@ -16,7 +16,8 @@ sample_names = json.load(open('../samples.json')).keys()
 
 rule all:
     input:
-        '/usr4/bs831/adai/.julia/v0.6/Whippet/index/graph.jls'
+        sample_dir+'/rf89_vs_cntrl_output.diff.gz', sample_dir+'/rf89_vs_14_output.diff.gz', sample_dir+'/RF14_vs_cntrl_output.diff.gz'
+
 
 # Build index for whippet using gtf only
 
@@ -43,11 +44,95 @@ rule quant_PE_reads:
     output:
         '{sample_dir}/{sample_names}_output.gene.tpm.gz'
     params:
-        prefix='{sample_dir}/{sample_names}_'
+        prefix='{sample_dir}/{sample_names}_output'
     shell:
         'singularity run  --bind /usr4:/usr4,/restricted:/restricted,/projectnb:/projectnb \
             /projectnb/bubhub/singularity/julia.simg \
             /usr4/bs831/adai/.julia/v0.6/Whippet/bin/whippet-quant.jl \
             {input.R1} {input.R2} \
             -o {params.prefix} '
+
+
+# Compare multiple psi files using delta.jl
+
+# using functions to glob the psi.gz files for each SAMPLE
+
+def psi_14(wildcards):
+    return glob('{}/RF-14*psi.gz'.format(wildcards.sample_dir))
+
+def psi_89(wildcards):
+    return glob('{}/RF-89*psi.gz'.format(wildcards.sample_dir))
+
+def psi_cntrl(wildcards):
+    return glob('{}/RF-Control*psi.gz'.format(wildcards.sample_dir))
+
+
+########################
+### compare 14 VS control
+#######################
+
+rule delta_call_14_cntrl:
+    input:
+        RF14=psi_14,
+        RFcntrl=psi_cntrl
+    output:
+        '{sample_dir}/RF14_vs_cntrl_output.diff.gz'
+    params:
+        prefix='{sample_dir}/RF14_vs_cntrl_output'
+    shell:
+        '''
+        singularity run  --bind /usr4:/usr4,/restricted:/restricted,/projectnb:/projectnb \
+            /projectnb/bubhub/singularity/whippet.simg delta \
+            -d {sample_dir}   -a  RF-14   -b  RF-Control
+        '''
+
+rule output_14)cntrl::
+    input:
+        expand('{sample_dir}/RF14_vs_cntrl_output.diff.gz', sample_dir = sample_dir)        
+
+###########################
+###  compare 89 VS control
+##########################
+rule delta_call_89_cntrl:
+    input:
+        psi_89,
+        psi_cntrl
+    output:
+        '{sample_dir}/rf89_vs_cntrl_output.diff.gz' 
+    params:
+        prefix='{sample_dir}/rf89_vs_cntrl_output'
+    shell:
+        '''
+        singularity run  --bind /usr4:/usr4,/restricted:/restricted,/projectnb:/projectnb \
+            /projectnb/bubhub/singularity/whippet.simg delta \
+            -d {sample_dir}   -a  RF-89   -b  RF-Control
+        '''
+
+rule output_89_cntrl:
+    input:
+        sample_dir+'/rf89_vs_cntrl_output.diff.gz'
+
+####################
+### compare 14 VS 89
+###################
+
+rule delta_call_89_14:
+    input:
+        psi_89,
+        psi_14
+    output:
+        '{sample_dir}/rf89_vs_14_output.diff.gz' 
+    params:
+        prefix='{sample_dir}/rf89_vs_14_output'
+    shell:
+        '''
+        singularity run  --bind /usr4:/usr4,/restricted:/restricted,/projectnb:/projectnb \
+            /projectnb/bubhub/singularity/whippet.simg delta \
+            -d {sample_dir}   -a  RF-89   -b  RF-14
+        '''
+
+rule output_89_14:
+    input:
+        sample_dir+'/rf89_vs_14_output.diff.gz'
+
 
