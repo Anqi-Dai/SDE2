@@ -19,7 +19,7 @@ sample_names = file.keys()
 
 rule all:
     input:
-        expand('{path}/Aligned.sortedByCoord.out.merged.rep1.rmdup.bam', path = sample_dir)
+        expand('{path}/{sample}_genome_ave_coverage.txt', path = sample_dir, sample = sample_names)
 
 
 
@@ -115,8 +115,21 @@ rule rmdup_call:
 
 rule index_call:
     input:
-        '{path}/merged_replicate1_rmdup__Aligned.sortedByCoord.out.bam'
+        '{path}/Aligned.sortedByCoord.out.merged.rep1.rmdup.bam'
     output:
-        '{path}/merged_replicate1_rmdup__Aligned.sortedByCoord.out.bam.bai'
+        '{path}/Aligned.sortedByCoord.out.merged.rep1.rmdup.bam.bai'
     shell:
         'samtools index {input}'
+
+
+# Get the genome wise average coverage for every sample's alignment.
+
+rule samtools_depth_call:
+    input:
+        '{path}/{sample}_Aligned.sortedByCoord.out.bam'
+    output:
+        '{path}/{sample}_genome_ave_coverage.txt'
+    shell:
+        '''
+        samtools depth -a {input} |  awk '{{sum+=$3}} END {{ print "Average = ",sum/NR}}'
+        '''
