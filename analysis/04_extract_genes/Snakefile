@@ -1,0 +1,51 @@
+##########################################################################################
+# Extract interesting genes from STAR  alignment file
+# for visualization in IGV
+##########################################################################################
+
+import json
+
+
+# Globals ---------------------------------------------------------------------
+
+# Sample names
+FILES = json.load(open('../samples.json'))
+SAMPLES = sorted(FILES.keys())
+
+# The samples directory
+sample_dir = '../../samples/replicate1'
+
+# Rules -----------------------------------------------------------------------
+
+rule all:
+    input:
+        expand('{path}/{sample}_interesting_genes.bam.bai', path = sample_dir, sample = SAMPLES)
+
+
+# extract bam of the target genes
+
+rule extract_run:
+    input:
+        bamfile='{path}/{sample}_Aligned.sortedByCoord.out.bam',
+        BED='picked_AS_sig_genes.bed'
+    output:
+        '{path}/{sample}_interesting_genes.bam'
+    threads:
+        4
+    shell:
+        'samtools view -b {input.bamfile} -L {input.BED}  -@ {threads} > {output}'
+
+
+
+#index the above extracted bam file
+
+rule extract_index:
+    input:
+        '{path}/{sample}_interesting_genes.bam'
+    output:
+        '{path}/{sample}_interesting_genes.bam.bai'
+    shell:
+        'samtools index {input}'
+
+
+
