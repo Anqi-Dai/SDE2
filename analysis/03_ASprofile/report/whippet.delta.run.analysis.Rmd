@@ -1,0 +1,483 @@
+---
+title: "Whippet analysis results on Alternative Splicing profiles difference in RF14 VS control and RF89 VS control"
+mainfont: Calibri Light 
+author: Angel
+output:
+  html_document:
+    df_print: paged
+    toc: true
+    theme: united
+    code_folding: hide
+---
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning = FALSE)
+```
+
+```{r, message=FALSE }
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+library(grDevices)
+library(RColorBrewer)
+library(VennDiagram)
+```
+
+```{r}
+knitr::include_graphics("../data/node_type_example.gif")
+```
+
+## Node type and its interpretation
+
+* CE: Core exon, which may be bounded by one or more alternative AA/AD nodes
+* AA: Alternative Acceptor splice site
+* AD: Alternative Donor splice site
+* RI: Retained intron
+* TS: Tandem transcription start site
+* TE: Tandem alternative polyadenylation site
+* AF: Alternative First exon
+* AL: Alternative Last exon
+
+
+
+
+```{r}
+# diff files load
+RF14.ctrl.fn <- '../../../samples/replicate1/RF14_vs_cntrl_output.diff'
+RF89.ctrl.fn <- '../../../samples/replicate1/RF89_vs_cntrl_output.diff'
+
+# the feature infomation table
+featureInfo <-  read_csv('../data/feature_info_for_SDE2.csv', col_types = 'cccciic') %>%
+  rename(Gene = ensembl_gene_id)
+```
+
+```{r}
+# trying to see which probability threshold will allow me to see all of the validated IR genes.
+
+validated <- featureInfo %>%
+  filter(external_gene_name %in% c('KIFC2','PARP10','RFX5','ULK3')) %>%
+  dplyr::select(Gene) %>%
+  left_join(ALL, by = 'Gene') %>%
+  filter(Type == "RI")
+
+# It appears only 2 of them have RI events detected by Whippet regardless of the probability threshold.
+```
+
+
+```{r, message=FALSE, warning=FALSE}
+#14
+RF14.ctrl <- read_tsv(RF14.ctrl.fn) %>%
+  mutate(absDeltaPsi = abs(DeltaPsi))
+
+# drop the . and digits after the .
+RF14.ctrl$Gene <- gsub('\\..+$', '', RF14.ctrl$Gene)
+
+# 89
+RF89.ctrl <- read_tsv(RF89.ctrl.fn) %>%
+  mutate(absDeltaPsi = abs(DeltaPsi))
+
+# drop the . and digits after the .
+RF89.ctrl$Gene <- gsub('\\..+$', '', RF89.ctrl$Gene)
+
+```
+
+
+
+
+##  Histogram of # of events by probability in total
+
+Probability: the probability that there is some change in deltaPsi given the read depth of the AS event.
+
+```{r}
+# 14 and 89 side by side
+# bind the two table together and set a Group variable
+ALL <- bind_rows(
+    RF14.ctrl %>%
+      mutate(Group = 'RF14.ctrl') ,
+    RF89.ctrl %>%
+      mutate(Group = 'RF89.ctrl')) %>%
+  mutate(Group = factor(Group))
+```
+
+```{r}
+All.prob.hist <- ALL %>%
+  ggplot(aes(Probability)) +
+  geom_histogram() +
+  facet_wrap(~Group) +
+  labs(title = 'Histogram of number of events by probability')
+suppressMessages(print(All.prob.hist))
+```
+
+
+##  Histogram of DeltaPSI for p>0.9
+
+Between the set of replicates from two SAMPLES for example in this case RF-14 and RF-control whippet outputs a mean Psi for RF-14 (all three replicates included)  and mean Psi for RF-control. It also outputs the mean deltaPsi (Psi_14 - Psi_control).
+
+```{r}
+#  number of events in two groups
+ALL %>%
+  filter(Probability > 0.9) %>%
+  group_by(Group) %>%
+  summarise(count = n()) %>%
+  kable() %>%
+  kable_styling(full_width = F)
+
+All.high.prob.hist <- ALL %>%
+  filter(Probability > 0.9) %>%
+  ggplot(aes(DeltaPsi)) +
+  geom_histogram(binwidth = 0.01) +
+  facet_wrap(~Group) +
+  labs(title = 'Histogram of delta PSI (P > 0.9))')
+
+suppressMessages(print(All.high.prob.hist))
+```
+
+# Get the significant events (*Temporarily set the abs Delta PSI threshold to 0.1 (suggested by the author)*)
+
+```{r}
+ALL.sig <- ALL %>%
+  filter(absDeltaPsi > 0.1 & Probability > 0.9 & Psi_A > 0.1) 
+```
+
+
+##  Pie chart of all types for p>0.9 in SIGNIFICANT genes
+
+```{r}
+# bind the color with the type
+# but let the color change every time it runs
+colorPal <- data.frame(Type = as.character(names(table(ALL.sig$Type))), Color =brewer.pal(n = 8, name = "Dark2") ) %>% mutate(Color = as.character(Color), Type = as.character(Type))
+
+
+ALL.sig.piedf <- ALL.sig %>%
+            group_by(Group, Type) %>%
+            summarise(count = n())%>%
+            mutate(perc = paste0(round((count / sum(count)) * 100), '%') ) %>%
+            left_join(colorPal, by = 'Type') %>%
+            mutate(lbl = paste(Type, perc , sep = ' '))
+  
+# 14
+ALL.sig.piedf.14 <- ALL.sig.piedf %>% filter(Group == 'RF14.ctrl')
+
+pie(ALL.sig.piedf.14$count,labels = ALL.sig.piedf.14$lbl, col= ALL.sig.piedf.14$Color, main = 'Pie chart of all splicing types for p > 0.9 in SIG genes for RF14.ctrl')
+
+
+#piedf <- piedf[sample(nrow(piedf), nrow(piedf)),]
+
+# 89 
+ALL.sig.piedf.89 <- ALL.sig.piedf %>% filter(Group == 'RF89.ctrl')
+
+pie(ALL.sig.piedf.89$count,labels = ALL.sig.piedf.89$lbl, col= ALL.sig.piedf.89$Color, main = 'Pie chart of all splicing types for p > 0.9 in SIG genes for RF89.ctrl')
+```
+
+##  Pie chart of 'internal' splicing types for p>0.9
+
+'Internal' splicing types: excluding TS and TE since they may be false positives, due to 5' and 3' bias.
+
+
+```{r internal}
+
+ALL.sig.piedf.internal <- ALL.sig %>%
+            filter(!Type %in% c('TS', 'TE') ) %>%
+            group_by(Group, Type) %>%
+            summarise(count = n())%>%
+            mutate(perc = paste0(round((count / sum(count)) * 100), '%') ) %>%
+            left_join(colorPal, by = 'Type') %>%
+            mutate(lbl = paste(Type, perc , sep = ' '))
+  
+# 14
+ALL.sig.piedf.14 <- ALL.sig.piedf.internal %>% filter(Group == 'RF14.ctrl')
+
+pie(ALL.sig.piedf.14$count,labels = ALL.sig.piedf.14$lbl, col= ALL.sig.piedf.14$Color, main = 'Pie chart of internal splicing types for p > 0.9 in SIG genes for RF14.ctrl')
+
+
+#piedf <- piedf[sample(nrow(piedf), nrow(piedf)),]
+
+# 89 
+ALL.sig.piedf.89 <- ALL.sig.piedf.internal %>% filter(Group == 'RF89.ctrl')
+
+pie(ALL.sig.piedf.89$count,labels = ALL.sig.piedf.89$lbl, col= ALL.sig.piedf.89$Color, main = 'Pie chart of internal splicing types for p > 0.9 in SIG genes for RF89.ctrl')
+```
+
+##  Cross reference the IR events from Whippet with those from IRFinder
+
+### RF14.ctrl
+
+```{r}
+RF14.ctrl.sig <- RF14.ctrl %>%
+  filter(absDeltaPsi > 0.1 & Probability > 0.9) 
+
+# get the ensemble gene id of those genes THAT HAVE RI EVENTS (DON'T FORGET THIS)
+RF14.ctrl.sig.gene <- RF14.ctrl.sig %>%
+  filter(Type == 'RI') %>%
+  group_by(Gene) %>%
+  summarise(count = n()) %>%
+  dplyr::select(Gene) %>%
+  unlist() %>%
+  unname()
+```
+
+```{r}
+# loading the IRfinder's DE result
+IRfin <- read_csv('../data/IRFinder/IRFinder-DE.csv')
+```
+
+```{r }
+# drawing venn diagram to see the overlap of the two results
+diff_list <- list(IRfinder = IRfin$ensgene,
+                  Whippet = RF14.ctrl.sig.gene)
+
+fill <- c("light blue", "pink")
+size  <- rep(0.5, 2)
+venn <- venn.diagram(x = diff_list, 
+      filename = NULL,
+      height = 2000,
+      width = 2000, fill = fill,
+      cat.default.pos = "text", 
+      cat.cex = size,
+      main = "Overlap of Sig genes between IRfinder and Whippet(RF14.ctrl)");
+png('../figs/RF14_ctrl.overlap.whi.delta01.irfinder.IR.png', width = 4, height = 4, units = 'in', res = 300)
+grid.draw(venn)
+dev.off()
+
+```
+```{r, out.width = "400px"}
+knitr::include_graphics("../figs/RF14_ctrl.overlap.whi.delta01.irfinder.IR.png")
+```
+
+### RF89.ctrl
+
+```{r}
+RF89.ctrl.sig <- RF89.ctrl %>%
+  filter(absDeltaPsi > 0.1 & Probability > 0.9) 
+
+# get the ensemble gene id of those genes THAT HAVE RI EVENTS (DON'T FORGET THIS)
+RF89.ctrl.sig.gene <- RF89.ctrl.sig %>%
+  filter(Type == 'RI') %>%
+  group_by(Gene) %>%
+  summarise(count = n()) %>%
+  dplyr::select(Gene) %>%
+  unlist() %>%
+  unname()
+```
+
+
+```{r }
+# drawing venn diagram to see the overlap of the two results
+diff_list <- list(IRfinder = IRfin$ensgene,
+                  Whippet = RF89.ctrl.sig.gene)
+
+fill <- c("light blue", "pink")
+size  <- rep(0.5, 2)
+venn <- venn.diagram(x = diff_list, 
+      filename = NULL,
+      height = 2000,
+      width = 2000, fill = fill,
+      cat.default.pos = "text", 
+      cat.cex = size,
+      main = "Overlap of Signficant genes between IRfinder and Whippet(RF89.ctrl)");
+png('../figs/RF89_ctrl.overlap.whi.delta01.irfinder.IR.png', width = 4, height = 4, units = 'in', res = 300)
+grid.draw(venn)
+dev.off()
+
+```
+```{r, out.width='400px'}
+knitr::include_graphics('../figs/RF89_ctrl.overlap.whi.delta01.irfinder.IR.png')
+```
+
+It's hard to compare the overlap of the increased or decreased splicing events at gene's level, since one gene may have multiple splicing events.
+
+
+##  IGV screenshots for a couple of the most confident events, for a variety of different AS types
+
+###  Retianed Intron 
+
+```{r}
+# check the sig genes that have RI events 
+RF14.ctrl.RI <- RF14.ctrl.sig %>%
+  filter(Gene %in% RF14.ctrl.sig.gene & Type == 'RI') %>%
+  left_join(featureInfo, by = 'Gene') %>%
+  filter(Psi_A > 0.1)
+
+
+```
+
+```{r}
+# check the sig genes that have RI events 
+RF89.ctrl.RI <- RF89.ctrl.sig %>%
+  filter(Gene %in% RF89.ctrl.sig.gene & Type == 'RI') %>%
+  left_join(featureInfo, by = 'Gene') %>%
+  filter(Psi_A > 0.1)
+```
+
+```{r}
+# compare the RI of 89control and 14control
+# drawing venn diagram to see the overlap of the two results
+diff_list <- list(whi14control = RF14.ctrl.RI$Gene,
+                  whi89control = RF89.ctrl.RI$Gene)
+ 
+fill <- c("orange", "light green ")
+size  <- rep(0.5, 2)
+venn <- venn.diagram(x = diff_list, 
+      filename = NULL,
+      height = 2000,
+      width = 2000, fill = fill,
+      cat.default.pos = "text", 
+      cat.cex = size,
+      main = "Overlap of genes that have RI between 89cntrl and 14 cntrl");
+png('../figs/Overlap of genes that have RI between 89cntrl and 14 cntrl.png', width = 4, height = 4, units = 'in', res = 300)
+grid.draw(venn)
+dev.off()
+```
+
+```{r, out.width='400px'}
+knitr::include_graphics('../figs/Overlap of genes that have RI between 89cntrl and 14 cntrl.png')
+```
+
+
+### Other types
+
+```{r}
+extract_results <- function(df, splitype ) {
+  # to extract records of a certain type from a df
+  res = df %>%
+    filter(absDeltaPsi > 0.1 & Probability > 0.9 & Psi_A > 0.1)  %>%
+    filter(Type == splitype )
+}
+
+common_topN <- function(df14, df89, N) {
+  # find the top N common events between the two dfs
+  shared <- intersect(df14$Coord, df89$Coord)
+
+  # trying to merge the two tables together
+ res <- bind_rows(
+    df14 %>%
+      filter(Coord %in% shared) %>%
+      mutate(Group = 'RF14.ctrl') ,
+    df89 %>%
+      filter(Coord %in% shared) %>%
+      mutate(Group = 'RF89.ctrl')) %>%
+      dplyr::select(Gene, Coord, Psi_A, Psi_B, DeltaPsi, Group) %>%
+      mutate(Group = factor(Group))  %>%
+      dplyr::select(Gene, Coord, DeltaPsi, Group) %>%
+      spread(Group,  DeltaPsi) %>%
+      mutate(meanDelta = (RF14.ctrl+ RF89.ctrl)/2) %>%
+      arrange(desc(abs(meanDelta))) %>%
+      top_n(N) 
+}
+
+returntopN <- function(df14, df89, splitype, N){
+  # return the final df
+  return(common_topN(extract_results(df14, splitype = splitype) , 
+                     extract_results(df89, splitype = splitype) , 
+                     100))
+}
+```
+
+
+
+```{r}
+# for AA
+AA.df <- returntopN(RF14.ctrl, RF89.ctrl, 'AA', 100) %>%
+  mutate(Type = 'AA')
+# for RI
+RI.df <- returntopN(RF14.ctrl, RF89.ctrl, 'RI', 100) %>%
+  mutate(Type = 'RI')
+# for AD
+AD.df <- returntopN(RF14.ctrl, RF89.ctrl, 'AD', 100)%>%
+  mutate(Type = 'AD')
+# for CE
+CE.df <- returntopN(RF14.ctrl, RF89.ctrl, 'CE', 100)%>%
+  mutate(Type = 'CE')
+# for AL
+AL.df <- returntopN(RF14.ctrl, RF89.ctrl, 'AL', 100)%>%
+  mutate(Type = 'AL')
+# for AF
+AF.df <- returntopN(RF14.ctrl, RF89.ctrl, 'AF', 100)%>%
+  mutate(Type = 'AF')
+# for TS
+TS.df <- returntopN(RF14.ctrl, RF89.ctrl, 'TS', 100)%>%
+  mutate(Type = 'TS')
+# for TE
+TE.df <- returntopN(RF14.ctrl, RF89.ctrl, 'TE', 100)%>%
+  mutate(Type = 'TE')
+```
+
+
+```{r}
+# bind the df of above together and output the total df as the top 100 of each category and shared by both comparisons with feature information shown
+AS.top <- bind_rows(AA.df,
+                    RI.df,
+                    AD.df,
+                    CE.df,
+                    AL.df,
+                    AF.df,
+                    TS.df,
+                    TE.df) %>%
+  mutate(Type = factor(Type))  %>%
+  left_join(featureInfo %>%
+              dplyr::select(-hgnc_symbol), by = 'Gene') 
+
+write_csv(AS.top, '../output/top100.AS.events.shared.feature.csv')
+
+
+```
+
+
+```{r}
+# get the bed file of the picked genes
+RI.genes <- c('MDP1','HDAC6','TSTA3','ULK3','SGSM3')
+AA.genes <- c('BAZ2B', 'DGKZ', 'ENO2','ESRRA','COL26A1')
+AD.genes <- c('PRDM4', 'DCAF17','SPIN3', 'ARHGAP22', 'VDR')
+CE.genes <- c('AAMDC', 'PDPR', 'L3MBTL1', 'AACSP1', 'PABPC1L')
+AL.genes <- c('UNKL','MGST1','EVA1A','DCAF16','DST')
+AF.genes <- c('ARID3A','NFKB2','DZANK1','KATNAL1','STARD8')
+TS.genes <- c('RIOK3','NR1H3','PTPRJ','ZNF302','MORN4')
+TE.genes <- c('IQCE','SENP3','IGSF10','FAM182B','LIPE-AS1','ARID3A')
+
+picked.genes <- c(RI.genes,AA.genes, AD.genes, CE.genes,AL.genes, AF.genes,TS.genes,TE.genes)
+
+# output the bed file the chrom should be chr1...
+featureInfo %>%
+  filter(hgnc_symbol %in% picked.genes) %>%
+  filter(!duplicated(hgnc_symbol)) %>%
+  dplyr::select(chromosome_name, start_position, end_position, hgnc_symbol) %>%
+  mutate(chromosome_name = paste('chr', chromosome_name, sep='')) %>%
+  write_tsv('../output/picked_AS_sig_genes.bed', col_names = F)
+```
+
+
+```{r}
+# to show the 40 genes information in this report. there are more then 40 records in this table, because one gene may have multiple events.
+AS.top %>%
+  filter(external_gene_name %in% picked.genes) %>%
+  rename(Chrom = chromosome_name, Gene_name = external_gene_name, Start= start_position, End = end_position, GeneID = Gene) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+
+#### Using the above table's Coord column to make bed file for screenshots in igv
+
+```{r}
+AS.top %>%
+  filter(external_gene_name %in% picked.genes) %>%
+  dplyr::select(Coord, external_gene_name, Type, RF14.ctrl, RF89.ctrl) %>%
+  mutate(name = paste(Coord, Type, sep = '_'))  %>%
+  separate(Coord, into = c('chr', 'pos'), sep = ':') %>%
+  separate(pos , into =c('start', 'end'), sep = '-') %>%
+  dplyr::select(chr, start,end,  name, external_gene_name,RF14.ctrl, RF89.ctrl ) %>%
+  write_tsv('../output/picked.genes.for.screenshots.bed', col_names = F)
+```
+ 
+```{r}
+#How to create batch script for igv screenshots(in terminal)
+#bedToIgv -path ~/ -name -i ../output/picked.genes.for.screenshots.bed > sig.as.igv.batch
+```
+
+```{r}
+knitr::include_graphics('../figs/igv.screenshots/chr22_40407329_40407412_chr22:40407329-40407412_RI.png')
+```
+
+```{r}
+knitr::include_graphics('../figs/igv.screenshots/chr2_159448404_159448409_chr2:159448404-159448409_AA.png')
+```
+
