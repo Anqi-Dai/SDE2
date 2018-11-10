@@ -1,0 +1,84 @@
+'''
+This snakefile will do the following:
+Use IFfinder to identify the differentially retend introns when comparing KD vs control
+
+* Build reference for IRfinder
+* Map the reads to the reference and produce the bam file
+* Concat the unsorted bam file
+* Analyze using analysisWithLowReplicates.pl  
+'''
+
+from glob import glob
+import os
+
+# -----------------------------------------------------------
+
+sample_dir = '../../samples/replicate1'
+
+sample_names = json.load(open('../samples.json')).keys()
+
+DNA=os.path.realpath('ref/v27/genome.fa')
+GTF=os.path.realpath('ref/v27/transcripts.gtf')
+
+# -----------------------------------------------------------
+
+rule all:
+    input:
+        expand('{sample_dir}/{sample_names}_Aligned.out.bam', sample_dir = sample_dir, sample_names = sample_names)
+        
+# After ln -s the original DNA and gtf file to the designated folder, build index for IRfinder
+
+rule build_reference:
+    input:
+        DNA=DNA,
+        GTF=GTF
+    output:
+        directory('ref/v27/IRFinder')
+    shell:
+        '''
+        IRfinder_software/IRFinder-1.2.5/bin/IRFinder -m BuildRefProcess -r ref/v27
+        '''
+    
+
+# Algin the reads to the reference
+
+rule Align_reads:
+    input:
+        R1='{sample_dir}/{sample_names}__concat_R1_trimmed.fastq.gz',
+        R2='{sample_dir}/{sample_names}__concat_R2_trimmed.fastq.gz',
+        ref='ref/v27'
+    output:
+        '{sample_dir}/{sample_names}_Unsorted.bam'
+    params:
+        prefix='{sample_dir}/{sample_names}_'
+    threads:
+        8
+    shell:
+        '''
+        IRFinder -d  {params.prefix}  -s LoadAndKeep \
+         -u -t {threads}  -r {input.ref} {input.R1} {input.R2}
+        '''
+
+# Use STAR to align without sorting the bam
+
+rule STAR_noSort:
+    input:
+        ref='../../reference/v27/GENCODE_v27_star_index',
+        R1='{sample_dir}/{sample_names}__concat_R1_trimmed.fastq.gz',
+        R2='{sample_dir}/{sample_names}__concat_R2_trimmed.fastq.gz'
+    output:
+        '{sample_dir}/{sample_names}_Aligned.out.bam'
+    threads:
+        16
+    params:
+        prefix='{sample_dir}/{sample_names}_' 
+    shell:
+        'STAR   --runThreadN {threads}  \
+                --genomeDir {input.ref} --readFilesIn {input.R1} {input.R2} \
+                --readFilesCommand zcat  \
+                --outFileNamePrefix {params.prefix}   \
+                --outSAMtype BAM Unsorted \
+                --twopassMode Basic  '
+
+
+# 
