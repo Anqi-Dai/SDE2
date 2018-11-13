@@ -20,42 +20,52 @@ sample_names = json.load(open('../samples.json')).keys()
 DNA=os.path.realpath('ref/v27/genome.fa')
 GTF=os.path.realpath('ref/v27/transcripts.gtf')
 
+IRfinder_path = 'IRfinder_software/IRFinder-1.2.5/bin/IRFinder'
+
 # -----------------------------------------------------------
 
 rule all:
     input:
-        expand('{sample_dir}/{sample_names}_Aligned.out.bam', sample_dir = sample_dir, sample_names = sample_names)
-        
-# After ln -s the original DNA and gtf file to the designated folder, build index for IRfinder
+        expand('{sample_dir}/bam_IRfinder_result/{sample_names}/irfinder.stderr', sample_dir = sample_dir, sample_names = sample_names)
 
+#        expand('{sample_dir}/IRfinder_result/{sample_names}/Unsorted.bam', sample_dir = sample_dir, sample_names = sample_names)
+        
+
+
+# Build reference by downloading the GTF and associated genome from Ensembl 
+#  The IRfinder will use 32 cores to run this 
+'''
 rule build_reference:
     input:
-        DNA=DNA,
-        GTF=GTF
+        IRfinder_path=IRfinder_path
     output:
-        directory('ref/v27/IRFinder')
+        directory('REF/Human-hg38-release81')
+    threads:
+        32
     shell:
-        '''
-        IRfinder_software/IRFinder-1.2.5/bin/IRFinder -m BuildRefProcess -r ref/v27
-        '''
-    
+        '
+        {input.IRfinder_path} -m BuildRef -r REF/Human-hg38-release81 ftp://ftp.ensembl.org/pub/release-81/gtf/homo_sapiens/Homo_sapiens.GRCh38.81.gtf.gz
+        '
+'''    
 
 # Algin the reads to the reference
+#   so the file structure has to be like specified in the documentation
 
 rule Align_reads:
     input:
         R1='{sample_dir}/{sample_names}__concat_R1_trimmed.fastq.gz',
         R2='{sample_dir}/{sample_names}__concat_R2_trimmed.fastq.gz',
-        ref='ref/v27'
+        ref='REF/Human-hg38-release81',
+        IRpath=IRfinder_path
     output:
-        '{sample_dir}/{sample_names}_Unsorted.bam'
+        '{sample_dir}/IRfinder_result/{sample_names}/Unsorted.bam'
     params:
-        prefix='{sample_dir}/{sample_names}_'
+        prefix='{sample_dir}/IRfinder_result/{sample_names}/'
     threads:
-        8
+        16
     shell:
         '''
-        IRFinder -d  {params.prefix}  -s LoadAndKeep \
+        {input.IRpath} -d  {params.prefix}  -s LoadAndKeep \
          -u -t {threads}  -r {input.ref} {input.R1} {input.R2}
         '''
 
@@ -81,4 +91,33 @@ rule STAR_noSort:
                 --twopassMode Basic  '
 
 
-# 
+# Try quantify using the unsorted bam in the bam mode
+rule output:
+    input:
+        sample_dir+'/bam_IRfinder_result/RF14/Pooled/IRFinder-IR-dir.txt'
+
+def get_RF14_3replicates_unsorted_bam(wildcards):
+    return glob('{}/RF-14*_Aligned.out.bam'.format(wildcards.sample_dir))
+
+rule concate14:
+    input:
+        get_RF14_3replicates_unsorted_bam
+    output:
+        '{sample_dir}/RF14_concat3_unsorted.bam'
+    shell:
+        'samtools cat {input} -o {output}'
+
+
+rule quantify_with_bam_14:
+    input:
+        bam='{sample_dir}/RF14_concat3_unsorted.bam',
+        ref='REF/Human-hg38-release81',
+        IRpath=IRfinder_path
+    output:
+        '{sample_dir}/bam_IRfinder_result/RF14/Pooled/IRFinder-IR-dir.txt' 
+    threads:
+        8
+    params:
+        prefix='{sample_dir}/bam_IRfinder_result/RF14/Pooled/'
+    shell:
+        '{input.IRpath} -m BAM -r {input.ref} -d  {params.prefix} {input.bam}'    
