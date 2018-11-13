@@ -28,13 +28,11 @@ rule all:
     input:
         expand('{sample_dir}/IRfinder_result/{sample_names}/Unsorted.bam', sample_dir = sample_dir, sample_names = sample_names)
 
-#        expand('{sample_dir}/IRfinder_result/{sample_names}/Unsorted.bam', sample_dir = sample_dir, sample_names = sample_names)
-        
 
 
 # Build reference by downloading the GTF and associated genome from Ensembl 
 #  The IRfinder will use 32 cores to run this 
-'''
+
 rule build_reference:
     input:
         IRfinder_path=IRfinder_path
@@ -46,7 +44,7 @@ rule build_reference:
         '
         {input.IRfinder_path} -m BuildRef -r REF/Human-hg38-release81 ftp://ftp.ensembl.org/pub/release-81/gtf/homo_sapiens/Homo_sapiens.GRCh38.81.gtf.gz
         '
-'''    
+    
 
 # Algin the reads to the reference
 #   so the file structure has to be like specified in the documentation
@@ -70,58 +68,54 @@ rule Align_reads:
          -u -t {threads}  -r {input.ref} {input.R1} {input.R2}
         '''
 
-# Use STAR to align without sorting the bam
 
-rule STAR_noSort:
-    input:
-        ref='../../reference/v27/GENCODE_v27_star_index',
-        R1='{sample_dir}/{sample_names}__concat_R1_trimmed.fastq.gz',
-        R2='{sample_dir}/{sample_names}__concat_R2_trimmed.fastq.gz'
-    output:
-        '{sample_dir}/{sample_names}_Aligned.out.bam'
-    threads:
-        16
-    params:
-        prefix='{sample_dir}/{sample_names}_' 
-    shell:
-        'STAR   --runThreadN {threads}  \
-                --genomeDir {input.ref} --readFilesIn {input.R1} {input.R2} \
-                --readFilesCommand zcat  \
-                --outFileNamePrefix {params.prefix}   \
-                --outSAMtype BAM Unsorted \
-                --twopassMode Basic  '
-
-
-# Try quantify using the unsorted bam in the bam mode
-rule output:
-    input:
-        sample_dir+'/bam_IRfinder_result/RF14/Pooled/IRFinder-IR-dir.txt'
+# Differential IR analysis between conditions: Small Amounts of Replicates via Audic and Claverie Test
 
 def get_RF14_3replicates_unsorted_bam(wildcards):
-    return glob('{}/RF-14*_Aligned.out.bam'.format(wildcards.sample_dir))
+    return glob('{}/IRfinder_result/RF-14*/Unsorted.bam'.format(wildcards.sample_dir))
 
-rule concate14:
+def get_RF89_3replicates_unsorted_bam(wildcards):
+    return glob('{}/IRfinder_result/RF-89*/Unsorted.bam'.format(wildcards.sample_dir))
+
+def get_control_3replicates_unsorted_bam(wildcards):
+    return glob('{}/IRfinder_result/RF-Control*/Unsorted.bam'.format(wildcards.sample_dir))
+
+rule concate_them:
     input:
-        get_RF14_3replicates_unsorted_bam
+        RF14=get_RF14_3replicates_unsorted_bam,
+        RF89=get_RF89_3replicates_unsorted_bam,
+        RFctrl=get_control_3replicates_unsorted_bam
     output:
-        '{sample_dir}/RF14_concat3_unsorted.bam'
-    shell:
-        'samtools cat {input} -o {output}'
-
-
-rule quantify_with_bam_14:
-    input:
-        bam='{sample_dir}/RF14_concat3_unsorted.bam',
-        ref='REF/Human-hg38-release81',
-        IRpath=IRfinder_path
-    output:
-        '{sample_dir}/bam_IRfinder_result/RF14/Pooled/IRFinder-IR-dir.txt' 
+        out14='{sample_dir}/IRfinder_result/RF14_concat3_unsorted.bam',
+        out89='{sample_dir}/IRfinder_result/RF89_concat3_unsorted.bam',
+        outctrl='{sample_dir}/IRfinder_result/RFctrl_concat3_unsorted.bam'
     threads:
-        8
+        4
+    shell:
+        '''
+        samtools cat {input.RF14} -o {output.out14};
+        samtools cat {input.RF89} -o {output.out89} ;
+        samtools cat {input.RFctrl} -o {output.outctrl}
+        '''
+
+rule pooled_14:
+    input:
+        bam='{sample_dir}/IRfinder_result/RF14_concat3_unsorted.bam',
+        ref='REF/Human-hg38-release81',
+        IRpath=IRfinder_path 
+    output:
+        '{sample_dir}/IRfinder_result/Pooled_14/IRFinder-IR-dir.txt'
+    threads:
+        12
     params:
-        prefix='{sample_dir}/bam_IRfinder_result/RF14/Pooled/'
+        prefix='{sample_dir}/IRfinder_result/Pooled_14/'
     shell:
         '''
         export LD_LIBRARY_PATH=/projectnb/bubhub/conda_root/user_conda/adai/envs/flynn_altstatus/lib;
-        {input.IRpath} -m BAM -r {input.ref} -d  {params.prefix} {input.bam}
-        '''
+        {input.IRpath} -m BAM -r {input.ref} -d  {params.prefix} {input.bam} > {output}
+        '''    
+
+
+rule output:
+    input:
+        sample_dir+'/IRfinder_result/Pooled_14/IRFinder-IR-dir.txt'
