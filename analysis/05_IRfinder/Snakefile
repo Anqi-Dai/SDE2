@@ -21,43 +21,44 @@ DNA=os.path.realpath('ref/v27/genome.fa')
 GTF=os.path.realpath('ref/v27/transcripts.gtf')
 
 IRfinder_path = 'IRfinder_software/IRFinder-1.2.5/bin/IRFinder'
+Ref_dir = 'REF/Human-hg38'
 
 # -----------------------------------------------------------
 
 rule all:
     input:
-        expand('{sample_dir}/IRfinder_result/{sample_names}/Unsorted.bam', sample_dir = sample_dir, sample_names = sample_names)
+        sample_dir+'/IRfinder_result/RF89_vs_ctrl.txt', sample_dir+'/IRfinder_result/RF14_vs_ctrl.txt'
 
 
-
-# Build reference by downloading the GTF and associated genome from Ensembl 
+# Build reference by using the same genome and annotation file as Whippet so that I can cross reference later
 #  The IRfinder will use 32 cores to run this 
 
 rule build_reference:
     input:
         IRfinder_path=IRfinder_path
     output:
-        directory('REF/Human-hg38-release81')
+        directory('REF/Human-hg38/Mapability')
     threads:
         32
     shell:
         '''
-        {input.IRfinder_path} -m BuildRef \
-            -r REF/Human-hg38-release81 ftp://ftp.ensembl.org/pub/release-81/gtf/homo_sapiens/Homo_sapiens.GRCh38.81.gtf.gz
+        {input.IRfinder_path} -m BuildRefProcess  \
+            -r REF/Human-hg38        
         '''
     
 
-# Algin the reads to the reference
+# Align the reads to the reference through IRfinder, cuz I need the IRfinder part of the alignment result for the later IR differential analysis.
 #   so the file structure has to be like specified in the documentation
 
 rule Align_reads:
     input:
         R1='{sample_dir}/{sample_names}__concat_R1_trimmed.fastq.gz',
         R2='{sample_dir}/{sample_names}__concat_R2_trimmed.fastq.gz',
-        ref='REF/Human-hg38-release81',
+        ref='REF/Human-hg38',
         IRpath=IRfinder_path
     output:
-        '{sample_dir}/IRfinder_result/{sample_names}/Unsorted.bam'
+        bam='{sample_dir}/IRfinder_result/{sample_names}/Unsorted.bam',
+        txt='{sample_dir}/IRfinder_result/{sample_names}/IRFinder-IR-dir.txt'
     params:
         prefix='{sample_dir}/IRfinder_result/{sample_names}/'
     threads:
@@ -102,7 +103,7 @@ rule concate_them:
 rule pooled_14:
     input:
         bam='{sample_dir}/IRfinder_result/RF14_concat3_unsorted.bam',
-        ref='REF/Human-hg38-release81',
+        ref='REF/Human-hg38',
         IRpath=IRfinder_path 
     output:
         '{sample_dir}/IRfinder_result/Pooled_14/IRFinder-IR-dir.txt'
@@ -120,7 +121,7 @@ rule pooled_14:
 rule pooled_89:
     input:
         bam='{sample_dir}/IRfinder_result/RF89_concat3_unsorted.bam',
-        ref='REF/Human-hg38-release81',
+        ref='REF/Human-hg38',
         IRpath=IRfinder_path 
     output:
         '{sample_dir}/IRfinder_result/Pooled_89/IRFinder-IR-dir.txt'
@@ -138,7 +139,7 @@ rule pooled_89:
 rule pooled_ctrl:
     input:
         bam='{sample_dir}/IRfinder_result/RFctrl_concat3_unsorted.bam',
-        ref='REF/Human-hg38-release81',
+        ref='REF/Human-hg38',
         IRpath=IRfinder_path 
     output:
         '{sample_dir}/IRfinder_result/Pooled_ctrl/IRFinder-IR-dir.txt'
@@ -153,16 +154,6 @@ rule pooled_ctrl:
         '''    
 
 # Calling the comparison script to get the differential IR results
-
-def get_14_IRres(wildcards):
-    return glob('{}/IRfinder_result/RF-14-*/RFinder-IR-dir.txt'.format(wildcards.sample_dir))
-
-def get_89_IRres(wildcards):
-    return glob('{}/IRfinder_result/RF-89-*/RFinder-IR-dir.txt'.format(wildcards.sample_dir))
-
-def get_ctrl_IRres(wildcards):
-    return glob('{}/IRfinder_result/RF-Control-*/RFinder-IR-dir.txt'.format(wildcards.sample_dir))
-
 
 rule compare_IR_14vsctrl:
     input:
@@ -202,10 +193,5 @@ rule compare_IR_89vsctrl:
             -A {input.pooled_89} {input.RF89_1} {input.RF89_2} {input.RF89_3}  \
             -B {input.pooled_ctrl} {input.c1} {input.c2}  {input.c3}  > {output}
         '''
-
-
-rule output:
-    input:
-        sample_dir + '/IRfinder_result/RF14_vs_ctrl.txt', sample_dir + '/IRfinder_result/RF89_vs_ctrl.txt'
 
 
