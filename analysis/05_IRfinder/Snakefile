@@ -41,9 +41,10 @@ rule build_reference:
     threads:
         32
     shell:
-        '
-        {input.IRfinder_path} -m BuildRef -r REF/Human-hg38-release81 ftp://ftp.ensembl.org/pub/release-81/gtf/homo_sapiens/Homo_sapiens.GRCh38.81.gtf.gz
-        '
+        '''
+        {input.IRfinder_path} -m BuildRef \
+            -r REF/Human-hg38-release81 ftp://ftp.ensembl.org/pub/release-81/gtf/homo_sapiens/Homo_sapiens.GRCh38.81.gtf.gz
+        '''
     
 
 # Algin the reads to the reference
@@ -116,6 +117,95 @@ rule pooled_14:
         '''    
 
 
+rule pooled_89:
+    input:
+        bam='{sample_dir}/IRfinder_result/RF89_concat3_unsorted.bam',
+        ref='REF/Human-hg38-release81',
+        IRpath=IRfinder_path 
+    output:
+        '{sample_dir}/IRfinder_result/Pooled_89/IRFinder-IR-dir.txt'
+    threads:
+        12
+    params:
+        prefix='{sample_dir}/IRfinder_result/Pooled_89/'
+    shell:
+        '''
+        export LD_LIBRARY_PATH=/projectnb/bubhub/conda_root/user_conda/adai/envs/flynn_altstatus/lib;
+        {input.IRpath} -m BAM -r {input.ref} -d  {params.prefix} {input.bam} > {output}
+        '''    
+
+
+rule pooled_ctrl:
+    input:
+        bam='{sample_dir}/IRfinder_result/RFctrl_concat3_unsorted.bam',
+        ref='REF/Human-hg38-release81',
+        IRpath=IRfinder_path 
+    output:
+        '{sample_dir}/IRfinder_result/Pooled_ctrl/IRFinder-IR-dir.txt'
+    threads:
+        12
+    params:
+        prefix='{sample_dir}/IRfinder_result/Pooled_ctrl/'
+    shell:
+        '''
+        export LD_LIBRARY_PATH=/projectnb/bubhub/conda_root/user_conda/adai/envs/flynn_altstatus/lib;
+        {input.IRpath} -m BAM -r {input.ref} -d  {params.prefix} {input.bam} > {output}
+        '''    
+
+# Calling the comparison script to get the differential IR results
+
+def get_14_IRres(wildcards):
+    return glob('{}/IRfinder_result/RF-14-*/RFinder-IR-dir.txt'.format(wildcards.sample_dir))
+
+def get_89_IRres(wildcards):
+    return glob('{}/IRfinder_result/RF-89-*/RFinder-IR-dir.txt'.format(wildcards.sample_dir))
+
+def get_ctrl_IRres(wildcards):
+    return glob('{}/IRfinder_result/RF-Control-*/RFinder-IR-dir.txt'.format(wildcards.sample_dir))
+
+
+rule compare_IR_14vsctrl:
+    input:
+        pooled_14='{sample_dir}/IRfinder_result/Pooled_14/IRFinder-IR-dir.txt',
+        pooled_ctrl='{sample_dir}/IRfinder_result/Pooled_ctrl/IRFinder-IR-dir.txt',
+        RF14_1='{sample_dir}/IRfinder_result/RF-14-1/IRFinder-IR-dir.txt',
+        RF14_2='{sample_dir}/IRfinder_result/RF-14-2/IRFinder-IR-dir.txt',
+        RF14_3='{sample_dir}/IRfinder_result/RF-14-3/IRFinder-IR-dir.txt',
+        c1='{sample_dir}/IRfinder_result/RF-Control-1/IRFinder-IR-dir.txt',
+        c2='{sample_dir}/IRfinder_result/RF-Control-2/IRFinder-IR-dir.txt',
+        c3='{sample_dir}/IRfinder_result/RF-Control-3/IRFinder-IR-dir.txt'
+    output:
+        '{sample_dir}/IRfinder_result/RF14_vs_ctrl.txt'
+    shell:
+        '''
+        IRfinder_software/IRFinder-1.2.5/bin/analysisWithLowReplicates.pl  \
+            -A {input.pooled_14} {input.RF14_1} {input.RF14_2} {input.RF14_3}  \
+            -B {input.pooled_ctrl} {input.c1} {input.c2}  {input.c3} > {output}
+        '''
+
+
+rule compare_IR_89vsctrl:
+    input:
+        pooled_89='{sample_dir}/IRfinder_result/Pooled_89/IRFinder-IR-dir.txt',
+        pooled_ctrl='{sample_dir}/IRfinder_result/Pooled_ctrl/IRFinder-IR-dir.txt',
+        RF89_1='{sample_dir}/IRfinder_result/RF-89-1/IRFinder-IR-dir.txt',
+        RF89_2='{sample_dir}/IRfinder_result/RF-89-2/IRFinder-IR-dir.txt',
+        RF89_3='{sample_dir}/IRfinder_result/RF-89-3/IRFinder-IR-dir.txt',
+        c1='{sample_dir}/IRfinder_result/RF-Control-1/IRFinder-IR-dir.txt',
+        c2='{sample_dir}/IRfinder_result/RF-Control-2/IRFinder-IR-dir.txt',
+        c3='{sample_dir}/IRfinder_result/RF-Control-3/IRFinder-IR-dir.txt'
+    output:
+        '{sample_dir}/IRfinder_result/RF89_vs_ctrl.txt'
+    shell:
+        '''
+        IRfinder_software/IRFinder-1.2.5/bin/analysisWithLowReplicates.pl  \
+            -A {input.pooled_89} {input.RF89_1} {input.RF89_2} {input.RF89_3}  \
+            -B {input.pooled_ctrl} {input.c1} {input.c2}  {input.c3}  > {output}
+        '''
+
+
 rule output:
     input:
-        sample_dir+'/IRfinder_result/Pooled_14/IRFinder-IR-dir.txt'
+        sample_dir + '/IRfinder_result/RF14_vs_ctrl.txt', sample_dir + '/IRfinder_result/RF89_vs_ctrl.txt'
+
+
