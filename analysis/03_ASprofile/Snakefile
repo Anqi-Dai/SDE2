@@ -14,10 +14,11 @@ sample_dir = '../../samples/replicate1'
 
 sample_names = json.load(open('../samples.json')).keys()
 
+
 rule all:
     input:
-        sample_dir+'/rf89_vs_cntrl_output.diff.gz', sample_dir+'/rf89_vs_14_output.diff.gz', sample_dir+'/RF14_vs_cntrl_output.diff.gz'
-
+        #sample_dir+'/rf89_vs_cntrl_output.diff.gz', sample_dir+'/rf89_vs_14_output.diff.gz', sample_dir+'/RF14_vs_cntrl_output.diff.gz'
+        expand('{sample_dir}/{sample_names}_output.psi.gz', sample_dir = sample_dir, sample_names = sample_names)
 
 # Build index for whippet using gtf only
 
@@ -26,12 +27,14 @@ rule build_whippet_index:
         dna=dna,
         gtf=gtf
     output:
-        '/usr4/bs831/adai/.julia/v0.6/Whippet/index/graph.jls'
+        '/usr4/bs831/adai/bubhub-home/SDE2/analysis/03_ASprofile/ind/graph.exons.tab.gz'
+    params:
+        ind_prefix='/usr4/bs831/adai/bubhub-home/SDE2/analysis/03_ASprofile/ind/graph'
     shell:
         'singularity run  --bind /usr4:/usr4,/restricted:/restricted,/projectnb:/projectnb \
             /projectnb/bubhub/singularity/julia.simg \
             /usr4/bs831/adai/.julia/v0.6/Whippet/bin/whippet-index.jl \
-            --fasta {input.dna} \
+            -x {params.ind_prefix} --fasta {input.dna} \
             --gtf {input.gtf}  --suppress-low-tsl '
 
 
@@ -40,17 +43,19 @@ rule build_whippet_index:
 rule quant_PE_reads:
     input:
         R1='{sample_dir}/{sample_names}__concat_R1_trimmed.fastq.gz',
-        R2='{sample_dir}/{sample_names}__concat_R2_trimmed.fastq.gz'
+        R2='{sample_dir}/{sample_names}__concat_R2_trimmed.fastq.gz',
+        ind='/usr4/bs831/adai/bubhub-home/SDE2/analysis/03_ASprofile/ind/graph.exons.tab.gz'
     output:
-        '{sample_dir}/{sample_names}_output.gene.tpm.gz'
+        '{sample_dir}/{sample_names}_output.psi.gz'
     params:
-        prefix='{sample_dir}/{sample_names}_output'
+        output_prefix='{sample_dir}/{sample_names}_output',
+        ind_prefix='/usr4/bs831/adai/bubhub-home/SDE2/analysis/03_ASprofile/ind/graph'
     shell:
         'singularity run  --bind /usr4:/usr4,/restricted:/restricted,/projectnb:/projectnb \
             /projectnb/bubhub/singularity/julia.simg \
             /usr4/bs831/adai/.julia/v0.6/Whippet/bin/whippet-quant.jl \
-            {input.R1} {input.R2} \
-            -o {params.prefix} '
+            -x {params.ind_prefix} {input.R1} {input.R2} \
+            -o {params.output_prefix} '
 
 
 # Compare multiple psi files using delta.jl
