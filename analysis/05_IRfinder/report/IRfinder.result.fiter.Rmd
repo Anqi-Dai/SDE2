@@ -1,0 +1,148 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+## This report is about the IRfinder result of the 14-cntl and 89-cntl comparison filtering.
+
+```{r}
+library(tidyverse)
+library(VennDiagram)
+```
+
+```{r}
+# the non-filtered raw result of the 14 and 89
+res_all_14 <- read_tsv('../data/RF14_vs_ctrl.txt',comment = '#',col_names = T) %>%
+  mutate(Locus =paste(Chr,paste(Start, End, sep = '-'), sep = ':' ) )
+res_all_89 <- read_tsv('../data/RF89_vs_ctrl.txt',comment = '#',col_names = T) %>%
+  mutate(Locus =paste(Chr,paste(Start, End, sep = '-'), sep = ':' ) )
+
+
+# find the overlap between the raw result (without filtering)
+rawOL_locus  <- intersect(res_all_14$Locus, res_all_89$Locus)
+```
+
+```{r}
+# the filtering step that will turn into a function
+
+filterRawResult <- function(fn) {
+  df = read_tsv(fn,comment = '#',col_names = T) 
+  colnames(df) <- gsub('-', '_', colnames(df))
+  res = df  %>%
+    separate('Intron_GeneName/GeneID', into = c('Symbol', 'GeneID', 'Category'), sep = '/') %>%
+    # get rid of the . and digits after that in GeneID
+    mutate(GeneID = str_replace_all(string = GeneID, pattern = '\\..*$', replacement = '')) %>%
+    filter(! Category == 'known-exon') %>%
+    filter( A_IRok != 'MinorIsoform' &  B_IRok != 'MinorIsoform' ) %>%
+    mutate(padj = p.adjust(p_diff, method = 'BH')) %>%
+    filter(padj < 0.05) %>%
+    mutate(Locus =paste(Chr,paste(Start, End, sep = '-'), sep = ':' ) )
+  
+  return(res)
+}
+# these are the significant results from IRfinder  
+res14 <- filterRawResult('../data/RF14_vs_ctrl.txt')
+res89 <- filterRawResult('../data/RF89_vs_ctrl.txt')
+```
+
+```{r}
+# find the overlap between the two results
+OLlocus <- intersect(res14$Locus, res89$Locus)
+length(OLlocus)
+```
+```{r}
+# plot a venn diagram to show this overlap relationship (use all of the data, unfiltered result)
+
+diff_list <- list(RF14_cntrl_all = res14$Locus,
+                  RF89_cntrl_all = res89$Locus)
+fill <- c("orange", "light blue")
+size  <- rep(0.5, 2)
+venn <- venn.diagram(x = diff_list, 
+      filename = NULL,
+      height = 2000,
+      width = 2000, fill = fill,
+      cat.default.pos = "text", 
+      cat.cex = size,
+      main = "Overlapped locus of the RI between the two comparisons");
+png('../figs/Overlapped locus of the RI between the two comparisons.png', width = 4, height = 4, units = 'in', res = 300)
+grid.draw(venn)
+dev.off()
+```
+
+```{r, out.width = "400px"}
+knitr::include_graphics('../figs/Overlapped locus of the RI between the two comparisons.png')
+```
+
+
+```{r}
+# see in 14vsCtrl the length, locus, the TPM between the sig and non-sig ones.
+res14_view <- res_all_14 %>%
+  filter(Locus %in% rawOL_locus) %>%
+  mutate(Significance = if_else(Locus %in% OLlocus, TRUE, FALSE)) %>%
+  mutate(RI_len = abs(End-Start))
+  
+```
+
+```{r}
+# the summarised plot of the mean RI_len between the sig and non-sig
+res14_view %>%
+  ggbarplot(x = "Significance", y = "RI_len",
+            add = "mean_se", 
+            fill = 'gray',
+            #color = 'gray',
+            width = 0.5,
+            error.plot = "upper_errorbar",
+            ylab = 'Length of retained intron',
+            ylim = c(0, 2500), 
+            title = 'Len of RI in 14vsCtrl') + 
+  scale_y_continuous(expand = c(0, 0))  +
+  ggsave('../figs/Len of RI in 14vsCtrl between sig and non sig.jpg', width = 8, height = 8, dpi = 300)
+```
+
+```{r}
+# did the pooling all KD together myself using IRfinder
+pooledKD <- read_tsv('../data/myPooledKD/RFKD_vs_ctrl.txt',comment = '#',col_names = T) %>%
+  mutate(Locus =paste(Chr,paste(Start, End, sep = '-'), sep = ':' ) )
+```
+
+```{r}
+# plot a venn diagram to show this overlap relationship
+diff_list <- list(RF14_cntrl = res_all_14$Locus,
+                  RF89_cntrl = res_all_89$Locus,
+                  pooled_KD_all = pooledKD$Locus)
+fill <- c("orange", "light blue", 'pink')
+size  <- rep(0.5, 3)
+venn <- venn.diagram(x = diff_list, 
+      filename = NULL,
+      height = 2000,
+      width = 2000, fill = fill,
+      cat.default.pos = "text", 
+      cat.cex = size,
+      main = "Overlapped between the raw result of the locus between the pooled and separate");
+png('../figs/Overlapped between the raw result of the locus between the pooled and separate.png', width = 4, height = 4, units = 'in', res = 300)
+grid.draw(venn)
+dev.off()
+```
+
+```{r}
+# do the venn diagram of the filtered result
+pooledKD_fil <- filterRawResult('../data/myPooledKD/RFKD_vs_ctrl.txt')
+
+# venn
+diff_list <- list(RF14_cntrl = res14$Locus,
+                  RF89_cntrl = res89$Locus,
+                  pooled_KD_fil = pooledKD_fil$Locus)
+fill <- c("orange", "light blue", 'pink')
+size  <- rep(0.5, 3)
+venn <- venn.diagram(x = diff_list, 
+      filename = NULL,
+      height = 2000,
+      width = 2000, fill = fill,
+      cat.default.pos = "text", 
+      cat.cex = size,
+      main = "OL between the fitered result of the locus between the pooled and separate");
+png('../figs/OL between the fitered result of the locus between the pooled and separate.png', width = 4, height = 4, units = 'in', res = 300)
+grid.draw(venn)
+dev.off()
+```
+
