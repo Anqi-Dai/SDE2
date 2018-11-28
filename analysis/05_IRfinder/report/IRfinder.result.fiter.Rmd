@@ -1,14 +1,31 @@
 ---
-title: "R Notebook"
-output: html_notebook
+title: "IRfinder result analysis: 14 VS control and 89 VS control"
+mainfont: Calibri Light 
+author: Angel
+output:
+  html_document:
+    df_print: paged
+    toc: true
+    theme: united
+    code_folding: hide
+    tufte::tufte_html: default
 ---
 
-## This report is about the IRfinder result of the 14-cntl and 89-cntl comparison filtering.
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning = FALSE)
+```
+
+## Overview of the overlap.
 
 ```{r}
 library(tidyverse)
+library(ggpubr)
 library(VennDiagram)
+library(GenomicRanges)
+library(BSgenome)
+library(BSgenome.Hsapiens.NCBI.GRCh38)
 ```
+
 
 ```{r}
 # the non-filtered raw result of the 14 and 89
@@ -17,6 +34,7 @@ res_all_14 <- read_tsv('../data/RF14_vs_ctrl.txt',comment = '#',col_names = T) %
 res_all_89 <- read_tsv('../data/RF89_vs_ctrl.txt',comment = '#',col_names = T) %>%
   mutate(Locus =paste(Chr,paste(Start, End, sep = '-'), sep = ':' ) )
 
+colnames(res_all_14) <- gsub('-', '_', colnames(res_all_14))
 
 # find the overlap between the raw result (without filtering)
 rawOL_locus  <- intersect(res_all_14$Locus, res_all_89$Locus)
@@ -73,17 +91,20 @@ dev.off()
 knitr::include_graphics('../figs/Overlapped locus of the RI between the two comparisons.png')
 ```
 
+## The comparison between 14 and control
 
 ```{r}
 # see in 14vsCtrl the length, locus, the TPM between the sig and non-sig ones.
 res14_view <- res_all_14 %>%
   filter(Locus %in% rawOL_locus) %>%
   mutate(Significance = if_else(Locus %in% OLlocus, TRUE, FALSE)) %>%
-  mutate(RI_len = abs(End-Start))
+  mutate(RI_len = abs(End-Start)) %>%
+  separate('Intron_GeneName/GeneID', into = c('Symbol', 'GeneID', 'Category'), sep = '/') %>%
+  mutate(GeneID = str_replace_all(string = GeneID, pattern = '\\..*$', replacement = ''))  
   
 ```
 
-```{r}
+```{r barplot.IRlen}
 # the summarised plot of the mean RI_len between the sig and non-sig
 res14_view %>%
   ggbarplot(x = "Significance", y = "RI_len",
@@ -144,5 +165,127 @@ venn <- venn.diagram(x = diff_list,
 png('../figs/OL between the fitered result of the locus between the pooled and separate.png', width = 4, height = 4, units = 'in', res = 300)
 grid.draw(venn)
 dev.off()
+```
+
+### Compare the TPM
+
+```{r}
+cts <- read_csv('../data/meanTPM.genes.whippet.csv', col_types = 'cddd')
+
+res14_view <- res14_view %>%
+  left_join(cts, by = 'GeneID')
+```
+
+```{r}
+# make a faceted histogram of the tpm counts between the sig and non sig
+table(res14_view$Significance)
+
+res14_view %>%
+  dplyr::select(Significance, RF14, RFControl) %>%
+  ggplot(aes(RF14)) +
+  geom_histogram(bins = 100) +
+  facet_wrap(~Significance) +
+  scale_x_log10()
+
+
+res14_view %>%
+  dplyr::select(Significance, RF14, RFControl) %>%
+  ggboxplot(x = "Significance", y = c("RF14", 'RFControl'), combine = T,
+            ylim = c(0.5, 10000),
+            #add = "jitter",
+            color = "Significance", palette = 'lancet',
+            ylab = 'log10(mean TPM)',
+            xlab = 'Significance level'
+             ) + 
+  scale_y_log10() +
+  stat_compare_means(comparisons = list(c('TRUE', 'FALSE')))
+  
+```
+```{r} 
+# it would be interesting to see the TRUE in the 14 and control how would they compare
+res14_view %>%
+  dplyr::select(Significance, RF14, RFControl) %>%
+  filter(Significance) %>%
+  gather(key = Group, value = MeanTPM, RF14:RFControl) %>%
+  mutate(Group = factor(Group, levels = c('RFControl','RF14'))) %>%
+  ggboxplot(x = "Group", y = 'MeanTPM',
+            #ylim = c(0.5, 10000),
+            #add = "jitter",
+            color = "Group", palette = 'lancet',
+            title = 'mean TPM comparison in significant RI genes'
+            #ylab = 'log10(mean TPM)',
+            #xlab = 'Significance level'
+             ) + 
+  scale_y_log10() +
+  stat_compare_means(comparisons = list(c('RF14', 'RFControl'))) +
+  ggsave('../figs/mean TPM comparison in significant RI genes.png', width = 6, height = 5, dpi = 300)
+  
+```
+
+### Compare the GC content of the RI
+
+```{r}
+res14_GC <- res14_view %>%
+  select(Chr, Start, End, Direction, Significance)  %>%
+  mutate(Start = Start + 1, Chr = factor(Chr))
+
+genome <- BSgenome.Hsapiens.NCBI.GRCh38
+seqlevelsStyle(genome) = "UCSC"
+grange = makeGRangesFromDataFrame(res14_GC, seqnames.field=c("Chr"), start.field="Start",
+                                  end.field=c("End"), strand.field="Direction")
+seq = BSgenome::getSeq(genome, grange)
+
+res14_GC <- res14_GC %>%
+  mutate(Seq = as.character(seq))  %>%
+  mutate(GC = stringr::str_count(Seq, "G") + stringr::str_count(Seq, "C")) %>%
+  mutate(GC_per = GC / stringr::str_length(Seq) * 100)
+
+
+
+
+res14_GC %>%
+  ggboxplot(x = "Significance", y = 'GC_per',
+            #ylim = c(0.5, 10000),
+            #add = "jitter",
+            color = "Significance", palette = 'lancet',
+            xlab = 'Significance level',
+            ylab = 'GC%'
+             ) + 
+  stat_compare_means(comparisons = list(c('TRUE', 'FALSE')))
+```
+
+### The locus of the RI 
+
+Compare the proportion of the middle point of RI at the whole gene length
+
+```{r}
+featureInfo <- read.csv('../../03_ASprofile/data/feature_info_for_SDE2.csv', stringsAsFactors = F) %>%
+  dplyr::select(GeneID = ensembl_gene_id, start_position, end_position, description)
+
+# there are genes that I currently don't have feature info in this table
+res14_view_locus <- res14_view %>%
+  dplyr::select(Chr : GeneID, Significance) %>%
+  left_join(featureInfo, by = 'GeneID')  %>%
+  mutate(midRI = floor((Start+End)/2),
+         geneLen = end_position - start_position,
+         RI_prop = (midRI - start_position)/geneLen)
+
+# to visualize in histogram
+res14_view_locus %>%
+  filter(!is.na(RI_prop)) %>%
+  ggplot(aes(RI_prop)) +
+  geom_histogram(bins = 100) +
+  facet_wrap(~Significance)
+
+
+# to do a boxplot
+
+res14_view_locus %>%
+  filter(!is.na(RI_prop)) %>%
+  ggboxplot(x = 'Significance', y = 'RI_prop',
+            color = "Significance", palette = 'lancet',
+            #add = 'jitter',
+            title ='Locus of the RI in proportion to the gene length') +
+  stat_compare_means(comparisons = list(c('FALSE', 'TRUE'))) 
 ```
 
