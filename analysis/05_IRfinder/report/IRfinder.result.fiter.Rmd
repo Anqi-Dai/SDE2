@@ -46,6 +46,7 @@ rawOL_locus  <- intersect(res_all_14$Locus, res_all_89$Locus)
 * Remove records marked with "MinorIsoform" either in experiment or control. "MinorIsoform" indicates IRFinder has detected there is additional alternate-splicing occurring, as such the detection of intron-retention may be confounded by other changes in alternate splicing.
 * Adjust the P-value with BH method
 * Select the records with padj < 0.05
+** The Audic and Claverie test is used for low replicates situations (<= 3 replicates). The assumption is that the IR ratio (log transformed) follows a Poisson distribution**
 
 
 ```{r}
@@ -80,8 +81,8 @@ OLlocus <- intersect(res14$Locus, res89$Locus)
 ```{r}
 # plot a venn diagram to show this overlap relationship (use all of the data, unfiltered result)
 
-diff_list <- list(RF14_cntrl_all = res14$Locus,
-                  RF89_cntrl_all = res89$Locus)
+diff_list <- list(RF14_cntrl_sig = res14$Locus,
+                  RF89_cntrl_sig = res89$Locus)
 fill <- c("orange", "light blue")
 size  <- rep(0.5, 2)
 venn <- venn.diagram(x = diff_list, 
@@ -90,7 +91,7 @@ venn <- venn.diagram(x = diff_list,
       width = 2000, fill = fill,
       cat.default.pos = "text", 
       cat.cex = size,
-      main = "Overlapped locus of the RI between the two comparisons");
+      main = "Overlap of significant locus");
 png('../figs/Overlapped locus of the RI between the two comparisons.png', width = 4, height = 4, units = 'in', res = 300)
 grid.draw(venn)
 dev.off()
@@ -157,6 +158,33 @@ knitr::include_graphics('../figs/OL between the filtered result of the locus bet
 ```
 
 
+```{r}
+# trying to make a venn diagram of what exactly I am comparing
+diff_list <- list( RF14_cntrl_ALL = res_all_14$Locus,
+                  RF89_cntrl_ALL = res_all_89$Locus,
+                  RF14_cntrl_SIG = res14$Locus,
+                  RF89_cntrl_SIG = res89$Locus
+                 )
+
+fill <- c("#999999", "#E69F00", "#56B4E9", "#009E73")
+size  <- rep(0.5, length(fill))
+venn <- venn.diagram(x = diff_list, 
+      filename = NULL,
+      height = 2000,
+      width = 2000, fill = fill,
+      cat.default.pos = "text", 
+      cat.cex = size,
+      main = "Overview of sig among the raw results");
+png('../figs/Overview of sig among the raw results.png', width = 4, height = 4, units = 'in', res = 300)
+grid.draw(venn)
+dev.off()
+```
+
+```{r, out.width = "400px"}
+knitr::include_graphics('../figs/Overview of sig among the raw results_marked.png')
+```
+
+
 ## The comparison between 14 and control
 
 ```{r}
@@ -186,6 +214,7 @@ res14_view %>%
             title = 'Len of RI in 14vsCtrl') + 
   scale_y_continuous(expand = c(0, 0))  +
   ggsave('../figs/Len of RI in 14vsCtrl between sig and non sig.jpg', width = 8, height = 8, dpi = 300)
+
 ```
 
 
@@ -203,14 +232,18 @@ res14_view <- res14_view %>%
 # make a faceted histogram of the tpm counts between the sig and non sig
 table(res14_view$Significance)
 
+# histogram
 res14_view %>%
   dplyr::select(Significance, RF14, RFControl) %>%
-  ggplot(aes(RF14)) +
-  geom_histogram(bins = 100) +
-  facet_wrap(~Significance) +
+  gghistogram(x = c('RF14', 'RFControl'), combine = T,
+              palette = 'lancet', color = 'Significance', fill = 'Significance', bins = 200,
+              xlab = '')  +
   scale_x_log10()
 
 
+ 
+
+# boxplot
 res14_view %>%
   dplyr::select(Significance, RF14, RFControl) %>%
   ggboxplot(x = "Significance", y = c("RF14", 'RFControl'), combine = T,
@@ -235,8 +268,8 @@ res14_view %>%
             #ylim = c(0.5, 10000),
             #add = "jitter",
             color = "Group", palette = 'lancet',
-            title = 'mean TPM comparison in significant RI genes'
-            #ylab = 'log10(mean TPM)',
+            title = 'mean TPM comparison in significant RI genes',
+            ylab = 'log10(mean TPM)'
             #xlab = 'Significance level'
              ) + 
   scale_y_log10() +
