@@ -42,7 +42,8 @@ RES <- bind_rows(RES14, RES89)
 # 3. The locus of the RI at the genes (Compare the proportion of the middle point of RI at the whole gene length)(The closer to 1, the closer to 3' end).
 
 featureInfo <- read.csv('../../03_ASprofile/data/feature_info_for_SDE2.csv', stringsAsFactors = F) %>%
-  dplyr::select(GeneID = ensembl_gene_id, start_position, end_position, description)
+  dplyr::select(GeneID = ensembl_gene_id, start_position, end_position, description) %>%
+  filter(!duplicated(GeneID))
 
 # there are genes that I currently don't have feature info in this table
 RES <- RES %>%
