@@ -16,7 +16,7 @@ library(tidyverse)
 data_path <- '../data/rawIRfinderResult'
 fns <- file.path(data_path, list.files(data_path, pattern = 'txt'))
 
-# format the table like below (generate the locus ID, change the colnames, format the geneID string, separate that one column to three.)
+# format the table like below (generate the locus ID, change the colnames, format the geneID string, separate that one column to three, generate the padj value.)
 raw_df_list <- lapply(fns, function(fn){
   res = read_tsv(fn,comment = '#',col_names = T) %>%
     mutate(Locus =paste(Chr,paste(Start, End, sep = '-'), sep = ':' ) ) 
@@ -27,7 +27,8 @@ raw_df_list <- lapply(fns, function(fn){
   res = res %>%
     separate('Intron_GeneName/GeneID', into = c('Symbol', 'GeneID', 'Category'), sep = '/') %>%
     # get rid of the . and digits after that in GeneID
-    mutate(GeneID = str_replace_all(string = GeneID, pattern = '\\..*$', replacement = '')) 
+    mutate(GeneID = str_replace_all(string = GeneID, pattern = '\\..*$', replacement = '')) %>%
+    mutate(padj = p.adjust(p_diff, method = 'BH')) 
 })
 
 ##################################################################################
@@ -42,7 +43,6 @@ fil_df_list <- lapply(raw_df_list, function(df) {
   res = df  %>%
     filter(! Category == 'known-exon') %>%
     filter( A_IRok != 'MinorIsoform' &  B_IRok != 'MinorIsoform' ) %>%
-    mutate(padj = p.adjust(p_diff, method = 'BH')) %>%
     filter(padj < 0.05) 
   return(res)
 } )  
@@ -70,7 +70,7 @@ RES <- bind_rows(subset_df_list[[1]] %>%
                  subset_df_list[[2]] %>%
                    mutate(Group = 'RF89')) %>%
   mutate(Group =  factor(Group)) %>%
-  mutate(Significance = ifelse(RES$Locus %in% true_locus, TRUE, FALSE))
+  mutate(Significance = ifelse(Locus %in% true_locus, TRUE, FALSE))
 
 
 # output the df
