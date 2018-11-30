@@ -77,3 +77,22 @@ write.fasta(sequences = as.list(RES$ss5_seq),
 write.fasta(sequences = as.list(RES$ss3_seq), 
             names = RES$id,
             file.out =  '../data/ss3.seq.fasta')
+
+# get the results from online page http://genes.mit.edu/burgelab/maxent/Xmaxentscan_scoreseq.html and append the score to the df
+
+maxent_res <- lapply(file.path('../output', list.files('../output/', pattern = 'txt$')), function(fn) {
+  res = read_delim(fn,comment = '>',delim = '\t',
+                   col_names = F) %>%
+    mutate(score = as.numeric(stringr::str_replace_all(string = X2, pattern = 'MAXENT: ', replacement = '')))
+})
+
+RES$ss5_score <- maxent_res[[2]]$score
+RES$ss3_score <- maxent_res[[1]]$score
+
+##################################################################################
+
+# write out the table
+
+write_csv(RES, '../data/IRfinder.res.filtered.14n89.analysis.csv')
+
+
