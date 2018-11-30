@@ -44,9 +44,9 @@ rawOL_locus  <- intersect(res_all_14$Locus, res_all_89$Locus)
 
 * Remove records marked with "known-exon". "known-exon" indicates that there are known transcripts both including and splicing out this region. IRFinder quantifies the relative abundance of these occurrences.
 * Remove records marked with "MinorIsoform" either in experiment or control. "MinorIsoform" indicates IRFinder has detected there is additional alternate-splicing occurring, as such the detection of intron-retention may be confounded by other changes in alternate splicing.
-* Adjust the P-value with BH method
+* Adjust the P-value with BH method (The Audic and Claverie test is used for low replicates situations (<= 3 replicates). The assumption is that the IR ratio (log transformed) follows a Poisson distribution)
 * Select the records with padj < 0.05
-** The Audic and Claverie test is used for low replicates situations (<= 3 replicates). The assumption is that the IR ratio (log transformed) follows a Poisson distribution**
+
 
 
 ```{r}
@@ -237,7 +237,7 @@ res14_view %>%
   dplyr::select(Significance, RF14, RFControl) %>%
   gghistogram(x = c('RF14', 'RFControl'), combine = T,
               palette = 'lancet', color = 'Significance', fill = 'Significance', bins = 200,
-              xlab = '')  +
+              xlab = 'log10(mean TPM)')  +
   scale_x_log10()
 
 
@@ -250,11 +250,12 @@ res14_view %>%
             ylim = c(0.5, 10000),
             #add = "jitter",
             color = "Significance", palette = 'lancet',
+            alpha = 0.3,
             ylab = 'log10(mean TPM)',
             xlab = 'Significance level'
              ) + 
   scale_y_log10() +
-  stat_compare_means(comparisons = list(c('TRUE', 'FALSE')))
+  stat_compare_means(comparisons = list(c('TRUE', 'FALSE')), method = "t.test")
   
 ```
 ```{r} 
@@ -273,7 +274,7 @@ res14_view %>%
             #xlab = 'Significance level'
              ) + 
   scale_y_log10() +
-  stat_compare_means(comparisons = list(c('RF14', 'RFControl'))) +
+  stat_compare_means(comparisons = list(c('RF14', 'RFControl')), method = "t.test") +
   ggsave('../figs/mean TPM comparison in significant RI genes.png', width = 6, height = 5, dpi = 300)
   
 ```
@@ -297,7 +298,11 @@ res14_GC <- res14_GC %>%
   mutate(GC_per = GC / stringr::str_length(Seq) * 100)
 
 
-
+res14_GC %>%
+  gghistogram(x = 'GC_per', 
+              palette = 'lancet', color = 'Significance', fill = 'Significance', bins = 50,
+              xlab = 'GC%') 
+  
 
 res14_GC %>%
   ggboxplot(x = "Significance", y = 'GC_per',
@@ -307,7 +312,7 @@ res14_GC %>%
             xlab = 'Significance level',
             ylab = 'GC%'
              ) + 
-  stat_compare_means(comparisons = list(c('TRUE', 'FALSE')))
+  stat_compare_means(comparisons = list(c('TRUE', 'FALSE')), method = 't.test')
 ```
 
 ### The locus of the RI 
@@ -318,9 +323,14 @@ Compare the proportion of the middle point of RI at the whole gene length
 featureInfo <- read.csv('../../03_ASprofile/data/feature_info_for_SDE2.csv', stringsAsFactors = F) %>%
   dplyr::select(GeneID = ensembl_gene_id, start_position, end_position, description)
 
+```
+
+```{r}
 # there are genes that I currently don't have feature info in this table
 res14_view_locus <- res14_view %>%
-  dplyr::select(Chr : GeneID, Significance) %>%
+  mutate(padj = p.adjust(p_diff, method = 'BH'),
+         log10P = -log10(padj)) %>%
+  dplyr::select(Chr : GeneID, Significance, padj, log10P) %>%
   left_join(featureInfo, by = 'GeneID')  %>%
   mutate(midRI = floor((Start+End)/2),
          geneLen = end_position - start_position,
@@ -343,7 +353,52 @@ res14_view_locus %>%
             #add = 'jitter',
             title ='Locus of the RI in proportion to the gene length') +
   stat_compare_means(comparisons = list(c('FALSE', 'TRUE'))) 
+
+# plot the -log10(Padj) VS RI_prop (dot plot)
+# start from the ggplot
+Col <- c('#00468B', '#EC0000')
+
+res14_view_locus %>%
+  filter(!is.na(RI_prop) & !is.infinite(log10P)) %>%
+  mutate(RI_prop = round(RI_prop, 2)) %>%
+  ggplot(aes(x =RI_prop, y = log10P, color = Significance, shape = Significance ))+
+  geom_point(alpha = 0.7, size = 2) + 
+  labs(x = 'Proportional locus of the RI',
+       y = '-log10(padj)' ,
+       title = 'log10(padj) VS Proportional locus of the RI') +
+  scale_fill_manual(values = Col) +
+  scale_color_manual(values = Col)  +
+  ggsave('../figs/log10(padj) VS Proportional locus of the RI(dot).jpg', width = 10, height = 7, dpi = 300)
+
+# looks like both true and false has some kind of skew to the 3' end.
+# color the histgram with the factor of the log10P
+res14_view_locus <- res14_view_locus %>%
+  mutate(Sig_level = ifelse(is.infinite(res14_view_locus$log10P), 'Inf',
+                            ifelse(res14_view_locus$log10P > 2^6, '>64',
+                                   ifelse(res14_view_locus$log10P > 2^4, '>16',                                                     ifelse(res14_view_locus$log10P > 2^2, '>4',                                                                           ifelse(res14_view_locus$log10P > 2^0, '>1', '<1')))))) %>%
+  mutate(Sig_level = factor(Sig_level, levels = c('<1', '>1', '>4', '>16', '>64')))
+
+
+# histogram
+library(RColorBrewer)
+col_palette <- brewer.pal(n = 5, name = "Dark2") 
+res14_view_locus %>%
+  filter(!is.na(RI_prop) & !is.infinite(log10P)) %>%
+  mutate(RI_prop = round(RI_prop, 2)) %>%
+  ggplot(aes(x = RI_prop, fill = Sig_level))+
+  geom_histogram( ) + 
+  labs(x = 'Proportional locus of the RI',
+       y = '-log10(padj)' ,
+       title = 'log10(padj) VS Proportional locus of the RI') +
+  scale_fill_manual(values = col_palette) +
+  scale_color_manual(values = col_palette)  +
+  facet_wrap(~ Significance) +
+  ggsave('../figs/log10(padj) VS Proportional locus of the RI(histogram_color).jpg', width = 10, height = 7, dpi = 300)
+
+
 ```
+
+
 
 ### Strength of the splice sites
 
@@ -436,7 +491,14 @@ res14_GC  %>%
 # make an overlapped histogram
 res14_GC  %>%
   gghistogram(x = c('ss5_score', 'ss3_score'), combine = T,
-              palette = 'lancet', color = 'Significance', fill = 'Significance', bins = 200,
+              palette = 'lancet', color = 'Significance', fill = 'Significance', alpha = 0.3,
+              bins = 200,
               xlab = 'MaxEntScan score')   
+```
+
+
+```{r}
+# output table that contains the 1075 locus
+
 ```
 
