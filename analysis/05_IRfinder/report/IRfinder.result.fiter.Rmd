@@ -1,0 +1,504 @@
+---
+title: "IRfinder result analysis: 14 VS control and 89 VS control"
+mainfont: Arial
+author: Angel
+output:
+  html_document:
+    df_print: paged
+    toc: true
+    theme: united
+    code_folding: hide
+    tufte::tufte_html: default
+---
+
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning = FALSE)
+```
+
+
+
+```{r}
+library(tidyverse)
+library(ggpubr)
+library(VennDiagram)
+library(GenomicRanges)
+library(BSgenome)
+library(BSgenome.Hsapiens.NCBI.GRCh38)
+```
+
+
+```{r}
+# the non-filtered raw result of the 14 and 89
+res_all_14 <- read_tsv('../data/RF14_vs_ctrl.txt',comment = '#',col_names = T) %>%
+  mutate(Locus =paste(Chr,paste(Start, End, sep = '-'), sep = ':' ) )
+res_all_89 <- read_tsv('../data/RF89_vs_ctrl.txt',comment = '#',col_names = T) %>%
+  mutate(Locus =paste(Chr,paste(Start, End, sep = '-'), sep = ':' ) )
+
+colnames(res_all_14) <- gsub('-', '_', colnames(res_all_14))
+
+# find the overlap between the raw result (without filtering)
+rawOL_locus  <- intersect(res_all_14$Locus, res_all_89$Locus)
+```
+
+## Filtering to get the significant results:
+
+* Remove records marked with "known-exon". "known-exon" indicates that there are known transcripts both including and splicing out this region. IRFinder quantifies the relative abundance of these occurrences.
+* Remove records marked with "MinorIsoform" either in experiment or control. "MinorIsoform" indicates IRFinder has detected there is additional alternate-splicing occurring, as such the detection of intron-retention may be confounded by other changes in alternate splicing.
+* Adjust the P-value with BH method (The Audic and Claverie test is used for low replicates situations (<= 3 replicates). The assumption is that the IR ratio (log transformed) follows a Poisson distribution)
+* Select the records with padj < 0.05
+
+
+
+```{r}
+# the filtering step that will turn into a function
+
+filterRawResult <- function(fn) {
+  df = read_tsv(fn,comment = '#',col_names = T) 
+  colnames(df) <- gsub('-', '_', colnames(df))
+  res = df  %>%
+    separate('Intron_GeneName/GeneID', into = c('Symbol', 'GeneID', 'Category'), sep = '/') %>%
+    # get rid of the . and digits after that in GeneID
+    mutate(GeneID = str_replace_all(string = GeneID, pattern = '\\..*$', replacement = '')) %>%
+    filter(! Category == 'known-exon') %>%
+    filter( A_IRok != 'MinorIsoform' &  B_IRok != 'MinorIsoform' ) %>%
+    mutate(padj = p.adjust(p_diff, method = 'BH')) %>%
+    filter(padj < 0.05) %>%
+    mutate(Locus =paste(Chr,paste(Start, End, sep = '-'), sep = ':' ) )
+  
+  return(res)
+}
+# these are the significant results from IRfinder  
+res14 <- filterRawResult('../data/RF14_vs_ctrl.txt')
+res89 <- filterRawResult('../data/RF89_vs_ctrl.txt')
+
+# find the overlap between the two results
+OLlocus <- intersect(res14$Locus, res89$Locus)
+```
+
+
+## Overview of the overlap.
+
+```{r}
+# plot a venn diagram to show this overlap relationship (use all of the data, unfiltered result)
+
+diff_list <- list(RF14_cntrl_sig = res14$Locus,
+                  RF89_cntrl_sig = res89$Locus)
+fill <- c("orange", "light blue")
+size  <- rep(0.5, 2)
+venn <- venn.diagram(x = diff_list, 
+      filename = NULL,
+      height = 2000,
+      width = 2000, fill = fill,
+      cat.default.pos = "text", 
+      cat.cex = size,
+      main = "Overlap of significant locus");
+png('../figs/Overlapped locus of the RI between the two comparisons.png', width = 4, height = 4, units = 'in', res = 300)
+grid.draw(venn)
+dev.off()
+```
+
+```{r, out.width = "400px"}
+knitr::include_graphics('../figs/Overlapped locus of the RI between the two comparisons.png')
+```
+
+```{r}
+# did the pooling all KD together myself using IRfinder
+pooledKD <- read_tsv('../data/myPooledKD/RFKD_vs_ctrl.txt',comment = '#',col_names = T) %>%
+  mutate(Locus =paste(Chr,paste(Start, End, sep = '-'), sep = ':' ) )
+```
+
+```{r}
+# plot a venn diagram to show this overlap relationship
+diff_list <- list(RF14_cntrl = res_all_14$Locus,
+                  RF89_cntrl = res_all_89$Locus,
+                  pooled_KD_all = pooledKD$Locus)
+fill <- c("orange", "light blue", 'pink')
+size  <- rep(0.5, 3)
+venn <- venn.diagram(x = diff_list, 
+      filename = NULL,
+      height = 2000,
+      width = 2000, fill = fill,
+      cat.default.pos = "text", 
+      cat.cex = size,
+      main = "Overlapped between the raw result of the locus between the pooled and separate");
+png('../figs/Overlapped between the raw result of the locus between the pooled and separate.png', width = 4, height = 4, units = 'in', res = 300)
+grid.draw(venn)
+dev.off()
+```
+
+```{r, out.width = "400px"}
+knitr::include_graphics('../figs/Overlapped between the raw result of the locus between the pooled and separate.png')
+```
+
+```{r}
+# do the venn diagram of the filtered result
+pooledKD_fil <- filterRawResult('../data/myPooledKD/RFKD_vs_ctrl.txt')
+
+# venn
+diff_list <- list(RF14_cntrl = res14$Locus,
+                  RF89_cntrl = res89$Locus,
+                  pooled_KD_fil = pooledKD_fil$Locus)
+fill <- c("orange", "light blue", 'pink')
+size  <- rep(0.5, 3)
+venn <- venn.diagram(x = diff_list, 
+      filename = NULL,
+      height = 2000,
+      width = 2000, fill = fill,
+      cat.default.pos = "text", 
+      cat.cex = size,
+      main = "OL between the filtered result of the locus between the pooled and separate");
+png('../figs/OL between the filtered result of the locus between the pooled and separate.png', width = 4, height = 4, units = 'in', res = 300)
+grid.draw(venn)
+dev.off()
+```
+
+
+```{r, out.width = "400px"}
+knitr::include_graphics('../figs/OL between the filtered result of the locus between the pooled and separate.png')
+```
+
+
+```{r}
+# trying to make a venn diagram of what exactly I am comparing
+diff_list <- list( RF14_cntrl_ALL = res_all_14$Locus,
+                  RF89_cntrl_ALL = res_all_89$Locus,
+                  RF14_cntrl_SIG = res14$Locus,
+                  RF89_cntrl_SIG = res89$Locus
+                 )
+
+fill <- c("#999999", "#E69F00", "#56B4E9", "#009E73")
+size  <- rep(0.5, length(fill))
+venn <- venn.diagram(x = diff_list, 
+      filename = NULL,
+      height = 2000,
+      width = 2000, fill = fill,
+      cat.default.pos = "text", 
+      cat.cex = size,
+      main = "Overview of sig among the raw results");
+png('../figs/Overview of sig among the raw results.png', width = 4, height = 4, units = 'in', res = 300)
+grid.draw(venn)
+dev.off()
+```
+
+```{r, out.width = "400px"}
+knitr::include_graphics('../figs/Overview of sig among the raw results_marked.png')
+```
+
+
+## The comparison between 14 and control
+
+```{r}
+# see in 14vsCtrl the length, locus, the TPM between the sig and non-sig ones.
+res14_view <- res_all_14 %>%
+  filter(Locus %in% rawOL_locus) %>%
+  mutate(Significance = if_else(Locus %in% OLlocus, TRUE, FALSE)) %>%
+  mutate(RI_len = abs(End-Start)) %>%
+  separate('Intron_GeneName/GeneID', into = c('Symbol', 'GeneID', 'Category'), sep = '/') %>%
+  mutate(GeneID = str_replace_all(string = GeneID, pattern = '\\..*$', replacement = ''))  
+  
+```
+
+### Length of the RI
+
+```{r barplot.IRlen}
+# the summarised plot of the mean RI_len between the sig and non-sig
+res14_view %>%
+  ggbarplot(x = "Significance", y = "RI_len",
+            add = "mean_se", 
+            fill = 'gray',
+            #color = 'gray',
+            width = 0.5,
+            error.plot = "upper_errorbar",
+            ylab = 'Length of retained intron',
+            ylim = c(0, 2500), 
+            title = 'Len of RI in 14vsCtrl') + 
+  scale_y_continuous(expand = c(0, 0))  +
+  ggsave('../figs/Len of RI in 14vsCtrl between sig and non sig.jpg', width = 8, height = 8, dpi = 300)
+
+```
+
+
+
+### Compare the TPM
+
+```{r}
+cts <- read_csv('../data/meanTPM.genes.whippet.csv', col_types = 'cddd')
+
+res14_view <- res14_view %>%
+  left_join(cts, by = 'GeneID')
+```
+
+```{r}
+# make a faceted histogram of the tpm counts between the sig and non sig
+table(res14_view$Significance)
+
+# histogram
+res14_view %>%
+  dplyr::select(Significance, RF14, RFControl) %>%
+  gghistogram(x = c('RF14', 'RFControl'), combine = T,
+              palette = 'lancet', color = 'Significance', fill = 'Significance', bins = 200,
+              xlab = 'log10(mean TPM)')  +
+  scale_x_log10()
+
+
+ 
+
+# boxplot
+res14_view %>%
+  dplyr::select(Significance, RF14, RFControl) %>%
+  ggboxplot(x = "Significance", y = c("RF14", 'RFControl'), combine = T,
+            ylim = c(0.5, 10000),
+            #add = "jitter",
+            color = "Significance", palette = 'lancet',
+            alpha = 0.3,
+            ylab = 'log10(mean TPM)',
+            xlab = 'Significance level'
+             ) + 
+  scale_y_log10() +
+  stat_compare_means(comparisons = list(c('TRUE', 'FALSE')), method = "t.test")
+  
+```
+```{r} 
+# it would be interesting to see the TRUE in the 14 and control how would they compare
+res14_view %>%
+  dplyr::select(Significance, RF14, RFControl) %>%
+  filter(Significance) %>%
+  gather(key = Group, value = MeanTPM, RF14:RFControl) %>%
+  mutate(Group = factor(Group, levels = c('RFControl','RF14'))) %>%
+  ggboxplot(x = "Group", y = 'MeanTPM',
+            #ylim = c(0.5, 10000),
+            #add = "jitter",
+            color = "Group", palette = 'lancet',
+            title = 'mean TPM comparison in significant RI genes',
+            ylab = 'log10(mean TPM)'
+            #xlab = 'Significance level'
+             ) + 
+  scale_y_log10() +
+  stat_compare_means(comparisons = list(c('RF14', 'RFControl')), method = "t.test") +
+  ggsave('../figs/mean TPM comparison in significant RI genes.png', width = 6, height = 5, dpi = 300)
+  
+```
+
+### Compare the GC content of the RI
+
+```{r}
+res14_GC <- res14_view %>%
+  select(Chr, Start, End, Direction, Significance)  %>%
+  mutate(Start = Start + 1, Chr = factor(Chr))
+
+genome <- BSgenome.Hsapiens.NCBI.GRCh38
+seqlevelsStyle(genome) = "UCSC"
+grange = makeGRangesFromDataFrame(res14_GC, seqnames.field=c("Chr"), start.field="Start",
+                                  end.field=c("End"), strand.field="Direction")
+seq = BSgenome::getSeq(genome, grange)
+
+res14_GC <- res14_GC %>%
+  mutate(Seq = as.character(seq))  %>%
+  mutate(GC = stringr::str_count(Seq, "G") + stringr::str_count(Seq, "C")) %>%
+  mutate(GC_per = GC / stringr::str_length(Seq) * 100)
+
+
+res14_GC %>%
+  gghistogram(x = 'GC_per', 
+              palette = 'lancet', color = 'Significance', fill = 'Significance', bins = 50,
+              xlab = 'GC%') 
+  
+
+res14_GC %>%
+  ggboxplot(x = "Significance", y = 'GC_per',
+            #ylim = c(0.5, 10000),
+            #add = "jitter",
+            color = "Significance", palette = 'lancet',
+            xlab = 'Significance level',
+            ylab = 'GC%'
+             ) + 
+  stat_compare_means(comparisons = list(c('TRUE', 'FALSE')), method = 't.test')
+```
+
+### The locus of the RI 
+
+Compare the proportion of the middle point of RI at the whole gene length
+
+```{r}
+featureInfo <- read.csv('../../03_ASprofile/data/feature_info_for_SDE2.csv', stringsAsFactors = F) %>%
+  dplyr::select(GeneID = ensembl_gene_id, start_position, end_position, description)
+
+```
+
+```{r}
+# there are genes that I currently don't have feature info in this table
+res14_view_locus <- res14_view %>%
+  mutate(padj = p.adjust(p_diff, method = 'BH'),
+         log10P = -log10(padj)) %>%
+  dplyr::select(Chr : GeneID, Significance, padj, log10P) %>%
+  left_join(featureInfo, by = 'GeneID')  %>%
+  mutate(midRI = floor((Start+End)/2),
+         geneLen = end_position - start_position,
+         RI_prop = (midRI - start_position)/geneLen)
+
+# to visualize in histogram
+res14_view_locus %>%
+  filter(!is.na(RI_prop)) %>%
+  ggplot(aes(RI_prop)) +
+  geom_histogram(bins = 100) +
+  facet_wrap(~Significance)
+
+
+# to do a boxplot
+
+res14_view_locus %>%
+  filter(!is.na(RI_prop)) %>%
+  ggboxplot(x = 'Significance', y = 'RI_prop',
+            color = "Significance", palette = 'lancet',
+            #add = 'jitter',
+            title ='Locus of the RI in proportion to the gene length') +
+  stat_compare_means(comparisons = list(c('FALSE', 'TRUE'))) 
+
+# plot the -log10(Padj) VS RI_prop (dot plot)
+# start from the ggplot
+Col <- c('#00468B', '#EC0000')
+
+res14_view_locus %>%
+  filter(!is.na(RI_prop) & !is.infinite(log10P)) %>%
+  mutate(RI_prop = round(RI_prop, 2)) %>%
+  ggplot(aes(x =RI_prop, y = log10P, color = Significance, shape = Significance ))+
+  geom_point(alpha = 0.7, size = 2) + 
+  labs(x = 'Proportional locus of the RI',
+       y = '-log10(padj)' ,
+       title = 'log10(padj) VS Proportional locus of the RI') +
+  scale_fill_manual(values = Col) +
+  scale_color_manual(values = Col)  +
+  ggsave('../figs/log10(padj) VS Proportional locus of the RI(dot).jpg', width = 10, height = 7, dpi = 300)
+
+# looks like both true and false has some kind of skew to the 3' end.
+# color the histgram with the factor of the log10P
+res14_view_locus <- res14_view_locus %>%
+  mutate(Sig_level = ifelse(is.infinite(res14_view_locus$log10P), 'Inf',
+                            ifelse(res14_view_locus$log10P > 2^6, '>64',
+                                   ifelse(res14_view_locus$log10P > 2^4, '>16',                                                     ifelse(res14_view_locus$log10P > 2^2, '>4',                                                                           ifelse(res14_view_locus$log10P > 2^0, '>1', '<1')))))) %>%
+  mutate(Sig_level = factor(Sig_level, levels = c('<1', '>1', '>4', '>16', '>64')))
+
+
+# histogram
+library(RColorBrewer)
+col_palette <- brewer.pal(n = 5, name = "Dark2") 
+res14_view_locus %>%
+  filter(!is.na(RI_prop) & !is.infinite(log10P)) %>%
+  mutate(RI_prop = round(RI_prop, 2)) %>%
+  ggplot(aes(x = RI_prop, fill = Sig_level))+
+  geom_histogram( ) + 
+  labs(x = 'Proportional locus of the RI',
+       y = '-log10(padj)' ,
+       title = 'log10(padj) VS Proportional locus of the RI') +
+  scale_fill_manual(values = col_palette) +
+  scale_color_manual(values = col_palette)  +
+  facet_wrap(~ Significance) +
+  ggsave('../figs/log10(padj) VS Proportional locus of the RI(histogram_color).jpg', width = 10, height = 7, dpi = 300)
+
+
+```
+
+
+
+### Strength of the splice sites
+
+```{r}
+library(seqinr)
+
+res14_GC <- res14_GC %>%
+  mutate(Donor = stringr::str_sub(Seq, 1, 2),
+         Acceptor = stringr::str_sub(Seq, -2),
+         Splicesite_pair = paste(Donor, Acceptor, sep = '-')) 
+
+res14_GC %>%
+  ggplot(aes(Splicesite_pair)) +
+  geom_bar() +
+  geom_text(aes(label=..count..), stat='count',  vjust=-1) +
+  ylim(0,1700) +
+  facet_wrap(~ Significance) +
+  labs(title = 'Barplot of the splice site type among sig and non-sig genes')
+  
+```
+
+* Score 5' splice site: Each sequence must be 9 bases long. 3 bases in exon and 6 bases in intron
+* Score 3' splice site: Each sequence must be 23 bases long. 20 bases in the intron and 3 base in the exon
+
+```{r}
+res14_GC <-  res14_GC %>%
+  mutate(ss5_start = Start - 3,
+         ss5_end = Start + 5,
+         ss3_start = End -20,
+         ss3_end = End + 2 )
+
+grange5 <-  makeGRangesFromDataFrame(res14_GC, 
+                                     seqnames.field=c("Chr"),  
+                                     start.field="ss5_start", 
+                                     end.field=c("ss5_end"), 
+                                     strand.field="Direction")
+
+
+grange3 <-  makeGRangesFromDataFrame(res14_GC, 
+                                     seqnames.field=c("Chr"),  
+                                     start.field="ss3_start", 
+                                     end.field=c("ss3_end"), 
+                                     strand.field="Direction")
+
+res14_GC <- res14_GC %>%
+  mutate(ss5_seq = as.character(BSgenome::getSeq(genome, grange5)),
+         ss3_seq = as.character(BSgenome::getSeq(genome, grange3)),
+         id = paste(Chr,paste(Start, End, sep = '-'), sep = ':' ) )
+
+# write out to fasta file
+write.fasta(sequences = as.list(res14_GC$ss5_seq), 
+            names = res14_GC$id,
+            file.out =  '../data/RF14.ss5.seq.fasta')
+
+
+write.fasta(sequences = as.list(res14_GC$ss3_seq), 
+            names = res14_GC$id,
+            file.out =  '../data/RF14.ss3.seq.fasta')
+```
+
+```{r}
+# The results from the online page run:http://genes.mit.edu/burgelab/maxent/Xmaxentscan_scoreseq.html
+
+maxent_res <- lapply(file.path('../output', list.files('../output/', pattern = 'txt$')), function(fn) {
+  res = read_delim(fn,comment = '>',delim = '\t',
+                      col_names = F) %>%
+  mutate(score = as.numeric(stringr::str_replace_all(string = X2, pattern = 'MAXENT: ', replacement = '')))
+})
+
+res14_GC$ss5_score <- maxent_res[[1]]$score
+res14_GC$ss3_score <- maxent_res[[2]]$score
+
+
+maxent_res <- lapply(file.path('../output', list.files('../output/', pattern = 'txt$')), function(fn) {
+  res = read_delim(fn,comment = '>',delim = '\t',
+                      col_names = F)})
+```
+
+```{r score.plot}
+# plot
+res14_GC  %>%
+  ggboxplot(x = 'Significance', y = c('ss5_score', 'ss3_score'), combine = T,
+            add = 'jitter', add.params = list(alpha = 0.15, fill = 'Significance'),
+            palette = 'lancet', color = 'Significance')   +
+  stat_compare_means(comparisons = list(c('TRUE', 'FALSE')))
+
+```
+
+```{r}
+# make an overlapped histogram
+res14_GC  %>%
+  gghistogram(x = c('ss5_score', 'ss3_score'), combine = T,
+              palette = 'lancet', color = 'Significance', fill = 'Significance', alpha = 0.3,
+              bins = 200,
+              xlab = 'MaxEntScan score')   
+```
+
+
+```{r}
+# output table that contains the 1075 locus
+
+```
+
