@@ -1,0 +1,1 @@
+/usr4/bs831/adai/bubhub-home/SDE2/samples/replicate1/RF-89-1_Aligned.sortedByCoord.out.bam,/usr4/bs831/adai/bubhub-home/SDE2/samples/replicate1/RF-89-2_Aligned.sortedByCoord.out.bam,/usr4/bs831/adai/bubhub-home/SDE2/samples/replicate1/RF-89-3_Aligned.sortedByCoord.out.bam
