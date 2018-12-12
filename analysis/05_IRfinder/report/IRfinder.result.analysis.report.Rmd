@@ -1,0 +1,272 @@
+---
+title: "IRfinder result analysis: 14 VS control and 89 VS control"
+mainfont: Arial
+author: Angel
+output:
+  html_document:
+    df_print: paged
+    toc: true
+    theme: united
+    code_folding: hide
+    tufte::tufte_html: default
+---
+
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning = FALSE)
+```
+
+
+```{r}
+library(tidyverse)
+library(ggpubr)
+```
+
+
+## Filtering to get the significant results:
+
+* Remove records marked with "known-exon". "known-exon" indicates that there are known transcripts both including and splicing out this region. IRFinder quantifies the relative abundance of these occurrences.
+* Remove records marked with "MinorIsoform" either in experiment or control. "MinorIsoform" indicates IRFinder has detected there is additional alternate-splicing occurring, as such the detection of intron-retention may be confounded by other changes in alternate splicing.
+* Adjust the P-value with BH method (The Audic and Claverie test is used for low replicates situations (<= 3 replicates). The assumption is that the IR ratio (log transformed) follows a Poisson distribution)
+* Select the records with padj < 0.05
+
+
+```{r}
+# load the result table
+RES <- read_csv('../data/IRfinder.res.filtered.14n89.analysis2.csv')
+```
+
+
+## Overview of the overlap.
+
+
+## The analysis result
+
+### Length of the RI
+
+```{r barplot.IRlen}
+# the summarised plot of the mean RI_len between the sig and non-sig
+RES %>%
+  dplyr::select(Locus, Significance, RI_len, Group) %>%
+  spread(key = Group, value = RI_len) %>%
+  ggbarplot(x = "Significance", y = c('RF14', 'RF89'), combine = T,
+            add = "mean_se", 
+            fill = 'gray',
+            error.plot = "upper_errorbar",
+            ylab = 'Length of retained intron',
+            ylim = c(0, 2500), 
+            title = 'Len of RI') + 
+  scale_y_continuous(expand = c(0, 0))  +
+  ggsave('../figs/Len of RI in both between sig and non sig.jpg', width = 8, height = 8, dpi = 300)
+
+```
+
+
+### Compare the TPM
+
+#### Histogram
+
+```{r}
+# make a faceted histogram of the tpm counts between the sig and non sig
+# histogram
+RES %>%
+  dplyr::select(Locus, Significance, Group, RFExper, RFControl) %>%
+  spread(key = Group, value = RFExper) %>%
+  gghistogram(x = c('RF14','RF89', 'RFControl'), combine = T,
+              palette = 'lancet', 
+              color = 'white', fill = 'Significance', 
+              bins = 15,
+              title = 'Histogram of log10(mean TPM)',
+              xlab = 'log10(mean TPM)')  +
+  scale_x_log10() +
+  ggsave('../figs/Histogram of log10(mean TPM).jpg', width = 12, height = 8, dpi = 300)
+```
+
+#### boxplot with statistic test comparing the mean (t test)
+
+```{r}
+# boxplot
+RES %>%
+  dplyr::select(Locus, Significance, Group, RFExper, RFControl) %>%
+  spread(key = Group, value = RFExper) %>%
+  ggboxplot(x = "Significance", y = c("RF14", 'RF89','RFControl'), combine = T,
+            ylim = c(0.5, 10000),
+            color = "Significance", palette = 'lancet',
+            alpha = 0.3,
+            ylab = 'log10(mean TPM)',
+            xlab = 'Significance level'
+             ) + 
+  scale_y_log10() +
+  stat_compare_means(comparisons = list(c('TRUE', 'FALSE')), method = 't.test')
+
+
+# clearly there is something with the RF89 column 
+
+RES %>%
+  dplyr::select(Locus, Significance, Group, RFExper, RFControl) %>%
+  #spread(key = Group, value = RFExper) %>%
+  filter(Significance == TRUE) %>%
+  mutate(Group = factor(Group)) %>%
+  gghistogram(x = 'RFExper', 
+              palette = c('red', 'blue'),
+              color = 'white', fill = 'Group', 
+              bins = 20,
+              title = 'Histogram of log10(mean TPM)',
+              xlab = 'log10(mean TPM)')  +
+  scale_x_log10() 
+
+```
+
+```{r} 
+# it would be interesting to see the TRUE in the 14 and control how would they compare
+res14_view %>%
+  dplyr::select(Significance, RF14, RFControl) %>%
+  filter(Significance) %>%
+  gather(key = Group, value = MeanTPM, RF14:RFControl) %>%
+  mutate(Group = factor(Group, levels = c('RFControl','RF14'))) %>%
+  ggboxplot(x = "Group", y = 'MeanTPM',
+            #ylim = c(0.5, 10000),
+            #add = "jitter",
+            color = "Group", palette = 'lancet',
+            title = 'mean TPM comparison in significant RI genes',
+            ylab = 'log10(mean TPM)'
+            #xlab = 'Significance level'
+             ) + 
+  scale_y_log10() +
+  stat_compare_means(comparisons = list(c('RF14', 'RFControl')), method = "t.test") +
+  ggsave('../figs/mean TPM comparison in significant RI genes.png', width = 6, height = 5, dpi = 300)
+  
+```
+
+### Compare the GC content of the RI
+
+```{r}
+res14_GC %>%
+  gghistogram(x = 'GC_per', 
+              palette = 'lancet', color = 'Significance', fill = 'Significance', bins = 50,
+              xlab = 'GC%') 
+  
+
+res14_GC %>%
+  ggboxplot(x = "Significance", y = 'GC_per',
+            #ylim = c(0.5, 10000),
+            #add = "jitter",
+            color = "Significance", palette = 'lancet',
+            xlab = 'Significance level',
+            ylab = 'GC%'
+             ) + 
+  stat_compare_means(comparisons = list(c('TRUE', 'FALSE')), method = 't.test')
+```
+
+### The locus of the RI 
+
+Compare the proportion of the middle point of RI at the whole gene length
+
+```{r}
+res14_view_locus <- res14_view %>%
+  mutate(padj = p.adjust(p_diff, method = 'BH'),
+         log10P = -log10(padj)) %>%
+```
+
+```{r}
+
+# to visualize in histogram
+res14_view_locus %>%
+  filter(!is.na(RI_prop)) %>%
+  ggplot(aes(RI_prop)) +
+  geom_histogram(bins = 100) +
+  facet_wrap(~Significance)
+
+
+# to do a boxplot
+
+res14_view_locus %>%
+  filter(!is.na(RI_prop)) %>%
+  ggboxplot(x = 'Significance', y = 'RI_prop',
+            color = "Significance", palette = 'lancet',
+            #add = 'jitter',
+            title ='Locus of the RI in proportion to the gene length') +
+  stat_compare_means(comparisons = list(c('FALSE', 'TRUE'))) 
+
+# plot the -log10(Padj) VS RI_prop (dot plot)
+# start from the ggplot
+Col <- c('#00468B', '#EC0000')
+
+res14_view_locus %>%
+  filter(!is.na(RI_prop) & !is.infinite(log10P)) %>%
+  mutate(RI_prop = round(RI_prop, 2)) %>%
+  ggplot(aes(x =RI_prop, y = log10P, color = Significance, shape = Significance ))+
+  geom_point(alpha = 0.7, size = 2) + 
+  labs(x = 'Proportional locus of the RI',
+       y = '-log10(padj)' ,
+       title = 'log10(padj) VS Proportional locus of the RI') +
+  scale_fill_manual(values = Col) +
+  scale_color_manual(values = Col)  +
+  ggsave('../figs/log10(padj) VS Proportional locus of the RI(dot).jpg', width = 10, height = 7, dpi = 300)
+
+# looks like both true and false has some kind of skew to the 3' end.
+# color the histgram with the factor of the log10P
+res14_view_locus <- res14_view_locus %>%
+  mutate(Sig_level = ifelse(is.infinite(res14_view_locus$log10P), 'Inf',
+                            ifelse(res14_view_locus$log10P > 2^6, '>64',
+                                   ifelse(res14_view_locus$log10P > 2^4, '>16',                                                     ifelse(res14_view_locus$log10P > 2^2, '>4',                                                                           ifelse(res14_view_locus$log10P > 2^0, '>1', '<1')))))) %>%
+  mutate(Sig_level = factor(Sig_level, levels = c('<1', '>1', '>4', '>16', '>64')))
+
+
+# histogram
+library(RColorBrewer)
+col_palette <- brewer.pal(n = 5, name = "Dark2") 
+res14_view_locus %>%
+  filter(!is.na(RI_prop) & !is.infinite(log10P)) %>%
+  mutate(RI_prop = round(RI_prop, 2)) %>%
+  ggplot(aes(x = RI_prop, fill = Sig_level))+
+  geom_histogram( ) + 
+  labs(x = 'Proportional locus of the RI',
+       y = '-log10(padj)' ,
+       title = 'log10(padj) VS Proportional locus of the RI') +
+  scale_fill_manual(values = col_palette) +
+  scale_color_manual(values = col_palette)  +
+  facet_wrap(~ Significance) +
+  ggsave('../figs/log10(padj) VS Proportional locus of the RI(histogram_color).jpg', width = 10, height = 7, dpi = 300)
+
+
+```
+
+
+
+### Strength of the splice sites
+
+```{r}
+res14_GC %>%
+  ggplot(aes(Splicesite_pair)) +
+  geom_bar() +
+  geom_text(aes(label=..count..), stat='count',  vjust=-1) +
+  ylim(0,1700) +
+  facet_wrap(~ Significance) +
+  labs(title = 'Barplot of the splice site type among sig and non-sig genes')
+  
+```
+
+* Score 5' splice site: Each sequence must be 9 bases long. 3 bases in exon and 6 bases in intron
+* Score 3' splice site: Each sequence must be 23 bases long. 20 bases in the intron and 3 base in the exon
+
+
+```{r score.plot}
+# plot
+res14_GC  %>%
+  ggboxplot(x = 'Significance', y = c('ss5_score', 'ss3_score'), combine = T,
+            add = 'jitter', add.params = list(alpha = 0.15, fill = 'Significance'),
+            palette = 'lancet', color = 'Significance')   +
+  stat_compare_means(comparisons = list(c('TRUE', 'FALSE')))
+
+```
+
+```{r}
+# make an overlapped histogram
+res14_GC  %>%
+  gghistogram(x = c('ss5_score', 'ss3_score'), combine = T,
+              palette = 'lancet', color = 'Significance', fill = 'Significance', alpha = 0.3,
+              bins = 200,
+              xlab = 'MaxEntScan score')   
+```
+
+
