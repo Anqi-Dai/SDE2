@@ -39,24 +39,29 @@ raw_df_list <- lapply(fns, function(fn){
 # * Adjust the P-value with BH method (The Audic and Claverie test is used for low replicates situations (<= 3 replicates). The assumption is that the IR ratio (log transformed) follows a Poisson distribution)
 # * Select the records with padj < 0.05
 
-fil_df_list <- lapply(raw_df_list, function(df) {
+true_df_list <- lapply(raw_df_list, function(df) {
   res = df  %>%
     filter(! Category == 'known-exon') %>%
     filter( A_IRok != 'MinorIsoform' &  B_IRok != 'MinorIsoform' ) %>%
     filter(padj < 0.05) 
   return(res)
-} )  
+} )
 
+false_df_list <- lapply(raw_df_list, function(df) {
+  res = df  %>%
+    filter(! Category == 'known-exon') %>%
+    filter( A_IRok != 'MinorIsoform' &  B_IRok != 'MinorIsoform' ) %>%
+    filter(padj >= 0.05) 
+  return(res)
+} )
 
 ##################################################################################
 
 # TRUE: sig in both
 # FALSE: sig in neither but overlapped in both
 
-true_locus <- intersect(fil_df_list[[1]]$Locus, fil_df_list[[2]]$Locus)
-overlapped_locus <- intersect(raw_df_list[[1]]$Locus, raw_df_list[[2]]$Locus)
-false_locus <- setdiff(overlapped_locus, fil_df_list[[1]]$Locus) 
-false_locus <- setdiff(false_locus, fil_df_list[[2]]$Locus)
+true_locus <- intersect(true_df_list[[1]]$Locus, true_df_list[[2]]$Locus)
+false_locus <- intersect(false_df_list[[1]]$Locus, false_df_list[[2]]$Locus)
 
 # subset the df to include only the true and false locus
 
@@ -75,4 +80,5 @@ RES <- bind_rows(subset_df_list[[1]] %>%
 
 # output the df
 write_csv(RES, '../data/IRfinder.res.filtered.14n89.csv')
+
 

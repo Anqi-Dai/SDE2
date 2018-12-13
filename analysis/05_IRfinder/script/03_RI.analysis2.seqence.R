@@ -99,7 +99,7 @@ write_csv(RES, '../data/IRfinder.res.filtered.14n89.analysis2.csv')
 # select certain columns and sort and output the table
 
 
-OUT <-  RES %>%
+RES %>%
   dplyr::select(Locus, GeneID, Symbol, description, Direction, A_IRratio, B_IRratio,A_IntronDepth, B_IntronDepth, p_diff, p_increased, p_decreased, padj, Group, Significance, RI_prop, GC_per, Splicesite_pair, ss5_score, ss3_score, RFExper, RFControl)  %>%
   filter(Significance == TRUE  ) %>%
   mutate(absDelta = abs(A_IRratio - B_IRratio)) %>%
