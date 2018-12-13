@@ -254,9 +254,11 @@ locus_sig_level %>%
 ```{r}
 # boxplot
 
-res14_view_locus %>%
-  filter(!is.na(RI_prop)) %>%
-  ggboxplot(x = 'Significance', y = 'RI_prop',
+locus_sig_level %>%
+  dplyr::select(Locus, Significance, RI_prop, Group) %>%
+    filter(!is.na(RI_prop)) %>%
+  spread(key = Group, value = RI_prop) %>%
+  ggboxplot(x = 'Significance', y = c('RF14','RF89'),combine = T,
             color = "Significance", palette = 'lancet',
             #add = 'jitter',
             title ='Locus of the RI in proportion to the gene length') +
@@ -267,16 +269,16 @@ res14_view_locus %>%
 ```
 
 
-
 ### Strength of the splice sites
 
 ```{r}
-res14_GC %>%
+RES %>%
+  dplyr::select(Locus, Significance, Splicesite_pair, Group ) %>%
   ggplot(aes(Splicesite_pair)) +
   geom_bar() +
   geom_text(aes(label=..count..), stat='count',  vjust=-1) +
   ylim(0,1700) +
-  facet_wrap(~ Significance) +
+  facet_wrap(Group ~ Significance) +
   labs(title = 'Barplot of the splice site type among sig and non-sig genes')
   
 ```
@@ -286,22 +288,34 @@ res14_GC %>%
 
 
 ```{r score.plot}
-# plot
-res14_GC  %>%
-  ggboxplot(x = 'Significance', y = c('ss5_score', 'ss3_score'), combine = T,
+# boxplot
+
+# ss5
+
+RES %>%
+  dplyr::select(Locus, Significance, ss5_score , Group ) %>%
+  spread(key = Group, value = ss5_score) %>%
+  ggboxplot(x = 'Significance', y = c('RF14','RF89'),combine = T,
             add = 'jitter', add.params = list(alpha = 0.15, fill = 'Significance'),
+            title = 'boxplot of the distribution of the ss5 MaxEnt score',
             palette = 'lancet', color = 'Significance')   +
   stat_compare_means(comparisons = list(c('TRUE', 'FALSE')))
 
+
+# ss3
+
+RES %>%
+  dplyr::select(Locus, Significance, ss3_score , Group ) %>%
+  spread(key = Group, value = ss3_score) %>%
+  ggboxplot(x = 'Significance', y = c('RF14','RF89'),combine = T,
+            add = 'jitter', add.params = list(alpha = 0.15, fill = 'Significance'),
+            title = 'boxplot of the distribution of the ss3 MaxEnt score',
+            palette = 'lancet', color = 'Significance')   +
+  stat_compare_means(comparisons = list(c('TRUE', 'FALSE')))
+
+
 ```
 
-```{r}
-# make an overlapped histogram
-res14_GC  %>%
-  gghistogram(x = c('ss5_score', 'ss3_score'), combine = T,
-              palette = 'lancet', color = 'Significance', fill = 'Significance', alpha = 0.3,
-              bins = 200,
-              xlab = 'MaxEntScan score')   
-```
+
 
 
