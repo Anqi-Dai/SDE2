@@ -53,7 +53,7 @@ RES %>%
             fill = 'gray',
             error.plot = "upper_errorbar",
             ylab = 'Length of retained intron',
-            ylim = c(0, 2500), 
+            ylim = c(0, 3500),
             title = 'Len of RI') + 
   scale_y_continuous(expand = c(0, 0))  +
   ggsave('../figs/Len of RI in both between sig and non sig.jpg', width = 8, height = 8, dpi = 300)
@@ -73,8 +73,9 @@ RES %>%
   spread(key = Group, value = RFExper) %>%
   gghistogram(x = c('RF14','RF89', 'RFControl'), combine = T,
               palette = 'lancet', 
-              color = 'white', fill = 'Significance', 
-              bins = 15,
+              color = 'white', 
+              fill = 'Significance', 
+              bins = 50,
               title = 'Histogram of log10(mean TPM)',
               xlab = 'log10(mean TPM)')  +
   scale_x_log10() +
@@ -109,7 +110,7 @@ RES %>%
   gghistogram(x = 'RFExper', 
               palette = c('red', 'blue'),
               color = 'white', fill = 'Group', 
-              bins = 20,
+              bins = 30,
               title = 'Histogram of log10(mean TPM)',
               xlab = 'log10(mean TPM)')  +
   scale_x_log10() 
@@ -117,12 +118,13 @@ RES %>%
 ```
 
 ```{r} 
-# it would be interesting to see the TRUE in the 14 and control how would they compare
-res14_view %>%
-  dplyr::select(Significance, RF14, RFControl) %>%
+# it would be interesting to see the TRUE in the 14, 89 and control how would they compare
+RES %>%
+  dplyr::select(Locus, Significance, Group, RFExper, RFControl) %>%
+  spread(key = Group, value = RFExper) %>%
   filter(Significance) %>%
-  gather(key = Group, value = MeanTPM, RF14:RFControl) %>%
-  mutate(Group = factor(Group, levels = c('RFControl','RF14'))) %>%
+  gather(key = Group, value = MeanTPM, RFControl:RF89) %>%
+  mutate(Group = factor(Group, levels = c('RFControl','RF14','RF89'))) %>%
   ggboxplot(x = "Group", y = 'MeanTPM',
             #ylim = c(0.5, 10000),
             #add = "jitter",
@@ -132,26 +134,62 @@ res14_view %>%
             #xlab = 'Significance level'
              ) + 
   scale_y_log10() +
-  stat_compare_means(comparisons = list(c('RF14', 'RFControl')), method = "t.test") +
+  stat_compare_means(comparisons = list(c('RF14', 'RFControl'), 
+                                        c('RF89', 'RFControl'),
+                                        c('RF14', 'RF89')), method = "t.test") +
   ggsave('../figs/mean TPM comparison in significant RI genes.png', width = 6, height = 5, dpi = 300)
+
+# a histogram to see the distribution (which is actually higher or lower)
+
+p <- RES %>%
+  dplyr::select(Locus, Significance, Group, RFExper, RFControl) %>%
+  spread(key = Group, value = RFExper) %>%
+  filter(Significance) %>%
+  gather(key = Group, value = MeanTPM, RFControl:RF89) %>%
+  mutate(Group = factor(Group, levels = c('RFControl','RF14','RF89'))) %>%
+  gghistogram(x = 'MeanTPM', 
+              palette = 'lancet',
+              color = 'white', fill = 'Group', 
+              bins = 80,
+              add = "median",
+              title = 'Histogram of log10(mean TPM)(median shown)',
+              xlab = 'log10(mean TPM)')  +
+  scale_x_log10() 
   
+
+facet(p, facet.by = "Group", nrow = 3)
 ```
 
 ### Compare the GC content of the RI
 
 ```{r}
-res14_GC %>%
-  gghistogram(x = 'GC_per', 
-              palette = 'lancet', color = 'Significance', fill = 'Significance', bins = 50,
-              xlab = 'GC%') 
-  
+# histogram
 
-res14_GC %>%
-  ggboxplot(x = "Significance", y = 'GC_per',
+RES %>%
+  dplyr::select(Locus, Significance, GC_per, Group) %>%
+  spread(key = Group, value = GC_per) %>%
+  gghistogram(x = c('RF14','RF89'),
+              combine = T,
+              palette = 'lancet',
+              color = 'white', fill = 'Significance', 
+              bins = 40,
+              add = "median",
+              title = 'Histogram of GC% (median shown)',
+              xlab = 'GC% ') 
+```
+
+```{r}
+# boxplot
+
+RES %>%
+  dplyr::select(Locus, Significance, GC_per, Group) %>%
+  spread(key = Group, value = GC_per) %>%
+  ggboxplot(x = "Significance", y =  c('RF14','RF89'), combine = T,
             #ylim = c(0.5, 10000),
             #add = "jitter",
             color = "Significance", palette = 'lancet',
-            xlab = 'Significance level',
+            xlab = 'Significance',
+            title = 'GC% among sig or not sig locus',
             ylab = 'GC%'
              ) + 
   stat_compare_means(comparisons = list(c('TRUE', 'FALSE')), method = 't.test')
@@ -162,36 +200,13 @@ res14_GC %>%
 Compare the proportion of the middle point of RI at the whole gene length
 
 ```{r}
-res14_view_locus <- res14_view %>%
-  mutate(padj = p.adjust(p_diff, method = 'BH'),
-         log10P = -log10(padj)) %>%
-```
-
-```{r}
-
-# to visualize in histogram
-res14_view_locus %>%
-  filter(!is.na(RI_prop)) %>%
-  ggplot(aes(RI_prop)) +
-  geom_histogram(bins = 100) +
-  facet_wrap(~Significance)
-
-
-# to do a boxplot
-
-res14_view_locus %>%
-  filter(!is.na(RI_prop)) %>%
-  ggboxplot(x = 'Significance', y = 'RI_prop',
-            color = "Significance", palette = 'lancet',
-            #add = 'jitter',
-            title ='Locus of the RI in proportion to the gene length') +
-  stat_compare_means(comparisons = list(c('FALSE', 'TRUE'))) 
-
 # plot the -log10(Padj) VS RI_prop (dot plot)
 # start from the ggplot
 Col <- c('#00468B', '#EC0000')
 
-res14_view_locus %>%
+RES %>%
+  dplyr::select(Locus, Significance, padj, RI_prop, Group ) %>%
+  mutate(log10P = -log10(padj))  %>%
   filter(!is.na(RI_prop) & !is.infinite(log10P)) %>%
   mutate(RI_prop = round(RI_prop, 2)) %>%
   ggplot(aes(x =RI_prop, y = log10P, color = Significance, shape = Significance ))+
@@ -201,32 +216,52 @@ res14_view_locus %>%
        title = 'log10(padj) VS Proportional locus of the RI') +
   scale_fill_manual(values = Col) +
   scale_color_manual(values = Col)  +
-  ggsave('../figs/log10(padj) VS Proportional locus of the RI(dot).jpg', width = 10, height = 7, dpi = 300)
+  facet_wrap( ~ Group) + 
+  ggsave('../figs/log10(padj) VS Proportional locus of the RI(dot)_both.jpg', width = 10, height = 7, dpi = 300)
 
-# looks like both true and false has some kind of skew to the 3' end.
-# color the histgram with the factor of the log10P
-res14_view_locus <- res14_view_locus %>%
-  mutate(Sig_level = ifelse(is.infinite(res14_view_locus$log10P), 'Inf',
-                            ifelse(res14_view_locus$log10P > 2^6, '>64',
-                                   ifelse(res14_view_locus$log10P > 2^4, '>16',                                                     ifelse(res14_view_locus$log10P > 2^2, '>4',                                                                           ifelse(res14_view_locus$log10P > 2^0, '>1', '<1')))))) %>%
-  mutate(Sig_level = factor(Sig_level, levels = c('<1', '>1', '>4', '>16', '>64')))
+```
+
+```{r}
+# color the histogram with the factor of the log10P
+locus_sig_level <- RES %>%
+  dplyr::select(Locus, Significance, padj, RI_prop, Group ) %>%
+  mutate(log10P = -log10(padj)) %>%
+  filter(!is.na(RI_prop) & !is.infinite(log10P)) %>%
+  mutate(neg_log10P = ifelse(is.infinite(log10P), 'Inf',
+                            ifelse(log10P > 2^6, '>64',
+                                   ifelse(log10P > 2^4, '>16',                                                                         ifelse(log10P > 2^2, '>4',                                                                           ifelse(log10P > 2^0, '>1', '<1')))))) %>%
+  mutate(neg_log10P = factor(neg_log10P, levels = c('<1', '>1', '>4', '>16', '>64')))
 
 
 # histogram
 library(RColorBrewer)
 col_palette <- brewer.pal(n = 5, name = "Dark2") 
-res14_view_locus %>%
-  filter(!is.na(RI_prop) & !is.infinite(log10P)) %>%
+
+locus_sig_level %>%
   mutate(RI_prop = round(RI_prop, 2)) %>%
-  ggplot(aes(x = RI_prop, fill = Sig_level))+
+  ggplot(aes(x = RI_prop, fill = neg_log10P))+
   geom_histogram( ) + 
   labs(x = 'Proportional locus of the RI',
        y = '-log10(padj)' ,
        title = 'log10(padj) VS Proportional locus of the RI') +
   scale_fill_manual(values = col_palette) +
   scale_color_manual(values = col_palette)  +
-  facet_wrap(~ Significance) +
-  ggsave('../figs/log10(padj) VS Proportional locus of the RI(histogram_color).jpg', width = 10, height = 7, dpi = 300)
+  facet_wrap(Group ~ Significance) +
+  ggsave('../figs/log10(padj) VS Proportional locus of the RI(histogram_color)_both.jpg', width = 10, height = 10, dpi = 300)
+
+```
+
+```{r}
+# boxplot
+
+res14_view_locus %>%
+  filter(!is.na(RI_prop)) %>%
+  ggboxplot(x = 'Significance', y = 'RI_prop',
+            color = "Significance", palette = 'lancet',
+            #add = 'jitter',
+            title ='Locus of the RI in proportion to the gene length') +
+  stat_compare_means(comparisons = list(c('FALSE', 'TRUE'))) 
+
 
 
 ```
