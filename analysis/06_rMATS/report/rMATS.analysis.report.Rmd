@@ -1,0 +1,198 @@
+---
+title: "rMATS explore"
+mainfont: Calibri Light 
+author: Angel
+output:
+  html_document:
+    df_print: paged
+    toc: true
+    theme: united
+    code_folding: hide
+---
+
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning = FALSE)
+```
+
+```{r}
+library(tidyverse)
+library(kableExtra)
+library(ggpubr)
+```
+
+# RF14
+
+```{r}
+# The JCEC.txt files of the AS types
+path <- '../data/rMATS_result/RF14_control'
+fns <- file.path(path, list.files(path, 'JCEC.txt'))
+
+JCEC_sig <- lapply(fns, function(fn){
+ ret = read_tsv(fn, col_types = cols(ID = col_number())) %>%
+    filter(FDR < .05) %>%
+    mutate(Type = fn) %>%
+    mutate(Type = str_replace_all(Type, '../data/rMATS_result/RF14_control/','')) %>%
+    mutate(Type = str_replace_all(Type, '.MATS.JCEC.txt','')) %>%
+    mutate(Position = paste(.[[6]], .[[7]], sep = '-')) %>%
+   mutate(Locus = paste(chr, Position,sep = ':')) %>%
+   select(ID, Locus, GeneID, Type, IncLevelDifference, FDR) %>%
+  mutate(GeneID = str_replace_all(string = GeneID, pattern = '\\..*$', replacement = '')) 
+ return(ret)
+})
+
+RES14 <- bind_rows(JCEC_sig) %>%
+  group_by(Type) %>%
+  summarise(cts = n()) %>%
+  arrange(desc(cts)) 
+
+RES14 %>%
+  ggbarplot(x ='Type', y = 'cts', 
+            palette = 'lancet',label = TRUE,
+            title = 'RF14',
+            color = 'Type', fill = 'Type' )
+
+```
+
+
+```{r}
+# the functions
+read_fromGTF <- function(fn){
+  ret = read_tsv(fn, col_types = cols(ID = col_number())) %>%
+  mutate(Type = fn) %>%
+  mutate(Type = str_replace_all(Type, '../data/rMATS_result/RF14_control/','')) %>%
+  mutate(Type = str_replace_all(Type, '.MATS.JCEC.txt','')) 
+ return(ret)
+}
+```
+
+
+```{r}
+# see the overlap between the fromGTF_novelFindings and the jcec sig ones
+fromGTF_fns <- file.path(path, list.files(path, '^fromGTF.novelEvents.'))
+novels <- lapply(fromGTF_fns, read_fromGTF)
+
+novel_sig_overlap  = list()
+for (i in 1:length(novels)){
+  novel_sig_overlap[[i]] = intersect(novels[[i]]$ID, JCEC_sig[[i]]$ID)
+}
+
+
+# what percentage of the sig are novel?
+novel_sig_overlap_df <- data.frame(
+  novel_num = sapply(novels, nrow),
+  sig_num = sapply(JCEC_sig, nrow),
+  overlap_num=sapply(novel_sig_overlap, length)
+) %>%
+  mutate(novel_perc = round(overlap_num/sig_num*100,2))
+
+novel_sig_overlap_df %>% 
+  kable() %>%
+  kable_styling(full_width = F)
+
+# the novel sig locus to look at in IGV
+#novel_sig_overlap_list <- list()
+#for (i in 1:length(novels)){
+#  novel_sig_overlap_list[[i]] = JCEC_sig[[i]][JCEC_sig[[i]]$ID %in% novel_sig_overlap[[i]]$ID,]
+#}
+
+#names(novel_sig_overlap_list) <- sapply(novel_sig_overlap_list, function(li){
+#  li[1,'Type']
+#})
+
+#write_csv(novel_sig_overlap_list[['RI']], '../output/RF14_novel_sig_overlap_RI.csv')
+#write_csv(novel_sig_overlap_list[['MXE']], '../output/RF14_novel_sig_overlap_MXE.csv')
+#write_csv(novel_sig_overlap_list[['SE']], '../output/RF14_novel_sig_overlap_SE.csv')
+
+```
+
+# RF89
+
+```{r}
+# The JCEC.txt files of the AS types
+path <- '../data/rMATS_result/RF89_control'
+fns <- file.path(path, list.files(path, 'JCEC.txt'))
+
+JCEC_sig <- lapply(fns, function(fn){
+ ret = read_tsv(fn, col_types = cols(ID = col_number())) %>%
+  filter(FDR < .05) %>%
+  mutate(Type = fn) %>%
+  mutate(Type = str_replace_all(Type, '../data/rMATS_result/RF89_control/','')) %>%
+  mutate(Type = str_replace_all(Type, '.MATS.JCEC.txt',''))  %>%
+    mutate(Position = paste(.[[6]], .[[7]], sep = '-')) %>%
+   mutate(Locus = paste(chr, Position,sep = ':')) %>%
+   select(ID, Locus, GeneID, Type, IncLevelDifference, FDR) %>%
+  mutate(GeneID = str_replace_all(string = GeneID, pattern = '\\..*$', replacement = '')) 
+ return(ret)
+})
+
+RES89 <- bind_rows(JCEC_sig) %>%
+  group_by(Type) %>%
+  summarise(cts = n()) %>%
+  arrange(desc(cts)) 
+
+RES89 %>%
+  ggbarplot(x ='Type', y = 'cts', 
+            palette = 'lancet',label = TRUE,
+            title = 'RF89',
+            color = 'Type', fill = 'Type' )
+```
+
+
+```{r}
+# the functions
+read_fromGTF <- function(fn){
+  ret = read_tsv(fn, col_types = cols(ID = col_number())) %>%
+  mutate(Type = fn) %>%
+  mutate(Type = str_replace_all(Type, '../data/rMATS_result/RF89_control/','')) %>%
+  mutate(Type = str_replace_all(Type, '.MATS.JCEC.txt','')) 
+ return(ret)
+}
+```
+
+
+```{r}
+# see the overlap between the fromGTF_novelFindings and the jcec sig ones
+fromGTF_fns <- file.path(path, list.files(path, '^fromGTF.novelEvents.'))
+novels <- lapply(fromGTF_fns, read_fromGTF)
+
+novel_sig_overlap  = list()
+for (i in 1:length(novels)){
+  novel_sig_overlap[[i]] = intersect(novels[[i]]$ID, JCEC_sig[[i]]$ID)
+}
+
+# what percentage of the sig are novel?
+novel_sig_overlap_df <- data.frame(
+  novel_num = sapply(novels, nrow),
+  sig_num = sapply(JCEC_sig, nrow),
+  overlap_num=sapply(novel_sig_overlap, length)
+) %>%
+  mutate(novel_perc = round(overlap_num/sig_num*100,2))
+
+novel_sig_overlap_df %>% 
+  kable() %>%
+  kable_styling(full_width = F)
+
+# the novel sig locus to look at in IGV
+novel_sig_overlap_list <- list()
+#for (i in 1:length(novels)){
+#  novel_sig_overlap_list[[i]] = JCEC_sig[[i]][JCEC_sig[[i]]$ID %in% novel_sig_overlap[[i]]$ID,]
+#}
+
+#names(novel_sig_overlap_list) <- sapply(novel_sig_overlap_list, function(li){
+#  li[1,'Type']
+#})
+
+#write_csv(novel_sig_overlap_list[['RI']], '../output/RF89_novel_sig_overlap_RI.csv')
+#write_csv(novel_sig_overlap_list[['MXE']], '../output/RF89_novel_sig_overlap_MXE.csv')
+#write_csv(novel_sig_overlap_list[['SE']], '../output/RF89_novel_sig_overlap_SE.csv')
+
+```
+
+# the overlap between 14 and 89 sig
+
+```{r}
+ol_locus <- intersect(RES14$GeneID, RES89$GeneID) %>%
+  as.data.frame() %>%
+  write_csv('../output/overlapped_GeneID_sig.csv', col_names = F)
+```
+
