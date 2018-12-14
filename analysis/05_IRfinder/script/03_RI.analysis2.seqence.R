@@ -10,7 +10,7 @@ library(seqinr)
 
 
 # load the data
-RES <- read_csv('../data/IRfinder.res.filtered.14n89.analysis.csv', col_types = cols(Group = col_factor()))
+RES <- read_csv('../data/IRfinder.res.filtered.14n89.analysis1.csv', col_types = cols(Group = col_factor()))
 
 ##################################################################################
 
@@ -93,6 +93,15 @@ RES$ss3_score <- maxent_res[[1]]$score
 
 # write out the table
 
-write_csv(RES, '../data/IRfinder.res.filtered.14n89.analysis.csv')
+write_csv(RES, '../data/IRfinder.res.filtered.14n89.analysis2.csv')
 
 
+# select certain columns and sort and output the table
+
+
+RES %>%
+  dplyr::select(Locus, GeneID, Symbol, description, Direction, A_IRratio, B_IRratio,A_IntronDepth, B_IntronDepth, p_diff, p_increased, p_decreased, padj, Group, Significance, RI_prop, GC_per, Splicesite_pair, ss5_score, ss3_score, RFExper, RFControl)  %>%
+  filter(Significance == TRUE  ) %>%
+  mutate(absDelta = abs(A_IRratio - B_IRratio)) %>%
+  arrange(desc(A_IntronDepth), desc(absDelta)) %>%
+  write_csv('../output/IRfinder.true.locus.sorted.both.comparison.csv')

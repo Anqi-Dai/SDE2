@@ -56,5 +56,5 @@ RES <- RES %>%
 
 # write out the table
 
-write_csv(RES, '../data/IRfinder.res.filtered.14n89.analysis.csv')
+write_csv(RES, '../data/IRfinder.res.filtered.14n89.analysis1.csv')
 

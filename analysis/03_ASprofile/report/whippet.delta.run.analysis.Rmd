@@ -41,26 +41,17 @@ knitr::include_graphics("../data/node_type_example.gif")
 
 
 ```{r}
+
 # diff files load
-RF14.ctrl.fn <- '../../../samples/replicate1/RF14_vs_cntrl_output.diff'
-RF89.ctrl.fn <- '../../../samples/replicate1/RF89_vs_cntrl_output.diff'
+RF14.ctrl.fn <- '../data/whippetResult/RF14_vs_cntrl_output.diff'
+RF89.ctrl.fn <- '../data/whippetResult/RF89_vs_cntrl_output.diff'
 
 # the feature infomation table
 featureInfo <-  read_csv('../data/feature_info_for_SDE2.csv', col_types = 'cccciic') %>%
   rename(Gene = ensembl_gene_id)
 ```
 
-```{r}
-# trying to see which probability threshold will allow me to see all of the validated IR genes.
 
-validated <- featureInfo %>%
-  filter(external_gene_name %in% c('KIFC2','PARP10','RFX5','ULK3')) %>%
-  dplyr::select(Gene) %>%
-  left_join(ALL, by = 'Gene') %>%
-  filter(Type == "RI")
-
-# It appears only 2 of them have RI events detected by Whippet regardless of the probability threshold.
-```
 
 
 ```{r, message=FALSE, warning=FALSE}
@@ -96,7 +87,34 @@ ALL <- bind_rows(
     RF89.ctrl %>%
       mutate(Group = 'RF89.ctrl')) %>%
   mutate(Group = factor(Group))
+
+
 ```
+
+```{r}
+# trying to see which probability threshold will allow me to see all of the validated IR genes.
+
+validated <- featureInfo %>%
+  filter(external_gene_name %in% c('KIFC2','PARP10','RFX5','ULK3')) %>%
+  dplyr::select(Gene) %>%
+  left_join(ALL, by = 'Gene') %>%
+  filter(Type == "RI")
+
+# trying to see does POLR2A show up in any of the whippet results
+selected <- ALL %>%
+  left_join(featureInfo %>%
+              filter(!duplicated(Gene)), by = 'Gene') %>%
+  filter(Gene == 'ENSG00000181222')
+
+
+selected %>%
+  ggplot(aes(x = Probability, y = absDeltaPsi)) +
+  geom_point() +
+  facet_wrap(~Group)
+
+# It appears only 2 of them have RI events detected by Whippet regardless of the probability threshold.
+```
+
 
 ```{r}
 All.prob.hist <- ALL %>%

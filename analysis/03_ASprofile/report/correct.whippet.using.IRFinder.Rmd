@@ -1,0 +1,185 @@
+---
+title: "Correct Whippet result categories using IRfinder results"
+mainfont: Calibri Light 
+author: Angel
+output:
+  html_document:
+    df_print: paged
+    toc: true
+    theme: united
+    code_folding: hide
+---
+
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning = FALSE)
+```
+
+```{r, message=FALSE }
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+library(grDevices)
+library(RColorBrewer)
+library(VennDiagram)
+library(ggpubr)
+```
+
+```{r}
+draw_venn_diagram <- function(diff_list, fill, size, title){
+  venn = venn.diagram(x = diff_list, 
+                       filename = NULL,
+                       height = 2000,
+                       width = 2000, fill = fill,
+                       cat.default.pos = "text", 
+                       cat.cex = size,
+                       main = title);
+  png(str_interp('../figs/${title}.png'), width = 4, height = 4, units = 'in', res = 300)
+  grid.draw(venn)
+  dev.off()
+}
+```
+
+
+## Combining the Whippet and IRfinder result of significant locus
+
+```{r}
+# the whippet sig results
+w_sig <- read_csv('../output/sig_events_all_types_whippet_both.csv') %>%
+  mutate(Group = str_replace_all(Group, '.ctrl',''))
+
+# the IRfinder sig results
+i_sig <- read_csv('../../05_IRfinder/output/IRfinder.true.locus.sorted.both.comparison.csv')
+```
+
+
+```{r}
+# use the locus to be the identifier of the event
+# for whippet, it's the overlap between the 14 and 89
+w_sig_locus <- intersect(w_sig %>%
+                           filter(Group == 'RF14') %>%
+                           pull(Coord),
+                         w_sig %>%
+                           filter(Group == 'RF89') %>%
+                           pull(Coord)) #2290
+
+# for IRfinder it's the "true locus"
+i_sig_locus <- i_sig %>%
+  filter(Group == 'RF14') %>%
+  pull(Locus) #1079
+  
+```
+
+```{r}
+# the RF14 first
+
+comparison <- 'RF14'
+
+# the functions to do the correctness
+
+Res_whippet <- w_sig %>%
+  filter(Group == comparison & Coord %in% w_sig_locus) %>%
+  mutate(Locus = Coord) %>%
+  separate(Coord, into = c('Chr', 'Position'), sep = ':') %>%
+  separate(Position, into = c('Start','End'), sep = '-', convert = T) 
+
+Res_IR <- i_sig %>%
+  filter(Group == comparison & Locus %in% i_sig_locus) %>%
+  separate(Locus, into = c('Chr', 'Position'), sep = ':') %>%
+  separate(Position, into = c('Start','End'), sep = '-', convert = T)%>%
+  mutate(Start = Start +1) %>%
+  mutate(Locus = paste(Chr, paste(Start, End, sep = '-'), sep = ':'))
+```
+
+```{r}
+# barplot to show the distribution of the types
+whi_type_summary <- Res_whippet %>%
+  group_by(Type) %>%
+  summarise(Cnt = n()) %>%
+  arrange(desc(Cnt))
+
+whi_type_summary %>%
+  ggbarplot(x ='Type', y = 'Cnt', 
+            palette = 'lancet',label = TRUE,
+            title = 'Type distribution of Whippet Sig',
+            color = 'Type', fill = 'Type' )
+
+```
+
+* Showing the types in Whippet significant locus only.
+
+```{r}
+# find the overlap of the locus between the IRfinder and Whippet
+diff_list <- list(Whippet_sig = Res_whippet$Locus,
+                  IRfinder_sig = Res_IR$Locus)
+fill <- c("orange", "light blue")
+size  <- rep(0.5, 2)
+draw_venn_diagram(diff_list, fill, size, 'Overlap between IRfinder and Whippet Sig events')
+
+
+```
+```{r, out.width = "400px"}
+knitr::include_graphics("../figs/Overlap between IRfinder and Whippet Sig events.png")
+```
+
+* 64 RI events are shared between IRfinder and Whippet
+
+
+```{r}
+# integrate them into one df
+whippet_sig_df <- Res_whippet %>%
+  filter(!Locus %in% intersect(Res_whippet$Locus, Res_IR$Locus)) %>%
+  mutate(Program = 'Whippet') %>%
+  select(Chr, Start, End, Gene,Type,  DeltaPsi,Program ) %>%
+  rename(GeneID =Gene)
+
+IR_sig_df <- Res_IR %>%
+  mutate(Program = 'IRfinder',
+         Type = 'RI') %>%
+  mutate(DeltaPsi = A_IRratio - B_IRratio) %>%
+  select(Chr, Start, End, GeneID, Type,  DeltaPsi,Program ) 
+
+
+  
+# join the tpm counts
+TPM_cts <- read_csv('../../05_IRfinder/data/meanTPM.genes.whippet.csv', col_types = 'cddd')
+
+Combined_sig <- bind_rows(whippet_sig_df, IR_sig_df)  %>%
+  left_join(TPM_cts, by = 'GeneID') %>%
+  write_csv('../../05_IRfinder/output/Whippet_IRfinder_combined_results_sig.csv')
+
+Combined_sig %>%
+  group_by(Type) %>%
+  summarise(Cnt = n()) %>%
+  arrange(desc(Cnt)) %>%
+  ggbarplot(x ='Type', y = 'Cnt', 
+            palette = 'lancet',label = TRUE,
+            title = 'Combined Type distribution ',
+            color = 'Type', fill = 'Type' )
+```
+
+* Combining the Whippet and IRfinder result of significant locus
+
+## rMATS for exploretary analysis
+
+```{r}
+# the rMats results may add the novel part of the other types
+rMats_GeneID <- read_csv('../../06_rMATS/output/overlapped_GeneID_sig.csv', col_names = F) %>%
+  pull(X1)
+
+diff_list <- list(Whippet_sig = Res_whippet$Gene,
+                  IRfinder_sig = Res_IR$GeneID,
+                  rMATS_sig = rMats_GeneID)
+fill <- c("orange", "light blue", 'pink')
+size  <- rep(0.5, 3)
+draw_venn_diagram(diff_list, fill, size, 'Overlap gene between IRfinder, Whippet and rMATS Sig events')
+
+```
+
+```{r, out.width = "400px"}
+knitr::include_graphics("../figs/Overlap gene between IRfinder, Whippet and rMATS Sig events.png")
+```
+
+
+
+
+
