@@ -1,0 +1,38 @@
+'''
+This Snakefile will do the following:
+* quantify the reads using Salmon
+
+'''
+
+from glob import glob
+import json
+
+sample_dir = '../../samples/replicate1'
+
+file = json.load(open('../samples.json'))
+sample_names = file.keys()
+
+rule all:
+    input:
+        expand('{sample_dir}/salmon_quant/{sample_names}_salmon_quant', sample_dir = sample_dir,sample_names = sample_names )
+
+
+# Salmon quantify
+
+rule salmon_call:
+    input:
+        ref='/projectnb/bubhub/bubhub-reference/genome/human/GENCODE/v27/gencode.v27.transcripts.salmon_quasi_index',
+        R1='{sample_dir}/{sample_names}__concat_R1_trimmed.fastq.gz',
+        R2='{sample_dir}/{sample_names}__concat_R2_trimmed.fastq.gz',
+        gtf='/projectnb/bubhub/bubhub-reference/genome/human/GENCODE/v27/gencode.v27.annotation.gtf'
+    output:
+        directory('{sample_dir}/salmon_quant/{sample_names}_salmon_quant')
+    threads:
+        16
+    shell:
+        'salmon quant -i {input.ref} \
+            -l A \
+            -1 {input.R1} -2 {input.R2} \
+            -g {input.gtf}\
+            -p {threads} \
+            -o {output}'
