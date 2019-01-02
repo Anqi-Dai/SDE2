@@ -1,15 +1,71 @@
 ---
-title: "R Notebook"
+title: "What are the genes that have expression but are not significant in our AS analysis"
 output: html_notebook
 ---
 
 ```{r}
 library(tidyverse)
+library(VennDiagram)
+library(ggpubr)
 ```
 
 ```{r}
+# loading the eset with the genes that have expression
+eset <- read_rds('../data/FILTERED_salmon_cts_replicate1_eset.RDS')
+length(featureNames(eset))
 
+# loading the gene IDs that are signicant in any of the 3 AS tool runs
+sig_gene <- read_table('../data/union_sig_genes_from_3_analysis.txt', col_names = F)
+nrow(sig_gene)
+
+# the genes that exist in the first but not in the second
+target <- setdiff(featureNames(eset), sig_gene$X1)
 ```
 
+```{r}
+# a venn diagram showing the relationship
+diff_list <- list(haveExpression = featureNames(eset),
+                  significant = sig_gene$X1)
+fill <- c("light blue", "pink")
+size  <- rep(0.5, 2)
+venn <- venn.diagram(x = diff_list, 
+      filename = NULL,
+      height = 2000,
+      width = 2000, fill = fill,
+      cat.default.pos = "text", 
+      cat.cex = size,
+      main = "the genes that have expression but are not significant in our AS analysis");
+png('../figs/the genes that have expression but are not significant in our AS analysis.png', width = 4, height = 4, units = 'in', res = 300)
+grid.draw(venn)
+dev.off()
+```
 
+```{r}
+# plotting the 11,870 genes tpm with the 14 and 89
+# loading the tpm data
+tpm <- read_csv('../../05_IRfinder/data/meanTPM.genes.whippet.csv')
+
+tpm_haveExpressionOnly <- tpm %>%
+  filter(GeneID %in% target) %>%
+  mutate(Group = 'haveExpressionOnly')
+
+
+significantOnly <- setdiff(sig_gene$X1, featureNames(eset))
+
+tpm_significantOnly <- tpm %>% 
+  filter(GeneID %in% significantOnly) %>%
+  mutate(Group = 'significantOnly')
+
+tpm_plot <- bind_rows(tpm_haveExpressionOnly, tpm_significantOnly)
+```
+```{r plot}
+tpm_plot %>%
+  gghistogram(x = c('RF14','RF89'), combine = T, 
+              palette = 'lancet',
+              color = 'white', fill = 'Group', 
+              bins = 80,
+              #add = "median",
+              title = 'Histogram of log10(mean TPM)',
+              xlab = 'log10(mean TPM)')  + scale_x_log10() 
+```
 
