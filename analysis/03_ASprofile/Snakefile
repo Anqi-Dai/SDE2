@@ -17,8 +17,7 @@ sample_names = json.load(open('../samples.json')).keys()
 
 rule all:
     input:
-        #sample_dir+'/rf89_vs_cntrl_output.diff.gz', sample_dir+'/rf89_vs_14_output.diff.gz', sample_dir+'/RF14_vs_cntrl_output.diff.gz'
-        expand('{sample_dir}/{sample_names}_output.psi.gz', sample_dir = sample_dir, sample_names = sample_names)
+        sample_dir+'/rf89_vs_cntrl_output.diff.gz', sample_dir+'/rf89_vs_14_output.diff.gz', sample_dir+'/RF14_vs_cntrl_output.diff.gz'
 
 # Build index for whippet using gtf only
 

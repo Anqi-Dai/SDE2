@@ -29,6 +29,9 @@ rule all:
     input:
         sample_dir+'/IRfinder_result/RF89_vs_ctrl.txt', sample_dir+'/IRfinder_result/RF14_vs_ctrl.txt'
 
+rule output:
+    input:
+        sample_dir + '/IRfinder_result/RF-89-1/Unsorted.bam'
 
 # Build reference by using the same genome and annotation file as Whippet so that I can cross reference later
 #  The IRfinder will use 32 cores to run this 
