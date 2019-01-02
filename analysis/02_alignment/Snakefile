@@ -131,5 +131,5 @@ rule samtools_depth_call:
         '{path}/{sample}_genome_ave_coverage.txt'
     shell:
         '''
-        samtools depth -a {input} |  awk '{{sum+=$3}} END {{ print "Average = ",sum/NR}}'
+        samtools depth {input} |  awk '{{sum+=$3}} END {{ print "Average = ",sum/NR}}' > {output}
         '''
