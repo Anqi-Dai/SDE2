@@ -156,6 +156,11 @@ ALL.sig <- ALL %>%
   filter(absDeltaPsi > 0.1 & Probability > 0.9 & Psi_A > 0.1) 
 ```
 
+```{r}
+# the above is the sig results of all types from Whippet
+write_csv(ALL.sig, '../output/sig_events_all_types_whippet_both.csv')
+```
+
 
 ##  Pie chart of all types for p>0.9 in SIGNIFICANT genes
 
@@ -175,7 +180,7 @@ ALL.sig.piedf <- ALL.sig %>%
 # 14
 ALL.sig.piedf.14 <- ALL.sig.piedf %>% filter(Group == 'RF14.ctrl')
 
-pie(ALL.sig.piedf.14$count,labels = ALL.sig.piedf.14$lbl, col= ALL.sig.piedf.14$Color, main = 'Pie chart of all splicing types for p > 0.9 in SIG genes for RF14.ctrl')
+pie(ALL.sig.piedf.14$count,labels = ALL.sig.piedf.14$lbl, col= ALL.sig.piedf.14$Color, main = 'RF14.ctrl: splicing type pie chart in SIG events')
 
 
 #piedf <- piedf[sample(nrow(piedf), nrow(piedf)),]
@@ -183,7 +188,7 @@ pie(ALL.sig.piedf.14$count,labels = ALL.sig.piedf.14$lbl, col= ALL.sig.piedf.14$
 # 89 
 ALL.sig.piedf.89 <- ALL.sig.piedf %>% filter(Group == 'RF89.ctrl')
 
-pie(ALL.sig.piedf.89$count,labels = ALL.sig.piedf.89$lbl, col= ALL.sig.piedf.89$Color, main = 'Pie chart of all splicing types for p > 0.9 in SIG genes for RF89.ctrl')
+pie(ALL.sig.piedf.89$count,labels = ALL.sig.piedf.89$lbl, col= ALL.sig.piedf.89$Color, main = 'RF89.ctrl: splicing type pie chart in SIG events')
 ```
 
 ##  Pie chart of 'internal' splicing types for p>0.9
@@ -340,14 +345,14 @@ venn <- venn.diagram(x = diff_list,
       width = 2000, fill = fill,
       cat.default.pos = "text", 
       cat.cex = size,
-      main = "Overlap of genes that have RI between 89cntrl and 14 cntrl");
-png('../figs/Overlap of genes that have RI between 89cntrl and 14 cntrl.png', width = 4, height = 4, units = 'in', res = 300)
+      main = "Overlap of genes that have RI between 89 cntrl and 14 cntrl");
+png('../figs/Overlap of genes that have RI between 89 cntrl and 14 cntrl.png', width = 4, height = 4, units = 'in', res = 300)
 grid.draw(venn)
 dev.off()
 ```
 
 ```{r, out.width='400px'}
-knitr::include_graphics('../figs/Overlap of genes that have RI between 89cntrl and 14 cntrl.png')
+knitr::include_graphics('../figs/Overlap of genes that have RI between 89 cntrl and 14 cntrl.png')
 ```
 
 

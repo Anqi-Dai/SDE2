@@ -48,8 +48,10 @@ RES14 <- bind_rows(JCEC_sig) %>%
 RES14 %>%
   ggbarplot(x ='Type', y = 'cts', 
             palette = 'lancet',label = TRUE,
-            title = 'RF14',
+            title = 'AS type: significant events in 14-cntrl',
             color = 'Type', fill = 'Type' )
+
+
 
 ```
 
@@ -76,24 +78,28 @@ for (i in 1:length(novels)){
   novel_sig_overlap[[i]] = intersect(novels[[i]]$ID, JCEC_sig[[i]]$ID)
 }
 
+novelID_SE <-  novels[[5]]$ID
+SE14 <- JCEC_sig[[5]] %>% filter(ID %in% novelID_SE) %>%
+  arrange(desc(abs(IncLevelDifference)))
 
 # what percentage of the sig are novel?
 novel_sig_overlap_df <- data.frame(
-  novel_num = sapply(novels, nrow),
-  sig_num = sapply(JCEC_sig, nrow),
-  overlap_num=sapply(novel_sig_overlap, length)
+  Type = c('A3SS','A5SS','MXE','RI','SE'),
+  Novel = sapply(novels, nrow),
+  Sig = sapply(JCEC_sig, nrow),
+  Overlap=sapply(novel_sig_overlap, length)
 ) %>%
-  mutate(novel_perc = round(overlap_num/sig_num*100,2))
+  mutate(Novel_perc = round(Overlap/Sig*100,2))
 
 novel_sig_overlap_df %>% 
   kable() %>%
   kable_styling(full_width = F)
 
 # the novel sig locus to look at in IGV
-#novel_sig_overlap_list <- list()
-#for (i in 1:length(novels)){
-#  novel_sig_overlap_list[[i]] = JCEC_sig[[i]][JCEC_sig[[i]]$ID %in% novel_sig_overlap[[i]]$ID,]
-#}
+novel_sig_overlap_list <- list()
+for (i in 1:length(novels)){
+  novel_sig_overlap_list[[i]] = JCEC_sig[[i]][JCEC_sig[[i]]$ID %in% novel_sig_overlap[[i]]$ID,]
+}
 
 #names(novel_sig_overlap_list) <- sapply(novel_sig_overlap_list, function(li){
 #  li[1,'Type']
@@ -133,7 +139,7 @@ RES89 <- bind_rows(JCEC_sig) %>%
 RES89 %>%
   ggbarplot(x ='Type', y = 'cts', 
             palette = 'lancet',label = TRUE,
-            title = 'RF89',
+            title = 'AS type: significant events in 89-cntrl',
             color = 'Type', fill = 'Type' )
 ```
 
@@ -162,11 +168,12 @@ for (i in 1:length(novels)){
 
 # what percentage of the sig are novel?
 novel_sig_overlap_df <- data.frame(
-  novel_num = sapply(novels, nrow),
-  sig_num = sapply(JCEC_sig, nrow),
-  overlap_num=sapply(novel_sig_overlap, length)
+  Type = c('A3SS','A5SS','MXE','RI','SE'),
+  Novel = sapply(novels, nrow),
+  Sig = sapply(JCEC_sig, nrow),
+  Overlap=sapply(novel_sig_overlap, length)
 ) %>%
-  mutate(novel_perc = round(overlap_num/sig_num*100,2))
+  mutate(Novel_perc = round(Overlap/Sig*100,2))
 
 novel_sig_overlap_df %>% 
   kable() %>%
@@ -174,9 +181,9 @@ novel_sig_overlap_df %>%
 
 # the novel sig locus to look at in IGV
 novel_sig_overlap_list <- list()
-#for (i in 1:length(novels)){
-#  novel_sig_overlap_list[[i]] = JCEC_sig[[i]][JCEC_sig[[i]]$ID %in% novel_sig_overlap[[i]]$ID,]
-#}
+for (i in 1:length(novels)){
+  novel_sig_overlap_list[[i]] = JCEC_sig[[i]][JCEC_sig[[i]]$ID %in% novel_sig_overlap[[i]]$ID,]
+}
 
 #names(novel_sig_overlap_list) <- sapply(novel_sig_overlap_list, function(li){
 #  li[1,'Type']

@@ -58,6 +58,20 @@ RES %>%
   scale_y_continuous(expand = c(0, 0))  +
   ggsave('../figs/Len of RI in both between sig and non sig.jpg', width = 8, height = 8, dpi = 300)
 
+# boxplot 
+RES %>%
+  dplyr::select(Locus, Significance, RI_len, Group) %>%
+  spread(key = Group, value = RI_len) %>%
+  ggboxplot(x = "Significance", y = c('RF14', 'RF89'), combine = T,
+            #add = "mean_se", 
+            #fill = 'gray',
+            #error.plot = "upper_errorbar",
+            ylab = 'Length of retained intron',
+            #ylim = c(0, 3500),
+            title = 'Len of RI boxplot') + 
+  #scale_y_continuous(expand = c(0, 0))  +
+  ggsave('../figs/Len of RI in both between sig and non sig_boxplot.jpg', width = 8, height = 8, dpi = 300)
+
 ```
 
 

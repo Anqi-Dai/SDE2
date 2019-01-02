@@ -81,4 +81,3 @@ RES <- bind_rows(subset_df_list[[1]] %>%
 # output the df
 write_csv(RES, '../data/IRfinder.res.filtered.14n89.csv')
 
-

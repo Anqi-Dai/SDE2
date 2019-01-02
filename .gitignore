@@ -1,5 +1,13 @@
 /samples
 /reference
-/analysis/01_preprocessing/.snakemake
-/analysis/02_alignment/.snakemake
-/analysis/02_alignment/.*
+/analysis/*/.*
+*.DS_Store
+samples/*
+reference/*
+analysis/*/data/*
+analysis/*/output/*
+analysis/*/figs/*
+analysis/*/report/*.html
+*.log
+analysis/*/*/*.txt
+analysis/*/script/.R*

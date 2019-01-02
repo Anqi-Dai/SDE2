@@ -1,0 +1,33 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+# the IR that Jess picked
+dat <- read_csv('../data/IR_to_be_validated.csv', col_types = cols(Significance = col_logical()))
+
+symbols <- dat %>%
+  filter(!duplicated(Symbol)) %>%
+  select(Symbol) %>%
+  unlist %>%
+  unname()
+
+
+# the start and end locus
+featureD <- read_csv('../../03_ASprofile/data/feature_info_for_SDE2.csv', col_types = cols(chromosome_name = col_character()))
+
+locus <- dat %>%
+  filter(!duplicated(Symbol)) %>%
+  #select(Symbol, GeneID) %>%
+  rename(ensembl_gene_id = GeneID) %>%
+  left_join(featureD, by = 'ensembl_gene_id') %>%
+  select(Locus, ensembl_gene_id, chromosome_name, start_position, end_position,Symbol ) %>%
+  mutate(chromosome_name = paste('chr',chromosome_name , sep = '')) %>%
+  mutate(gene_locus = paste(chromosome_name, paste(start_position, end_position, sep = '-'), sep = ':'))
+
+locus$gene_locus
+
+dat$Locus[!duplicated(dat$Locus)]
+```
+
