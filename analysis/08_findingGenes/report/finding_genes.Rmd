@@ -1,18 +1,33 @@
 ---
 title: "What are the genes that have expression but are not significant in our AS analysis"
-output: html_notebook
+mainfont: Calibri Light 
+author: Angel
+output:
+  html_document:
+    df_print: paged
+    toc: true
+    theme: united
+    code_folding: hide
 ---
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning = FALSE)
+```
 
 ```{r}
 library(tidyverse)
 library(VennDiagram)
 library(ggpubr)
+library(biomaRt)
+library(Biobase)
 ```
+
+## The relationship between genes that have expression and genes that are signicant from any of the three AS analysis runs
 
 ```{r}
 # loading the eset with the genes that have expression
 eset <- read_rds('../data/FILTERED_salmon_cts_replicate1_eset.RDS')
-length(featureNames(eset))
+nrow(fData(eset))
+
 
 # loading the gene IDs that are signicant in any of the 3 AS tool runs
 sig_gene <- read_table('../data/union_sig_genes_from_3_analysis.txt', col_names = F)
@@ -40,6 +55,13 @@ grid.draw(venn)
 dev.off()
 ```
 
+```{r, out.width = "400px"}
+knitr::include_graphics("../figs/the genes that have expression but are not significant in our AS analysis.png")
+```
+
+
+## Comparing the TPM of the haveExpressionOnly and significantOnly genes
+
 ```{r}
 # plotting the 11,870 genes tpm with the 14 and 89
 # loading the tpm data
@@ -60,12 +82,59 @@ tpm_plot <- bind_rows(tpm_haveExpressionOnly, tpm_significantOnly)
 ```
 ```{r plot}
 tpm_plot %>%
-  gghistogram(x = c('RF14','RF89'), combine = T, 
+  gghistogram(x = c('RF14','RF89','RFControl'), combine = T, 
               palette = 'lancet',
               color = 'white', fill = 'Group', 
               bins = 80,
               #add = "median",
               title = 'Histogram of log10(mean TPM)',
-              xlab = 'log10(mean TPM)')  + scale_x_log10() 
+              xlab = 'log10(mean TPM)')  + scale_x_log10() +
+  ggsave('../figs/log10(mean TPM) of have expression only and significant only genes.jpg', width = 8, height = 6)
+```
+
+```{r}
+#How correlated are the KO vs control TPMs?
+cor.test(tpm_plot$RF14, tpm_plot$RFControl, method = 'spearman')
+cor.test(tpm_plot$RF89, tpm_plot$RFControl, method = 'spearman')
+```
+
+## How many introns do those genes that are abundant but not significant have?
+
+```{r}
+# What are the genes in blue above with TPM>1?
+# Those are the genes with high abundance but show no AS
+# how many introns those genes are annotated to have
+# They might not have AS because they simply have no introns to be misspliced.
+
+# filter to have the genes that have TPM>1 in all three
+genes <- tpm_plot %>%
+  filter(Group == 'haveExpressionOnly') %>%
+  filter(RF14 > 1 & RF89 > 1 & RFControl > 1) %>%
+  filter(!duplicated(GeneID)) %>%
+  pull(GeneID)
+
+length(genes)
+
+# how many introns are in those genes
+mart <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+
+symbol <- getBM(filters = "ensembl_gene_id",
+                attributes = c('ensembl_gene_id','external_gene_name',
+                               'chromosome_name','start_position','end_position', 'ensembl_exon_id'),
+                values = genes, 
+                mart = mart)
+
+res <- symbol %>%
+  group_by(ensembl_gene_id) %>% 
+  summarize(exonNumber=n()) %>%
+  mutate(intronNumber =  exonNumber-1)
+
+res %>%
+  gghistogram(x = 'intronNumber', 
+              palette = 'lancet',
+              fil = 'black', 
+              bins = 180,
+              title = 'Intron number in haveExpressionOnly genes',
+              xlab = 'Number of introns') 
 ```
 
