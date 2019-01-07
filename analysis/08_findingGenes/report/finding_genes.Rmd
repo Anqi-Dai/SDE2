@@ -135,6 +135,50 @@ res %>%
               fil = 'black', 
               bins = 180,
               title = 'Intron number in haveExpressionOnly genes',
-              xlab = 'Number of introns') 
+              xlab = 'Number of introns') +
+  ggsave('../figs/Number of introns.jpg', width = 6, height = 6)
+```
+
+```{r}
+# generate a scatter plot of TPM, or maybe log10(TPM) vs # introns for these genes
+# use the 14 data first
+res_plot <- res %>%
+  mutate(GeneID = ensembl_gene_id) %>%
+  left_join(tpm_plot, by = 'GeneID') %>%
+  dplyr::select(-ensembl_gene_id) 
+
+
+
+res_plot %>%
+  dplyr::select(2:5) %>%
+  gather(key = Group, value = meanTPM, RF14:RF89) %>%
+  mutate(Group = factor(Group)) %>%
+  ggplot(aes(x = intronNumber, y = meanTPM)) +
+  geom_point(alpha = 0.4, size = 2) +
+  labs(x = "Number of introns", title = 'meanTPM VS intronNumber') +
+  facet_wrap(.~Group)
+```
+
+```{r}
+# log10 TPM vs the intronNumber
+res_plot %>%
+  dplyr::select(2:5) %>%
+  mutate(RF14 = log10(RF14), RF89 = log10(RF89)) %>%
+  gather(key = Group, value = meanTPM, RF14:RF89) %>%
+  mutate(Group = factor(Group)) %>%
+  ggplot(aes(x = intronNumber, y = meanTPM)) +
+  geom_point(alpha = 0.4, size = 2) +
+  labs(x = "Number of introns", title = 'log10(meanTPM) VS intronNumber') +
+  facet_wrap(.~Group)
+```
+
+```{r}
+# run DAVID on the subset of genes with # introns >= 3
+genes_intron_gt3 <- res_plot %>%
+  filter(intronNumber >= 3) %>%
+  filter(!duplicated(GeneID)) %>%
+  pull(GeneID)
+
+write.table(genes_intron_gt3, '../data/genes_with_intron_number_gt_3.txt', quote = F, col.names = F, row.names = F)
 ```
 
