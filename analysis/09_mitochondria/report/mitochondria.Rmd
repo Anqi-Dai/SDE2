@@ -1,0 +1,78 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r}
+library(tidyverse)
+library(VennDiagram)
+```
+
+```{r}
+# use the detk filter to be the filtered result
+detkF <- read_csv('../../08_findingGenes/data/detk_fil_Norm_salmon_cts_replicate1_matrix.csv') %>%
+  mutate(Name = str_replace_all(string = Name, pattern = '\\..*$', replacement = '')) 
+  
+# loading the sig genes
+sig_gene <- read_table('../../08_findingGenes/data/union_sig_genes_from_3_analysis.txt', col_names = F)
+
+# below is the filtered sig genes.
+#Fsig <- intersect(detkF$Name, sig_gene$X1)
+```
+
+```{r venn}
+# if only use the detk filtered genes to be genes that have expression
+# there are 56 in the pink circle only is probably because they don't exist in the annotation file salmon used in the first place.
+diff_list <- list(haveExpre = detkF$Name,
+                  significant = sig_gene$X1)
+fill <- c("light blue", "pink")
+size  <- rep(0.5, 2)
+venn <- venn.diagram(x = diff_list, 
+                     filename = NULL,
+                     height = 2000,
+                     width = 2000, fill = fill,
+                     cat.default.pos = "text", 
+                     cat.cex = size,
+                     main = "haveExpression VS sig genes");
+png('../figs/haveExpression VS unfiltered sig genes detk.png', width = 4, height = 4, units = 'in', res = 300)
+grid.draw(venn)
+dev.off()
+```
+```{r out.width=400}
+knitr::include_graphics('../figs/haveExpression VS unfiltered sig genes detk.png', dpi = 300)
+```
+
+```{r}
+# the genes that exist in the first but not in the second
+haveExpreOnly <- setdiff(detkF$Name, sig_gene$X1)
+```
+
+```{r}
+# look at the tpm of the haveExpre only and the intersection
+intersection_ <- intersect(detkF$Name, sig_gene$X1)
+
+# loading the tpm data
+tpm <- read_csv('../../05_IRfinder/data/meanTPM.genes.whippet.csv')
+
+# to put the groups to differentiate
+tpm_plot <- tpm %>%
+  mutate(Group = ifelse(GeneID %in% intersection_, 'Intersection', 'haveExpreOnly'))
+```
+
+```{r hist}
+tpm_plot %>%
+  gghistogram(x = c('RF14','RF89','RFControl'), combine = T, 
+              palette = 'lancet',
+              color = 'white', fill = 'Group', 
+              bins = 80,
+              #add = "median",
+              title = 'Histogram of log10(mean TPM)',
+              xlab = 'log10(mean TPM)')  + scale_x_log10() +
+  ggsave('../figs/log10(mean TPM) of have expression only and intersection genes.jpg', width = 8, height = 6)
+
+# so the intersection(significant genes) have higher expression than others, which is great!
+```
+
+ 

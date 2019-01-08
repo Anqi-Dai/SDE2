@@ -153,3 +153,18 @@ dev.off()
 
 
 
+# if only use the detk filtered genes to be genes that have expression
+diff_list <- list(haveExpre = detkF$Name,
+                  significant = Fsig)
+fill <- c("light blue", "pink")
+size  <- rep(0.5, 2)
+venn <- venn.diagram(x = diff_list, 
+                     filename = NULL,
+                     height = 2000,
+                     width = 2000, fill = fill,
+                     cat.default.pos = "text", 
+                     cat.cex = size,
+                     main = "haveExpression VS sig genes");
+png('../figs/haveExpression VS sig genes filtered_detk.png', width = 4, height = 4, units = 'in', res = 300)
+grid.draw(venn)
+dev.off()
