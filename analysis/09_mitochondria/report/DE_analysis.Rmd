@@ -1,0 +1,100 @@
+---
+title: "DE_analysis"
+author: Angel
+output:
+  html_document:
+    df_print: paged
+    toc: true
+    theme: united
+    code_folding: hide
+---
+
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning = FALSE)
+```
+
+```{r}
+library(tidyverse)
+library(ggpubr)
+library(Biobase)
+```
+
+
+```{r}
+# DE between the 14 and control and 89 and control 
+# do those genes from above have different abundance from kD and control 
+# the genes above have splicing preserved, but do they have same abundance 
+# plot the log2 fold change of the gene above
+
+# use the raw counts to do the detk de deseq2
+raw <- read_tsv('../../08_findingGenes/data/raw_salmon_cts_replicate1_matrix.csv') %>%
+  #column_to_rownames(var = 'Name') %>%
+  rename_all(
+    funs(
+        stringr::str_replace_all(., '-', '_') 
+  ))
+
+# 14 and control
+raw14 <- raw[,grepl('14|Control|Name', colnames(raw))] %>%
+  column_to_rownames(var = 'Name')
+
+
+# 89 and control
+raw89 <- raw[,grepl('89|Control|Name', colnames(raw))] %>%
+  column_to_rownames(var = 'Name')
+
+write.csv(raw14, '../data/raw14_ctrl.csv', row.names = T, quote = F)
+write.csv(raw89, '../data/raw89_ctrl.csv', row.names = T,  quote = F)
+```
+
+```{r}
+# the pheno data
+pheno <- pData(read_rds('../../08_findingGenes/data/Norm_salmon_cts_replicate1_eset_unfiltered.RDS'))
+
+pheno14 <- pheno %>%
+  rownames_to_column %>%
+  filter(Status == 'KD1' | Status == 'CTRL' ) %>%
+  column_to_rownames('rowname')
+
+pheno89 <- pheno %>%
+  rownames_to_column %>%
+  filter(Status == 'KD2' | Status == 'CTRL' ) %>%
+  column_to_rownames('rowname')
+
+write.csv(pheno14, '../data/pheno14_ctrl.csv', row.names = T,  quote = F)
+
+write.csv(pheno89, '../data/pheno89_ctrl.csv', row.names = T,  quote = F)
+```
+
+# Results from the detk de deseq2 run
+
+```{r}
+de14 <- read_tsv('../output/de_14.csv') %>%
+  rename(GeneID = X) %>%
+  mutate(GeneID = str_replace_all(GeneID, '\\..+$','')) %>%
+  filter(!duplicated(GeneID))
+
+# the target_high genes
+target_high <- read.table('../output/genes_with_at_least_3_introns_ids_highTPM.txt', stringsAsFactors = F) %>%
+  rename(GeneID = V1) %>%
+  left_join(de14, by = 'GeneID')
+
+target_high %>%
+  ggscatter(x = 'baseMean', y = 'Status__KD1__log2FoldChange', title = '14-control basemean vs log2FC')
+```
+
+```{r}
+de89 <- read_tsv('../output/de_89.csv') %>%
+  rename(GeneID = X) %>%
+  mutate(GeneID = str_replace_all(GeneID, '\\..+$','')) %>%
+  filter(!duplicated(GeneID))
+
+# the target_high genes
+target_high <- read.table('../output/genes_with_at_least_3_introns_ids_highTPM.txt', stringsAsFactors = F) %>%
+  rename(GeneID = V1) %>%
+  left_join(de89, by = 'GeneID')
+
+target_high %>%
+  ggscatter(x = 'baseMean', y = 'Status__KD2__log2FoldChange', title = '89-control basemean vs log2FC')
+```
+
