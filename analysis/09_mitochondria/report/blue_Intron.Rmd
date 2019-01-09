@@ -88,7 +88,7 @@ tpm_plot %>%
 
  ## Blue region only has at least 3 introns. what those genes are ?
  
-```{r out.width=12, out.height=6}
+```{r }
 #load the intron information table
 med_intron <- read_csv('../data/gene_median_intron_num.csv')
 
@@ -105,6 +105,24 @@ blue %>%
   ggbarplot(x = 'med_intron_num', y = 'cnt', title = 'Intron number distribution in the blue only genes', label = T) +
   ggsave('../figs/Intron number distribution in the blue only genes.png', width = 12, height = 6)
 ```
+ 
+
+ 
+```{r sig_intron_number_dist}
+# the sig genes median intron number bar plot like above, it will probably inversed.
+sig_bar <- data_frame(
+  gene_id = intersection_
+) %>%
+  left_join(med_intron, by = 'gene_id')
+
+sig_bar %>%
+  mutate(med_intron_num = factor(med_intron_num)) %>%
+  group_by(med_intron_num) %>%
+  summarise(cnt = n()) %>%
+  ggbarplot(x = 'med_intron_num', y = 'cnt', title = 'Intron number distribution in the sig AS genes', label = T) +
+  ggsave('../figs/Intron number distribution in the  sig AS genes.png', width = 12, height = 6)
+```
+ 
  
 ```{r}
 # the gene IDs of the genes that have at least 3 introns in the blue only region

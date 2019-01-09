@@ -98,3 +98,10 @@ target_high %>%
   ggscatter(x = 'baseMean', y = 'Status__KD2__log2FoldChange', title = '89-control basemean vs log2FC')
 ```
 
+Since the splicing is perturbed in KD, more reads mapped to the intron, which means less reads mapped to the exon, which could interfere with the abundance DE analysis. This means it's hard to interpretate. 
+
+```{r}
+de14 %>%
+  filter(Status__KD1__padj < 0.05)
+```
+
