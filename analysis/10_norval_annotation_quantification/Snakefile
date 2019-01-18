@@ -1,0 +1,33 @@
+'''
+This Snakefile will do the following:
+* Build a bed file of the gene features from the gencode annotation file
+'''
+
+gtf = '/projectnb/bubhub/bubhub-reference/genome/human/GENCODE/v27/gencode.v27.annotation.gtf'
+DNA= '/usr4/bs831/adai/bubhub-home/newFlynn/flynn_altstatus/reference/v27/GRCh38.primary_assembly.genome.fa'
+
+rule all:
+    input:
+    
+
+
+rule build_gene_bed:
+    input:
+        gtf=gtf
+    output:
+        '/usr4/bs831/adai/bubhub-home/SDE2/reference/v27/gencode_v27_gene.bed'
+    shell:
+        '''
+        awk -F "\t" '$3 == "gene" {{ print $1,$4,$5 }}' {input.gtf} | awk '{{ for(i=1;i<=NF;i++){{if(i==NF){{printf("%s\\n",$NF);}}else {{printf("%s\\t",$i)}}}} }}'  > {output}
+        '''
+
+rule extract_gene_fasta:
+    input:
+        DNA=DNA,
+        bed='/usr4/bs831/adai/bubhub-home/SDE2/reference/v27/gencode_v27_gene.bed'
+    output:
+        '/usr4/bs831/adai/bubhub-home/SDE2/reference/v27/GRCh38.primary_assembly.GENE.fa'
+    shell:
+        '''
+
+        '''
