@@ -6,11 +6,15 @@ This Snakefile will do the following:
 gtf = '/projectnb/bubhub/bubhub-reference/genome/human/GENCODE/v27/gencode.v27.annotation.gtf'
 DNA= '/usr4/bs831/adai/bubhub-home/newFlynn/flynn_altstatus/reference/v27/GRCh38.primary_assembly.genome.fa'
 
+sample_dir = '../../samples/replicate1'
+file = json.load(open('../samples.json'))
+sample_names = file.keys()
+
 rule all:
     input:
     
 
-
+# build bed file for gene features from the annotation file
 rule build_gene_bed:
     input:
         gtf=gtf
@@ -32,7 +36,7 @@ rule format_region_file:
         awk '{{print $1":"$2"-"$3}}' {input} > {output}
         '''
 
-
+# extract the fasta sequence of those gene features
 rule extract_gene_fasta:
     input:
         DNA=DNA,
@@ -43,3 +47,45 @@ rule extract_gene_fasta:
         '''
         samtools faidx {input.DNA} -r {input.region} -o {output}
         '''
+# build salmon index for those gene fasta sequence
+rule build_salmon_index_for_gene_fasta:
+    input:
+        geneFasta='/usr4/bs831/adai/bubhub-home/SDE2/reference/v27/GRCh38.primary_assembly.GENE.fa',
+    output:
+        directory('/usr4/bs831/adai/bubhub-home/SDE2/reference/v27/salmon_index_GENE_fasta')
+    threads:
+        8
+    shell:
+        '''
+        salmon index -t {input.geneFasta} -i {output}  --type quasi -k 31
+        '''
+
+# salmon quantification using that salmon index for gene fasta
+
+rule salmon_quant_gene:
+    input:
+        ind='/usr4/bs831/adai/bubhub-home/SDE2/reference/v27/salmon_index_GENE_fasta',
+        R1='{sample_dir}/{sample_names}__concat_R1_trimmed.fastq.gz',
+        R2='{sample_dir}/{sample_names}__concat_R2_trimmed.fastq.gz'
+    output:
+        directory('{sample_dir}/salmon_quant_GENE_feature/{sample_names}_salmon_quant')
+    threads:
+        16
+    shell:
+        '''
+        salmon quant -i {input.ind} \
+            -l A \
+            -1 {input.R1} -2 {input.R2} \
+            -p {threads} \
+            -o {output}
+        '''
+
+rule output:
+    input:
+        expand('{sample_dir}/salmon_quant_GENE_feature/{sample_names}_salmon_quant', sample_dir =sample_dir, sample_names =sample_names)
+
+
+
+# collate the raw counts(NumReads) using csvgather
+
+# csvgather -j 0 -f NumReads -t "s:NumReads:{dir}:"  -t "s:_salmon_quant::" *_salmon_quant/quant.sf -o raw_salmon_cts_replicate1_matrix_GENE_feature.csv
