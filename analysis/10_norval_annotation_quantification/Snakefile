@@ -21,13 +21,25 @@ rule build_gene_bed:
         awk -F "\t" '$3 == "gene" {{ print $1,$4,$5 }}' {input.gtf} | awk '{{ for(i=1;i<=NF;i++){{if(i==NF){{printf("%s\\n",$NF);}}else {{printf("%s\\t",$i)}}}} }}'  > {output}
         '''
 
+# region file format (chr:from-to)
+rule format_region_file:
+    input:
+        '/usr4/bs831/adai/bubhub-home/SDE2/reference/v27/gencode_v27_gene.bed'
+    output:
+        '/usr4/bs831/adai/bubhub-home/SDE2/reference/v27/gencode_v27_gene.txt'
+    shell:
+        '''
+        awk '{{print $1":"$2"-"$3}}' {input} > {output}
+        '''
+
+
 rule extract_gene_fasta:
     input:
         DNA=DNA,
-        bed='/usr4/bs831/adai/bubhub-home/SDE2/reference/v27/gencode_v27_gene.bed'
+        region='/usr4/bs831/adai/bubhub-home/SDE2/reference/v27/gencode_v27_gene.txt'
     output:
         '/usr4/bs831/adai/bubhub-home/SDE2/reference/v27/GRCh38.primary_assembly.GENE.fa'
     shell:
         '''
-
+        samtools faidx {input.DNA} -r {input.region} -o {output}
         '''

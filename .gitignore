@@ -10,4 +10,8 @@ analysis/*/figs/*
 analysis/*/report/*.html
 *.log
 analysis/*/*/*.txt
-analysis/*/script/.R*
+analysis/*/scripts/.R*
+analysis/03_ASprofile/ind/
+analysis/05_IRfinder/IRfinder_software/
+analysis/05_IRfinder/REF/
+analysis/06_rMATS/rMATS_pkg/
