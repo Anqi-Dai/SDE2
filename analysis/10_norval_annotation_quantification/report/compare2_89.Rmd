@@ -1,5 +1,5 @@
 ---
-title: "compare2_14"
+title: "compare2_89"
 author: "Angel"
 date: "1/24/2019"
 output: html_document
@@ -15,108 +15,26 @@ library(kableExtra)
 
 ## Compare the log2 Fold Change of those genes in the intersection of novel and normal in 14control and 89control respectively
 
-```{r}
-novel14 <- read_tsv('../output/novel_14_control_DE.csv')
-normal14 <- read_tsv('../output/normal_14_control_DE.csv')
-
-res14 <- novel14 %>%
-  dplyr::select(X, novel14log2FC = Status__KD1__log2FoldChange) %>%
-  inner_join(normal14 %>%
-              dplyr::select(X, normal14log2FC = Status__KD1__log2FoldChange), by = 'X')
-```
-
-```{r plot}
-# plot
-res14 %>%
-  ggplot(aes(x = normal14log2FC, y = novel14log2FC))+
-  geom_point(alpha = 0.2) +
-  geom_abline(slope=1, intercept=0, color = 'red') +
-  labs(x = 'log2FC in normal quantification', 
-       y ='log2FC in novel quantification',
-       title = 'Novel VS normal log2FC')
-```
+### 89
 
 ```{r}
-# what is that gene so far away from the others
-res14 %>%
-  filter(normal14log2FC < -20) %>%
-  kable() %>%
-  kable_styling(full_width = F)
+novel14 <- read_tsv('../output/novel_89_control_DE.csv')
+normal14 <- read_tsv('../output/normal_89_control_DE.csv')
 
-# ENSG00000283029 is an RNA Gene, and is affiliated with the SRP RNA class.
 ```
 
-```{r}
-# plot again without that gene
-res14 %>%
-  filter(normal14log2FC > -20) %>%
-  ggplot(aes(x = normal14log2FC, y = novel14log2FC))+
-  geom_point(alpha = 0.2) +
-  geom_abline(slope=1, intercept=0, color = 'red') +
-  labs(x = 'log2FC in normal quantification', 
-       y ='log2FC in novel quantification',
-       title = 'Novel VS normal log2FC(remove extreme outlier)')
-```
-```{r}
-# what are those genes have much higher log2FC in novel than normal
-res14 %>%
-  filter(abs(novel14log2FC) > 10) %>%
-  kable() %>%
-  kable_styling(full_width = F)
-
-# Histone Cluster 2 H4 Family Member A . This gene is intronless and encodes a replication-dependent histone that is a member of the histone H4 family. Transcripts from this gene lack polyA tails;
-
-# C17orf49 (Chromosome 17 Open Reading Frame 49) is a Protein Coding gene. Gene Ontology (GO) annotations related to this gene include chromatin binding.
-
-# ENSG00000283515 is a Protein Coding gene.
-```
-
-```{r}
-# remove those outliers 
-res14 %>%
-  filter(normal14log2FC > -20) %>%
-  filter(abs(novel14log2FC) < 5) %>%
-  ggplot(aes(x = normal14log2FC, y = novel14log2FC))+
-  geom_point(alpha = 0.1) +
-  geom_abline(slope=1, intercept=0, color = 'red') +
-  labs(x = 'log2FC in normal quantification', 
-       y ='log2FC in novel quantification',
-       title = 'Novel VS normal log2FC(remove extreme outlier)')
-```
-
-```{r}
-# histogram to confirm what we see in the scatter plot
-res14 %>%
-  filter(normal14log2FC > -20) %>%
-  filter(abs(novel14log2FC) < 5) %>%
-  mutate(Diff = novel14log2FC- normal14log2FC) %>%
-  ggplot(aes(x = Diff)) +
-  geom_histogram(bins = 100, color = 'white') +
-  geom_vline(xintercept = 0, color = 'red') + 
-  labs(x = 'novel14log2FC - normal14log2FC',
-       title = 'Diff in novel & normal quant log2FC in histogram')
-```
 
 ```{r basemean}
 res14 <- novel14 %>%
-  dplyr::select(X, novel14log2FC = Status__KD1__log2FoldChange, novel_baseMean = baseMean) %>%
+  dplyr::select(X, novel14log2FC = Status__KD2__log2FoldChange, novel_baseMean = baseMean) %>%
   inner_join(normal14 %>%
-              dplyr::select(X, normal14log2FC = Status__KD1__log2FoldChange, normal_baseMean= baseMean), by = 'X') 
+              dplyr::select(X, normal14log2FC = Status__KD2__log2FoldChange, normal_baseMean= baseMean), by = 'X') 
 
 # the correlation between the basemean of the two quant
 cor.test(res14$novel_baseMean,res14$normal_baseMean, method = 'spearman')
 ```
 
-```{r}
-# basemean plot
-res14 %>%
-  ggplot(aes(y = novel_baseMean,x = normal_baseMean)) +
-  geom_point(alpha = 0.2) +
-  yscale("log10", .format = TRUE)+
-  xscale("log10", .format = TRUE) +
-  geom_abline(slope=1, intercept=0, color = 'red') +
-  labs(title = 'Novel VS normal basemean')
-```
+
 
 ```{r}
 # color the dots with red: AS blue: not AS but have expression
@@ -154,7 +72,7 @@ res %>%
   facet_wrap(.~ Color) + 
   scale_fill_manual(values =  c('#EC0000', '#00468B')) +
   scale_color_manual(values =  c('#EC0000', '#00468B'))  +
-  ggsave('../figs/Diff in novel & normal quant log2FC in histogram 14.jpg', width = 8, height =6, dpi = 300)
+  ggsave('../figs/Diff in novel & normal quant log2FC in histogram 89.jpg', width = 8, height =6, dpi = 300)
 ```
 
 ```{r}
@@ -168,7 +86,7 @@ res %>%
        title = 'Novel VS normal log2FC(removed extreme outlier)') + 
   scale_fill_manual(values =  c('#EC0000', '#00468B')) +
   scale_color_manual(values =  c('#EC0000', '#00468B'))  +
-  ggsave('../figs/novel_normal_log2FC_color 14.jpg', width = 8, height =6, dpi = 300)
+  ggsave('../figs/novel_normal_log2FC_color 89.jpg', width = 8, height =6, dpi = 300)
 ```
 
 ```{r}
@@ -186,7 +104,7 @@ res %>%
        title = 'The 800 genes that have high TPM but are not AS') + 
   scale_fill_manual(values =  c('#00468B', '#EC0000')) +
   scale_color_manual(values =  c('#00468B', '#EC0000'))  +
-  ggsave('../figs/The 800 genes that have high TPM but are not AS 14.jpg', width = 8, height =6, dpi = 300)
+  ggsave('../figs/The 800 genes that have high TPM but are not AS 89.jpg', width = 8, height =6, dpi = 300)
 ```
 
 ```{r}
@@ -200,6 +118,5 @@ res %>%
    labs(title = 'Novel VS normal basemean') +
   scale_fill_manual(values =  c('#EC0000', '#00468B')) +
   scale_color_manual(values =  c('#EC0000', '#00468B')) +
-  ggsave('../figs/novel_normal_basemean_color 14.jpg', width = 8, height =6, dpi = 300)
+  ggsave('../figs/novel_normal_basemean_color 89.jpg', width = 8, height =6, dpi = 300)
 ```
-
