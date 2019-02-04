@@ -1,12 +1,17 @@
 ---
 title: "compare2_14"
-author: "Angel"
-date: "1/24/2019"
-output: html_document
+author: "Anqi Dai"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    code_folding: hide
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning = FALSE)
 library(Biobase)
 library(tidyverse)
 library(ggpubr)
@@ -118,6 +123,7 @@ res14 %>%
   labs(title = 'Novel VS normal basemean')
 ```
 
+
 ```{r}
 # color the dots with red: AS blue: not AS but have expression
 sig_gene <- read_table('../../08_findingGenes/data/union_sig_genes_from_3_analysis.txt', col_names = F)
@@ -136,7 +142,7 @@ length(red_genes)
 length(intersect(blue_genes, res14$X))
 length(intersect(red_genes, res14$X))
 
-res <- res14 %>%
+res <- res14 %>% 
   mutate(Color = factor(if_else(X %in% blue_genes, 'no AS', if_else(X %in% red_genes, 'AS', 'other'))) ) %>%
   mutate(novelNormalDiffFC = novel14log2FC - normal14log2FC ) %>%
   filter(abs(normal14log2FC) < 5) %>%
@@ -171,7 +177,7 @@ res %>%
   ggsave('../figs/novel_normal_log2FC_color 14.jpg', width = 8, height =6, dpi = 300)
 ```
 
-```{r}
+```{r eval=F}
 # see where those 800 genes are in the plot only 
 high <- read_table('../../09_mitochondria/output/genes_with_at_least_3_introns_ids_highTPM.txt', col_names = F)
 
@@ -202,4 +208,24 @@ res %>%
   scale_color_manual(values =  c('#EC0000', '#00468B')) +
   ggsave('../figs/novel_normal_basemean_color 14.jpg', width = 8, height =6, dpi = 300)
 ```
+
+```{r}
+# plot the basemean ratio as histogram
+
+res %>%
+  mutate(bMean_ratio_nov_nor = novel_baseMean / normal_baseMean) %>%
+  ggplot(aes(x = bMean_ratio_nov_nor)) +
+  geom_histogram(bins = 20 ) +
+  #geom_vline(xintercept = 1, color = 'red') + 
+  labs(x = 'novel_baseMean / normal_baseMean',
+       title = 'BaseMean ratio in histogram')
+```
+
+Those blue points above the line represent they have much higher base mean when you map the reads to the whole gene (including the intronic region), so the question is why are they identified AS genes by IRfinder?
+
+```{r}
+# plot log basemen vs log fold change for AS  and non-as
+
+```
+
 

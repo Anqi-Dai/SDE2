@@ -90,3 +90,65 @@ symbol %>%
   kable_styling()
 ```
 
+## The AS genes
+
+Compare to how many genes that are ribosome related but are AS significant.
+
+### How many genes are AS sig pooling all the AS software we used:
+
+```{r}
+# load the 8000 genes that are AS significant
+
+# use the detk filter to be the filtered result
+detkF <- read_csv('../../08_findingGenes/data/detk_fil_Norm_salmon_cts_replicate1_matrix.csv') %>%
+  mutate(Name = str_replace_all(string = Name, pattern = '\\..*$', replacement = '')) 
+  
+# loading the sig genes
+sig_gene <- read_table('../../08_findingGenes/data/union_sig_genes_from_3_analysis.txt', col_names = F)
+
+sig_overlap <- intersect(detkF$Name, sig_gene$X1)
+
+
+```
+
+```{r}
+# retrieve the feature info for those genes
+
+mart <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+# retrieve the feature information of the listed attributes
+symbol <- getBM(filters = "ensembl_gene_id",
+                attributes = c('ensembl_gene_id',
+                               'external_gene_name',
+                               'chromosome_name',
+                               'start_position',
+                               'end_position', 
+                               'description'),
+                values = sig_overlap, 
+                mart = mart)
+symbol <- symbol %>%
+  rename(chr = chromosome_name)
+
+symbol %>%
+  nrow
+
+write_csv(symbol, '../output/01_all_AS_gene_info.csv')
+```
+
+[TABLE attached: all AS sig genes info](../output/01_all_AS_gene_info.csv)
+
+### How many are ribosome related
+
+```{r}
+symbol %>%
+  filter(grepl(pattern = 'ribosom', x = description)) %>%
+  nrow
+```
+
+```{r}
+symbol %>%
+  filter(grepl(pattern = 'ribosom', x = description)) %>%
+  kable() %>%
+  kable_styling()
+```
+
+
