@@ -1,0 +1,142 @@
+---
+title: "Pooled KD 1 pair DE"
+author: "Anqi Dai"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
+library(tidyverse)
+library(ggpubr)
+library(kableExtra)
+library(knitr)
+library(biomaRt)
+library(Biobase)
+```
+
+Doing 1 pair DE pooling KD together to contrast with control.
+
+## One pair DE
+
+Pooling 14 and 89 together to contrast with control.
+
+```{r}
+# remake the pheno table with KD1 and KD2 together as KD
+pheno <- pData(read_rds('../../08_findingGenes/data/Norm_salmon_cts_replicate1_eset_unfiltered.RDS')) %>%
+  rownames_to_column %>%
+  mutate(Status = str_replace(Status, 'KD1|KD2', 'KD')) %>%
+  column_to_rownames('rowname')
+
+write.csv(pheno, '../data/pheno_pooled_KD.csv', row.names = T,  quote = F)
+```
+
+```{bash}
+# run the DE using the previously filtered data
+#detk-de deseq2 "counts ~ Status" ../../10_norval_annotation_quantification/data/normal_quant_salmon_raw_cts_filtered.csv ../data/pheno_pooled_KD.csv  > ../output/03_pooledKD_DE.csv
+
+```
+
+## DE results
+
+Selecting padj < 0.05 as the significant genes.
+
+```{r}
+# look at the DE results
+pooled <- read_tsv('../output/03_pooledKD_DE.csv')
+
+sig <- pooled %>%
+    filter(Status__KD__padj < 0.05) %>%
+    pull(X)
+
+# check how these genes look in volcano plot in 14 data
+pooled_plot <- pooled %>%
+  filter(abs(Status__KD__log2FoldChange ) < 5) %>%
+  mutate(Significance = factor(ifelse(X %in% sig, 'sig', 'no' ))) %>%
+  mutate(log10Padj = -log10(Status__KD__padj))
+
+# plot the volcano plot
+pooled_plot %>%
+  ggscatter(x = 'Status__KD__log2FoldChange',
+            y = 'log10Padj',
+            color = 'Significance',
+            alpha = 0.1,
+            xlab =  'log2 Fold Change',
+            ylab = '-log10(PADJ)',
+            title = 'Volcano plot for pooled KD VS control'
+            ) + 
+  geom_vline(xintercept = 1, linetype = 'dashed') + 
+  geom_vline(xintercept = -1, linetype = 'dashed') +
+  scale_color_manual(values = c('#00468B', '#EC0000')) 
+```
+
+## Filter on the sig genes
+
+* padj < 0.05
+* 1 < abs(log2FC) < 5
+
+```{r}
+# again filter on the abs fold change
+Sig <- pooled %>%
+    filter(Status__KD__padj < 0.05) %>%
+    filter(abs(Status__KD__log2FoldChange ) < 5) %>%
+    filter(abs(Status__KD__log2FoldChange ) > 1) %>%
+    pull(X)
+
+write.table(Sig, '../output/03_pooledKD_sig_genes_IDs.txt', quote = F, col.names = F, row.names = F)
+```
+
+## Metascape result
+
+```{r out.width=800}
+knitr::include_graphics('../output/Metascape/03_pooledKD/Enrichment_heatmap/HeatmapSelectedGO.png')
+```
+
+## Retrieve all the sig pathways that have TP53
+
+```{r}
+# positive regulation of cell death
+# check what those genes are
+all_GO <- read_csv('../output/Metascape/03_pooledKD/Enrichment_GO/GO_AllLists.csv')
+
+prcd <- all_GO %>%
+  filter(Description == 'positive regulation of cell death') %>%
+  pull(Hits) %>%
+  strsplit( '\\|') %>% # you have to escape the | it's a special characer in regex
+  unlist
+
+# get the gene information
+
+mart <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+
+symbol <- getBM(filters = "external_gene_name",
+                attributes = c('ensembl_gene_id',
+                               'external_gene_name',
+                               'chromosome_name',
+                               'start_position',
+                               'end_position', 
+                               'description'),
+                values = prcd, 
+                mart = mart)
+symbol <- symbol %>%
+  rename(chr = chromosome_name) %>%
+  filter(! grepl('CHR', chr))
+```
+
+```{r}
+# get all the sig enriched pathways that have P53 in it
+target <- all_GO %>%
+  filter(Enrichment > 1.3) %>%
+  filter(grepl('TP53', x = Hits))
+
+target %>%
+  dplyr::select(-GeneID) %>%
+  kable() %>%
+  kable_styling()
+```
+
