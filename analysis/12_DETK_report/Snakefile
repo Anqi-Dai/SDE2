@@ -1,0 +1,50 @@
+'''
+This Snakefile will run the detk generat report dev mode
+* filter out rows that have any zero in it
+* normlize on the above generated result
+* get the stats for both the raw and norm of the unzero files
+* get the report
+'''
+
+rule nonzero_filter:
+    input:
+        'data/raw_salmon_cts_replicate1_matrix.csv'
+    output:
+        'output/nonzero_raw_salmon_cts_replicate1_matrix.csv'
+    shell:
+        '''
+        detk-filter  -o {output} 'zero(all) == 0' {input}
+        '''    
+
+rule nonzero_norm:
+    input:
+        'output/nonzero_raw_salmon_cts_replicate1_matrix.csv'
+    output:
+        'output/nonzero_norm_salmon_cts_replicate1_matrix.csv'
+    shell:
+        '''
+        detk-norm deseq2  {input} -o {output}
+        '''
+
+rule stats:
+    input:
+        counts = 'output/nonzero_{type}_salmon_cts_replicate1_matrix.csv',
+        pheno= 'data/pheno_data.csv'
+    output:
+        'output/{type}_summary_stats.csv'
+    shell:
+        'detk-stats summary --log {input.counts} -o {output} --column-data={input.pheno}'
+    
+
+rule output:
+     input:
+        'output/raw_summary_stats.csv','output/norm_summary_stats.csv'
+
+rule generate:
+    input:
+        'output/raw_summary_stats.csv',
+        'output/norm_summary_stats.csv'
+    output:
+        'detk_report/detk_report.html'
+    shell:
+        'detk-report generate --dev'

@@ -17,4 +17,5 @@ analysis/05_IRfinder/REF/
 analysis/06_rMATS/rMATS_pkg/
 analysis/*/Send
 analysis/*/scripts/*.html
-analysis/*/*/detk*
+analysis/*/*detk_report*
+analysis/*/scripts/*detk_report*
