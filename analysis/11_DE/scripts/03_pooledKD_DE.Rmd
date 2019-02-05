@@ -89,15 +89,95 @@ Sig <- pooled %>%
     pull(X)
 
 write.table(Sig, '../output/03_pooledKD_sig_genes_IDs.txt', quote = F, col.names = F, row.names = F)
+
+
+##  the genes that are up in KD
+up <- pooled %>%
+    filter(Status__KD__padj < 0.05) %>%
+    filter(abs(Status__KD__log2FoldChange ) < 5) %>%
+    filter(abs(Status__KD__log2FoldChange ) > 1) %>%
+    filter(Status__KD__log2FoldChange > 0) %>%
+    pull(X)
+
+write.table(up, '../output/03_pooledKD_sig_genes_IDs_UP.txt', quote = F, col.names = F, row.names = F)
+
+
+##  the genes that are down in KD
+down <- pooled %>%
+    filter(Status__KD__padj < 0.05) %>%
+    filter(abs(Status__KD__log2FoldChange ) < 5) %>%
+    filter(abs(Status__KD__log2FoldChange ) > 1) %>%
+    filter(Status__KD__log2FoldChange < 0) %>%
+    pull(X)
+
+write.table(down, '../output/03_pooledKD_sig_genes_IDs_DOWN.txt', quote = F, col.names = F, row.names = F)
 ```
 
 ## Metascape result
+
+### All genes 
 
 ```{r out.width=800}
 knitr::include_graphics('../output/Metascape/03_pooledKD/Enrichment_heatmap/HeatmapSelectedGO.png')
 ```
 
-## Retrieve all the sig pathways that have TP53
+### Genes upregulated in KD
+
+```{r out.width=800}
+knitr::include_graphics('../output/Metascape/03_pooledKD_up/all/Enrichment_heatmap/HeatmapSelectedGO.png')
+```
+
+*SIRT1 negatively regulates rRNA expression*
+
+Expression of rRNA genes is coupled to the overall metabolism of the cell by the NAD-dependent histone deacetylase SIRT1, a component of the Energy-dependent Nucleolar Silencing Complex (eNoSC) (Murayama et al. 2008, reviewed in Salminen and Kaarniranta 2009, Grummt and Voit 2010). eNoSC comprises Nucleomethylin (NML), SIRT1, and the histone methylase SUV39H1 (Murayama et al. 2008). Deacetylation and methylation of histone H3 in the chromatin of a rRNA gene by eNoSC causes reduced expression of the gene. When glucose is low, NAD is high (NADH is low), activity of SIRT1 is high, and activity of rRNA genes is reduced. It is hypothesized that eNoSC forms on a nucleosome containing dimethylated lysine-9 on histone H3 (H3K9me2) and then eNoSC deacetylates and dimethylates the adjacent nucleosome, thus catalyzing spreading of H3K9me2 throughout the gene.
+
+*The hits genes of this pathway*
+
+```{r}
+up_GO <- read_csv('../output/Metascape/03_pooledKD_up/all/Enrichment_GO/GO_AllLists.csv')
+
+sirti <- up_GO %>%
+  filter(Description == 'SIRT1 negatively regulates rRNA expression') %>%
+  pull(Hits) %>%
+  strsplit( '\\|') %>% # you have to escape the | it's a special characer in regex
+  unlist
+
+# get the gene information
+
+mart <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+
+symbol <- getBM(filters = "external_gene_name",
+                attributes = c('ensembl_gene_id',
+                               'external_gene_name',
+                               'chromosome_name',
+                               'start_position',
+                               'end_position', 
+                               'description'),
+                values = sirti, 
+                mart = mart)
+symbol <- symbol %>%
+  rename(chr = chromosome_name) %>%
+  filter(! grepl('CHR', chr))
+
+symbol %>%
+  kable() %>%
+  kable_styling()
+```
+
+### Genes downregulated in KD
+
+```{r out.width=800}
+knitr::include_graphics('../output/Metascape/03_pooledKD_down/all/Enrichment_heatmap/HeatmapSelectedGO.png')
+```
+
+*small molecule biosynthetic process*
+
+The chemical reactions and pathways resulting in the formation of small molecules, any low molecular weight, monomeric, non-encoded molecule. Small molecules in GO include monosaccharides but exclude disaccharides and polysaccharides.
+
+
+## Retrieve the sig pathways that have TP53
+
+### All genes
 
 ```{r}
 # positive regulation of cell death
@@ -128,11 +208,15 @@ symbol <- symbol %>%
   filter(! grepl('CHR', chr))
 ```
 
+*How many*
+
 ```{r}
-# get all the sig enriched pathways that have P53 in it
+# get all the sig enriched pathways that have TP53 in it
 target <- all_GO %>%
   filter(Enrichment > 1.3) %>%
-  filter(grepl('TP53', x = Hits))
+  filter(grepl('TP53', x = Hits))  
+
+nrow(target)
 
 target %>%
   dplyr::select(-GeneID) %>%
@@ -140,3 +224,47 @@ target %>%
   kable_styling()
 ```
 
+### Up genes
+
+*How many*
+
+```{r}
+up_GO %>%
+  filter(Enrichment > 1.3) %>%
+  filter(grepl('TP53', x = Hits)) %>%
+  nrow
+```
+
+```{r}
+up_GO %>%
+  filter(Enrichment > 1.3) %>%
+  filter(grepl('TP53', x = Hits)) %>%
+  dplyr::select(-GeneID) %>%
+  kable() %>%
+  kable_styling()
+```
+
+
+### Down genes
+
+```{r}
+down_GO <- read_csv('../output/Metascape/03_pooledKD_down/all/Enrichment_GO/GO_AllLists.csv')
+```
+
+*How many*
+
+```{r}
+down_GO %>%
+  filter(Enrichment > 1.3) %>%
+  filter(grepl('TP53', x = Hits)) %>%
+  nrow
+```
+
+```{r}
+down_GO %>%
+  filter(Enrichment > 1.3) %>%
+  filter(grepl('TP53', x = Hits)) %>%
+  dplyr::select(-GeneID) %>%
+  kable() %>%
+  kable_styling()
+```
