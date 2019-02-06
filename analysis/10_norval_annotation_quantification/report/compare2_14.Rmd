@@ -1,5 +1,5 @@
 ---
-title: "compare2_14"
+title: "Compare novel and normal quantification in 14 VS control"
 author: "Anqi Dai"
 date: "`r Sys.Date()`"
 output:
@@ -10,15 +10,17 @@ output:
     code_folding: hide
 ---
 
+Compare the counts for genes when considering annotated transcriptom and also the one includes the intron. 
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning = FALSE)
 library(Biobase)
 library(tidyverse)
 library(ggpubr)
 library(kableExtra)
+library(biomaRt)
 ```
 
-## Compare the log2 Fold Change of those genes in the intersection of novel and normal in 14control and 89control respectively
 
 ```{r}
 novel14 <- read_tsv('../output/novel_14_control_DE.csv')
@@ -30,99 +32,21 @@ res14 <- novel14 %>%
               dplyr::select(X, normal14log2FC = Status__KD1__log2FoldChange), by = 'X')
 ```
 
-```{r plot}
-# plot
-res14 %>%
-  ggplot(aes(x = normal14log2FC, y = novel14log2FC))+
-  geom_point(alpha = 0.2) +
-  geom_abline(slope=1, intercept=0, color = 'red') +
-  labs(x = 'log2FC in normal quantification', 
-       y ='log2FC in novel quantification',
-       title = 'Novel VS normal log2FC')
-```
 
 ```{r}
-# what is that gene so far away from the others
-res14 %>%
-  filter(normal14log2FC < -20) %>%
-  kable() %>%
-  kable_styling(full_width = F)
-
-# ENSG00000283029 is an RNA Gene, and is affiliated with the SRP RNA class.
-```
-
-```{r}
-# plot again without that gene
-res14 %>%
-  filter(normal14log2FC > -20) %>%
-  ggplot(aes(x = normal14log2FC, y = novel14log2FC))+
-  geom_point(alpha = 0.2) +
-  geom_abline(slope=1, intercept=0, color = 'red') +
-  labs(x = 'log2FC in normal quantification', 
-       y ='log2FC in novel quantification',
-       title = 'Novel VS normal log2FC(remove extreme outlier)')
-```
-```{r}
-# what are those genes have much higher log2FC in novel than normal
-res14 %>%
-  filter(abs(novel14log2FC) > 10) %>%
-  kable() %>%
-  kable_styling(full_width = F)
-
-# Histone Cluster 2 H4 Family Member A . This gene is intronless and encodes a replication-dependent histone that is a member of the histone H4 family. Transcripts from this gene lack polyA tails;
-
-# C17orf49 (Chromosome 17 Open Reading Frame 49) is a Protein Coding gene. Gene Ontology (GO) annotations related to this gene include chromatin binding.
-
-# ENSG00000283515 is a Protein Coding gene.
-```
-
-```{r}
-# remove those outliers 
-res14 %>%
-  filter(normal14log2FC > -20) %>%
-  filter(abs(novel14log2FC) < 5) %>%
-  ggplot(aes(x = normal14log2FC, y = novel14log2FC))+
-  geom_point(alpha = 0.1) +
-  geom_abline(slope=1, intercept=0, color = 'red') +
-  labs(x = 'log2FC in normal quantification', 
-       y ='log2FC in novel quantification',
-       title = 'Novel VS normal log2FC(remove extreme outlier)')
-```
-
-```{r}
-# histogram to confirm what we see in the scatter plot
-res14 %>%
-  filter(normal14log2FC > -20) %>%
-  filter(abs(novel14log2FC) < 5) %>%
-  mutate(Diff = novel14log2FC- normal14log2FC) %>%
-  ggplot(aes(x = Diff)) +
-  geom_histogram(bins = 100, color = 'white') +
-  geom_vline(xintercept = 0, color = 'red') + 
-  labs(x = 'novel14log2FC - normal14log2FC',
-       title = 'Diff in novel & normal quant log2FC in histogram')
-```
-
-```{r basemean}
 res14 <- novel14 %>%
   dplyr::select(X, novel14log2FC = Status__KD1__log2FoldChange, novel_baseMean = baseMean) %>%
   inner_join(normal14 %>%
               dplyr::select(X, normal14log2FC = Status__KD1__log2FoldChange, normal_baseMean= baseMean), by = 'X') 
+```
 
+
+```{r eval=F}
 # the correlation between the basemean of the two quant
 cor.test(res14$novel_baseMean,res14$normal_baseMean, method = 'spearman')
 ```
 
-```{r}
-# basemean plot
-res14 %>%
-  ggplot(aes(y = novel_baseMean,x = normal_baseMean)) +
-  geom_point(alpha = 0.2) +
-  yscale("log10", .format = TRUE)+
-  xscale("log10", .format = TRUE) +
-  geom_abline(slope=1, intercept=0, color = 'red') +
-  labs(title = 'Novel VS normal basemean')
-```
-
+## log2FC comparison
 
 ```{r}
 # color the dots with red: AS blue: not AS but have expression
@@ -132,15 +56,14 @@ detkF <- read_csv('../../08_findingGenes/data/detk_fil_Norm_salmon_cts_replicate
   mutate(Name = str_replace_all(string = Name, pattern = '\\..*$', replacement = ''))
 
 blue_genes <- setdiff(detkF$Name, sig_gene$X1)
-length(blue_genes)
+
 red_genes <- intersect(detkF$Name, sig_gene$X1)
-length(red_genes)
+
 ```
 
 ```{r}
 # mark the res14 table with the different categories of genes
-length(intersect(blue_genes, res14$X))
-length(intersect(red_genes, res14$X))
+
 
 res <- res14 %>% 
   mutate(Color = factor(if_else(X %in% blue_genes, 'no AS', if_else(X %in% red_genes, 'AS', 'other'))) ) %>%
@@ -195,6 +118,8 @@ res %>%
   ggsave('../figs/The 800 genes that have high TPM but are not AS 14.jpg', width = 8, height =6, dpi = 300)
 ```
 
+## Basemean comparison
+
 ```{r}
 # the basemean plot with colors
 res %>%
@@ -209,23 +134,133 @@ res %>%
   ggsave('../figs/novel_normal_basemean_color 14.jpg', width = 8, height =6, dpi = 300)
 ```
 
-```{r}
-# plot the basemean ratio as histogram
-
-res %>%
-  mutate(bMean_ratio_nov_nor = novel_baseMean / normal_baseMean) %>%
-  ggplot(aes(x = bMean_ratio_nov_nor)) +
-  geom_histogram(bins = 20 ) +
-  #geom_vline(xintercept = 1, color = 'red') + 
-  labs(x = 'novel_baseMean / normal_baseMean',
-       title = 'BaseMean ratio in histogram')
-```
 
 Those blue points above the line represent they have much higher base mean when you map the reads to the whole gene (including the intronic region), so the question is why are they identified AS genes by IRfinder?
 
+*Select some of those genes*
+
+novel_baseMean > 10000 & normal_baseMean < 50
+
 ```{r}
-# plot log basemen vs log fold change for AS  and non-as
+# select some genes in IRfinder
+test <- res %>%
+  filter(novel_baseMean > 10000 & normal_baseMean < 50) %>%
+  pull(X)
+
+# get the gene info for those genes
+mart <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+# retrieve the feature information of the listed attributes
+symbol <- getBM(filters = "ensembl_gene_id",
+                attributes = c('ensembl_gene_id',
+                               'external_gene_name',
+                               'chromosome_name',
+                               'start_position',
+                               'end_position', 
+                               'description'),
+                values = test, 
+                mart = mart)
+symbol <- symbol %>%
+  rename(chr = chromosome_name)
+
+symbol %>%
+  kable() %>%
+  kable_styling()
+```
+
+## log(basemen) vs log(FC)
+
+
+```{r}
+# plot log basemen vs log fold change for AS and non-as
+res <- res %>%
+  mutate(logBM_novel = log2(novel_baseMean),
+         logBM_normal = log2(normal_baseMean))
+
+res %>%
+  ggplot(aes(x = novel14log2FC, y = logBM_novel )) +
+  geom_point(alpha = 0.1, color = '#00468B') +
+  facet_wrap(.~Color)+
+  labs(x = 'log2 Fold Change',
+       y = 'log2 base mean',
+       title = 'novel quantification')
+
+
+res %>%
+  ggplot(aes(x = normal14log2FC, y = logBM_normal )) +
+  geom_point(alpha = 0.1, color = '#00468B') +
+  facet_wrap(.~Color)+
+  labs(x = 'log2 Fold Change',
+       y = 'log2 base mean',
+       title = 'normal quantification')
+```
+
+## Filter out the pseudogenes
+
+```{r}
+
+mart <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+# retrieve the feature information of the listed attributes
+symbol <- getBM(filters = "ensembl_gene_id",
+                attributes = c('ensembl_gene_id',
+                               'external_gene_name',
+                               'chromosome_name',
+                               'start_position',
+                               'end_position', 
+                               'description'),
+                values = res$X, 
+                mart = mart)
+symbol <- symbol %>%
+  rename(chr = chromosome_name)
+
+
+# join to the res table
+ret <- symbol %>%
+  dplyr::select(ensembl_gene_id, description) %>%
+  left_join(res %>%
+              rename(ensembl_gene_id = X), by  ='ensembl_gene_id') %>%
+  filter(! grepl('pseudogene|novel transcript', description))
+
+
 
 ```
+
+```{r}
+# re do the basemean plot
+
+ret %>%
+  ggplot(aes(x = normal_baseMean, y = novel_baseMean, color = Color))+
+  geom_point(alpha = 0.2) +
+  yscale("log10", .format = TRUE)+
+  xscale("log10", .format = TRUE) +
+  geom_abline(slope=1, intercept=0, color = 'black', alpha = 0.5) +
+   labs(title = 'Novel VS normal basemean(remove pseudogenes)') +
+  scale_fill_manual(values =  c('#EC0000', '#00468B')) +
+  scale_color_manual(values =  c('#EC0000', '#00468B'))
+```
+
+```{r}
+ret %>%
+  ggplot(aes(x = novelNormalDiffFC, fill = Color, color  = Color )) +
+  geom_histogram(bins = 80) +
+  geom_vline(xintercept = 0, color = 'white', alpha = 1) + 
+  labs(x = 'novel14log2FC - normal14log2FC',
+       title = 'Diff in novel & normal quant log2FC in histogram(remove pseudogenes)') +
+  facet_wrap(.~ Color) + 
+  scale_fill_manual(values =  c('#EC0000', '#00468B')) +
+  scale_color_manual(values =  c('#EC0000', '#00468B'))
+```
+
+```{r}
+ret %>%
+  ggplot(aes(x = normal14log2FC, y = novel14log2FC, color = Color))+
+  geom_point(alpha = 0.2) +
+  geom_abline(slope=1, intercept=0, color = 'black', alpha = 0.5) +
+  labs(x = 'log2FC in normal quantification', 
+       y ='log2FC in novel quantification',
+       title = 'Novel VS normal log2FC(remove pseudogenes)') + 
+  scale_fill_manual(values =  c('#EC0000', '#00468B')) +
+  scale_color_manual(values =  c('#EC0000', '#00468B'))
+```
+
 
 
