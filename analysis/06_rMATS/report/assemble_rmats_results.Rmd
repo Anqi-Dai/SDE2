@@ -1,0 +1,57 @@
+---
+title: "Assemble rMATS results"
+author: "Anqi Dai"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
+library(tidyverse)
+
+```
+
+Assemble the rMATS sig results together. Better with the type of AS and the significance level to it.
+
+```{r}
+# for 14 VS control 
+path <- '../data/rMATS_result/RF14_control'
+fns <- file.path(path, list.files(path, 'JCEC.txt'))
+JCEC_sig_RF14 <- lapply(fns, function(fn){
+  ret = read_tsv(fn, col_types = cols(ID = col_number())) %>%
+    filter(FDR < .05) %>%
+    mutate(Type = fn) %>%
+    mutate(Type = str_replace_all(Type, '../data/rMATS_result/RF14_control/','')) %>%
+    mutate(Type = str_replace_all(Type, '.MATS.JCEC.txt','')) %>%
+    mutate(Position = paste(.[[6]], .[[7]], sep = '-')) %>%
+    mutate(Locus = paste(chr, Position,sep = ':')) %>%
+    dplyr::select(ID, Locus, GeneID, geneSymbol, Type, IncLevelDifference, FDR, IJC_SAMPLE_1, SJC_SAMPLE_1, IJC_SAMPLE_2, SJC_SAMPLE_2) %>%
+    mutate(GeneID = str_replace_all(string = GeneID, pattern = '\\..*$', replacement = '')) 
+  return(ret)
+})  %>% bind_rows()
+```
+
+```{r}
+# for 89 VS control
+path <- '../data/rMATS_result/RF89_control'
+fns <- file.path(path, list.files(path, 'JCEC.txt'))
+JCEC_sig_RF89 <- lapply(fns, function(fn){
+  ret = read_tsv(fn, col_types = cols(ID = col_number())) %>%
+    filter(FDR < .05) %>%
+    mutate(Type = fn) %>%
+    mutate(Type = str_replace_all(Type, '../data/rMATS_result/RF89_control/','')) %>%
+    mutate(Type = str_replace_all(Type, '.MATS.JCEC.txt','')) %>%
+    mutate(Position = paste(.[[6]], .[[7]], sep = '-')) %>%
+    mutate(Locus = paste(chr, Position,sep = ':')) %>%
+    dplyr::select(ID, Locus, GeneID, geneSymbol, Type, IncLevelDifference, FDR, IJC_SAMPLE_1, SJC_SAMPLE_1, IJC_SAMPLE_2, SJC_SAMPLE_2) %>%
+    mutate(GeneID = str_replace_all(string = GeneID, pattern = '\\..*$', replacement = '')) 
+  return(ret)
+})  %>% bind_rows()
+```
+
+```{r}
+# output the table
+write_csv(JCEC_sig_RF14, '../output/RF14_sig_events_include_novel.csv')
+write_csv(JCEC_sig_RF89, '../output/RF89_sig_events_include_novel.csv')
+```
+

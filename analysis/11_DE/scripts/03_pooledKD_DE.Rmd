@@ -40,6 +40,28 @@ write.csv(pheno, '../data/pheno_pooled_KD.csv', row.names = T,  quote = F)
 # run the DE using the previously filtered data
 #detk-de deseq2 "counts ~ Status" ../../10_norval_annotation_quantification/data/normal_quant_salmon_raw_cts_filtered.csv ../data/pheno_pooled_KD.csv  > ../output/03_pooledKD_DE.tsv
 
+
+```
+
+```{r}
+# add the gene name!
+pooledDE <- read_tsv('../output/03_pooledKD_DE.tsv') %>%
+  rename(ensembl_gene_id = X)
+
+mart <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+
+symbol <- getBM(filters = "ensembl_gene_id",
+                attributes = c('ensembl_gene_id',
+                               'external_gene_name',
+                               'description'),
+                values = pooledDE$ensembl_gene_id, 
+                mart = mart)
+
+ret <- pooledDE %>%
+  left_join(symbol, by  = 'ensembl_gene_id')
+
+write_csv(ret, '../output/03_pooledKD_DE_withGeneName.csv')
+ 
 ```
 
 ## DE results
