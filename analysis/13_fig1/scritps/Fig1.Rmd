@@ -15,13 +15,16 @@ library(ggpubr)
 library(Biobase)
 library(knitr)
 library(kableExtra)
+library(RColorBrewer)
 ```
 
 ## 1A: Pie chart
 
 A pie chart showing the number of types of AS events from all three tools. Merging the rMATS one into the other 2 is pain, but I can and will do that.
 
-### Merge the rMATS results together
+### The delta PSI
+
+#### The rMATS result
 
 ```{r}
 # The JCEC.txt files of the AS types
@@ -30,55 +33,78 @@ fns <- file.path(path, list.files(path, 'JCEC.txt'))
 
 # A3SS 
 A3SS <- read_tsv(fns[1]) %>%
-  filter(FDR < 0.05) %>%
-  dplyr::select(chr, longExonStart_0base, shortES, geneSymbol, FDR) %>%
-  rename(start = longExonStart_0base, end = shortES, external_gene_name = geneSymbol, significance  = FDR) %>%
+  dplyr::select(chr, longExonStart_0base, shortES, geneSymbol, FDR, IncLevel1, IncLevel2) %>%
+  mutate(Significance = ifelse(FDR < 0.05, TRUE, FALSE)) %>%
+  rename(start = longExonStart_0base, end = shortES, external_gene_name = geneSymbol, Psi_A = IncLevel1, Psi_B = IncLevel2) %>%
+  separate(Psi_A, into = c('Psi_A1','Psi_A2','Psi_A3'), sep = ',', convert = T) %>%
+  separate(Psi_B, into = c('Psi_B1','Psi_B2','Psi_B3'), sep = ',', convert = T) %>%
+  mutate(Psi_A = mean(c(Psi_A1, Psi_A2, Psi_A3), na.rm = T),
+         Psi_B = mean(c(Psi_B1, Psi_B2, Psi_B3), na.rm = T))  %>%
   mutate(start = start + 1) %>%
   mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
   mutate(tool = 'rMATS',
          type = 'AA') %>%
-  dplyr::select(-chr, -start,-end)
+  dplyr::select(external_gene_name, Significance:type)
 
 # A5SS 
 A5SS <- read_tsv(fns[2]) %>%
-  filter(FDR < 0.05) %>%
-  dplyr::select(chr, shortEE, longExonEnd, geneSymbol, FDR) %>%
-  rename(start = shortEE, end = longExonEnd, external_gene_name = geneSymbol, significance  = FDR) %>%
+  dplyr::select(chr, shortEE, longExonEnd, geneSymbol, FDR, IncLevel1, IncLevel2) %>%
+  mutate(Significance = ifelse(FDR < 0.05, TRUE, FALSE)) %>%
+  rename(start = shortEE, end = longExonEnd, external_gene_name = geneSymbol,  Psi_A = IncLevel1, Psi_B = IncLevel2) %>%
+  separate(Psi_A, into = c('Psi_A1','Psi_A2','Psi_A3'), sep = ',', convert = T) %>%
+  separate(Psi_B, into = c('Psi_B1','Psi_B2','Psi_B3'), sep = ',', convert = T) %>%
+  mutate(Psi_A = mean(c(Psi_A1, Psi_A2, Psi_A3), na.rm = T),
+         Psi_B = mean(c(Psi_B1, Psi_B2, Psi_B3), na.rm = T))  %>%
   mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
   mutate(tool = 'rMATS',
          type = 'AD') %>%
-  dplyr::select(-chr, -start,-end)
+  dplyr::select(external_gene_name, Significance:type)
   
 # RI 
 RI <- read_tsv(fns[4]) %>%
   filter(FDR < 0.05) %>%
-  dplyr::select(chr, upstreamEE, downstreamES, geneSymbol, FDR) %>%
-  rename(start = upstreamEE, end = downstreamES, external_gene_name = geneSymbol, significance  = FDR) %>%
+  dplyr::select(chr, upstreamEE, downstreamES, geneSymbol, FDR, IncLevel1, IncLevel2) %>%
+  mutate(Significance = ifelse(FDR < 0.05, TRUE, FALSE)) %>%
+  rename(start = upstreamEE, end = downstreamES, external_gene_name = geneSymbol, Psi_A = IncLevel1, Psi_B = IncLevel2) %>%
+  separate(Psi_A, into = c('Psi_A1','Psi_A2','Psi_A3'), sep = ',', convert = T) %>%
+  separate(Psi_B, into = c('Psi_B1','Psi_B2','Psi_B3'), sep = ',', convert = T) %>%
+  mutate(Psi_A = mean(c(Psi_A1, Psi_A2, Psi_A3), na.rm = T),
+         Psi_B = mean(c(Psi_B1, Psi_B2, Psi_B3), na.rm = T))  %>%
   mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
   mutate(tool = 'rMATS',
          type = 'RI') %>%
-  dplyr::select(-chr, -start,-end)
+  dplyr::select(external_gene_name, Significance:type)
 
 # SE
 SE <-  read_tsv(fns[5]) %>%
   filter(FDR < 0.05) %>%
-  dplyr::select(chr, exonStart_0base, exonEnd, geneSymbol, FDR) %>%
-  rename(start = exonStart_0base, end = exonEnd, external_gene_name = geneSymbol, significance  = FDR) %>%
+  dplyr::select(chr, exonStart_0base, exonEnd, geneSymbol, FDR, IncLevel1, IncLevel2) %>%
+  mutate(Significance = ifelse(FDR < 0.05, TRUE, FALSE)) %>%
+  rename(start = exonStart_0base, end = exonEnd, external_gene_name = geneSymbol, Psi_A = IncLevel1, Psi_B = IncLevel2) %>%
+  separate(Psi_A, into = c('Psi_A1','Psi_A2','Psi_A3'), sep = ',', convert = T) %>%
+  separate(Psi_B, into = c('Psi_B1','Psi_B2','Psi_B3'), sep = ',', convert = T) %>%
+  mutate(Psi_A = mean(c(Psi_A1, Psi_A2, Psi_A3), na.rm = T),
+         Psi_B = mean(c(Psi_B1, Psi_B2, Psi_B3), na.rm = T))  %>%
   mutate(start = start + 1) %>%
   mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
   mutate(tool = 'rMATS',
          type = 'CE') %>%
-  dplyr::select(-chr, -start,-end)
+  dplyr::select(external_gene_name, Significance:type)
 
 # MXE
 MXE <- read_tsv(fns[3]) %>%
   filter(FDR < 0.05) %>%
-  dplyr::select(chr, upstreamES, downstreamEE, geneSymbol, FDR) %>%
-  rename(start = upstreamES, end = downstreamEE, external_gene_name = geneSymbol, significance  = FDR) %>%
+  dplyr::select(chr, upstreamES, downstreamEE, geneSymbol, FDR, IncLevel1, IncLevel2) %>%
+  mutate(Significance = ifelse(FDR < 0.05, TRUE, FALSE)) %>%
+  rename(start = upstreamES, end = downstreamEE, external_gene_name = geneSymbol, Psi_A = IncLevel1, Psi_B = IncLevel2) %>%
+  separate(Psi_A, into = c('Psi_A1','Psi_A2','Psi_A3'), sep = ',', convert = T) %>%
+  separate(Psi_B, into = c('Psi_B1','Psi_B2','Psi_B3'), sep = ',', convert = T) %>%
+  mutate(Psi_A = mean(c(Psi_A1, Psi_A2, Psi_A3), na.rm = T),
+         Psi_B = mean(c(Psi_B1, Psi_B2, Psi_B3), na.rm = T))  %>%
   mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
   mutate(tool = 'rMATS',
          type = 'MXE') %>%
-  dplyr::select(-chr, -start,-end)
+  dplyr::select(external_gene_name, Significance:type)
 ```
 
 ```{r}
@@ -93,55 +119,78 @@ fns <- file.path(path, list.files(path, 'JCEC.txt'))
 
 # A3SS 
 A3SS <- read_tsv(fns[1]) %>%
-  filter(FDR < 0.05) %>%
-  dplyr::select(chr, longExonStart_0base, shortES, geneSymbol, FDR) %>%
-  rename(start = longExonStart_0base, end = shortES, external_gene_name = geneSymbol, significance  = FDR) %>%
+  dplyr::select(chr, longExonStart_0base, shortES, geneSymbol, FDR, IncLevel1, IncLevel2) %>%
+  mutate(Significance = ifelse(FDR < 0.05, TRUE, FALSE)) %>%
+  rename(start = longExonStart_0base, end = shortES, external_gene_name = geneSymbol, Psi_A = IncLevel1, Psi_B = IncLevel2) %>%
+  separate(Psi_A, into = c('Psi_A1','Psi_A2','Psi_A3'), sep = ',', convert = T) %>%
+  separate(Psi_B, into = c('Psi_B1','Psi_B2','Psi_B3'), sep = ',', convert = T) %>%
+  mutate(Psi_A = mean(c(Psi_A1, Psi_A2, Psi_A3), na.rm = T),
+         Psi_B = mean(c(Psi_B1, Psi_B2, Psi_B3), na.rm = T))  %>%
   mutate(start = start + 1) %>%
   mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
   mutate(tool = 'rMATS',
          type = 'AA') %>%
-  dplyr::select(-chr, -start,-end)
+  dplyr::select(external_gene_name, Significance:type)
 
 # A5SS 
 A5SS <- read_tsv(fns[2]) %>%
-  filter(FDR < 0.05) %>%
-  dplyr::select(chr, shortEE, longExonEnd, geneSymbol, FDR) %>%
-  rename(start = shortEE, end = longExonEnd, external_gene_name = geneSymbol, significance  = FDR) %>%
+  dplyr::select(chr, shortEE, longExonEnd, geneSymbol, FDR, IncLevel1, IncLevel2) %>%
+  mutate(Significance = ifelse(FDR < 0.05, TRUE, FALSE)) %>%
+  rename(start = shortEE, end = longExonEnd, external_gene_name = geneSymbol,  Psi_A = IncLevel1, Psi_B = IncLevel2) %>%
+  separate(Psi_A, into = c('Psi_A1','Psi_A2','Psi_A3'), sep = ',', convert = T) %>%
+  separate(Psi_B, into = c('Psi_B1','Psi_B2','Psi_B3'), sep = ',', convert = T) %>%
+  mutate(Psi_A = mean(c(Psi_A1, Psi_A2, Psi_A3), na.rm = T),
+         Psi_B = mean(c(Psi_B1, Psi_B2, Psi_B3), na.rm = T))  %>%
   mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
   mutate(tool = 'rMATS',
          type = 'AD') %>%
-  dplyr::select(-chr, -start,-end)
+  dplyr::select(external_gene_name, Significance:type)
   
 # RI 
 RI <- read_tsv(fns[4]) %>%
   filter(FDR < 0.05) %>%
-  dplyr::select(chr, upstreamEE, downstreamES, geneSymbol, FDR) %>%
-  rename(start = upstreamEE, end = downstreamES, external_gene_name = geneSymbol, significance  = FDR) %>%
+  dplyr::select(chr, upstreamEE, downstreamES, geneSymbol, FDR, IncLevel1, IncLevel2) %>%
+  mutate(Significance = ifelse(FDR < 0.05, TRUE, FALSE)) %>%
+  rename(start = upstreamEE, end = downstreamES, external_gene_name = geneSymbol, Psi_A = IncLevel1, Psi_B = IncLevel2) %>%
+  separate(Psi_A, into = c('Psi_A1','Psi_A2','Psi_A3'), sep = ',', convert = T) %>%
+  separate(Psi_B, into = c('Psi_B1','Psi_B2','Psi_B3'), sep = ',', convert = T) %>%
+  mutate(Psi_A = mean(c(Psi_A1, Psi_A2, Psi_A3), na.rm = T),
+         Psi_B = mean(c(Psi_B1, Psi_B2, Psi_B3), na.rm = T))  %>%
   mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
   mutate(tool = 'rMATS',
          type = 'RI') %>%
-  dplyr::select(-chr, -start,-end)
+  dplyr::select(external_gene_name, Significance:type)
 
 # SE
 SE <-  read_tsv(fns[5]) %>%
   filter(FDR < 0.05) %>%
-  dplyr::select(chr, exonStart_0base, exonEnd, geneSymbol, FDR) %>%
-  rename(start = exonStart_0base, end = exonEnd, external_gene_name = geneSymbol, significance  = FDR) %>%
+  dplyr::select(chr, exonStart_0base, exonEnd, geneSymbol, FDR, IncLevel1, IncLevel2) %>%
+  mutate(Significance = ifelse(FDR < 0.05, TRUE, FALSE)) %>%
+  rename(start = exonStart_0base, end = exonEnd, external_gene_name = geneSymbol, Psi_A = IncLevel1, Psi_B = IncLevel2) %>%
+  separate(Psi_A, into = c('Psi_A1','Psi_A2','Psi_A3'), sep = ',', convert = T) %>%
+  separate(Psi_B, into = c('Psi_B1','Psi_B2','Psi_B3'), sep = ',', convert = T) %>%
+  mutate(Psi_A = mean(c(Psi_A1, Psi_A2, Psi_A3), na.rm = T),
+         Psi_B = mean(c(Psi_B1, Psi_B2, Psi_B3), na.rm = T))  %>%
   mutate(start = start + 1) %>%
   mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
   mutate(tool = 'rMATS',
          type = 'CE') %>%
-  dplyr::select(-chr, -start,-end)
+  dplyr::select(external_gene_name, Significance:type)
 
 # MXE
 MXE <- read_tsv(fns[3]) %>%
   filter(FDR < 0.05) %>%
-  dplyr::select(chr, upstreamES, downstreamEE, geneSymbol, FDR) %>%
-  rename(start = upstreamES, end = downstreamEE, external_gene_name = geneSymbol, significance  = FDR) %>%
+  dplyr::select(chr, upstreamES, downstreamEE, geneSymbol, FDR, IncLevel1, IncLevel2) %>%
+  mutate(Significance = ifelse(FDR < 0.05, TRUE, FALSE)) %>%
+  rename(start = upstreamES, end = downstreamEE, external_gene_name = geneSymbol, Psi_A = IncLevel1, Psi_B = IncLevel2) %>%
+  separate(Psi_A, into = c('Psi_A1','Psi_A2','Psi_A3'), sep = ',', convert = T) %>%
+  separate(Psi_B, into = c('Psi_B1','Psi_B2','Psi_B3'), sep = ',', convert = T) %>%
+  mutate(Psi_A = mean(c(Psi_A1, Psi_A2, Psi_A3), na.rm = T),
+         Psi_B = mean(c(Psi_B1, Psi_B2, Psi_B3), na.rm = T))  %>%
   mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
   mutate(tool = 'rMATS',
          type = 'MXE') %>%
-  dplyr::select(-chr, -start,-end)
+  dplyr::select(external_gene_name, Significance:type)
 ```
 
 ```{r}
@@ -151,16 +200,13 @@ df89 <- bind_rows(A3SS, A5SS, RI, SE, MXE) %>%
 
 ```{r}
 # now find the overlap between the 14 and 89 that is the final results
-# keep the siginficance from both comparisons 
-
+ 
 DF <- df14 %>%
-  inner_join(df89 %>%
-               rename(sig89 = significance) %>%
-               dplyr::select(locus, sig89), by = 'locus')
-
-
+  inner_join(df89, by = 'locus')
 ```
 
+#### The other two 
+ 
 ```{r}
 # revisiting the whippet and IRfinder combined result
 two <- read_csv('../../05_IRfinder/output/Whippet_IRfinder_combined_results_sig_withGeneName.csv') %>%
@@ -172,6 +218,60 @@ two <- read_csv('../../05_IRfinder/output/Whippet_IRfinder_combined_results_sig_
 ```
 
 ```{r}
-length(intersect(two$locus, DF$locus))
+dup <- intersect(two$locus, DF$locus)
+
+twodup <- two %>%
+  filter(locus %in%  dup)
+
+rdub <- DF  %>%
+  filter(locus %in%  dup) %>%
+  dplyr::select(locus, tool, type)
+  
+join <- rdub %>%
+  full_join(twodup, by = 'locus')
+
+join %>%
+  mutate(same = type.x == type.y) %>%
+  filter(! same == TRUE)
+
+# so the duplications are all of the same type.
+# which is a good thing
+rmats_to_join <- DF  %>%
+  filter(!locus %in%  dup) %>%
+  dplyr::select(locus, tool, type, external_gene_name)
+
+# final merged df
+final <- bind_rows(two, rmats_to_join)
+```
+
+```{r}
+hex <- c(brewer.pal(n = 8, name = "Dark2"), '#00468B')
+
+# draw a pie chart of that
+colorPal <- data.frame(type = as.character(names(table(final$type))), 
+  color = hex) %>% 
+  mutate(color = as.character(color), type = as.character(type))
+
+res <- final %>%
+          group_by(type) %>%
+          summarise(count = n())%>%
+          mutate(perc = paste0(round((count / sum(count)) * 100), '%') ) %>%
+          left_join(colorPal, by = 'type') %>%
+          mutate(lbl = paste(type, perc , sep = ' '))
+  
+res <- res[sample(nrow(res), nrow(res)),]
+pie(res$count,labels = res$lbl, col= res$color, main = 'Splicing type pie chart in SIG events')
+
+```
+
+### KD and control PSI
+
+```{r}
+# get the whippet result that has the PSI A and B in all overlapped locus including sig and non sig
+# find the overlap coord between the 14 and 89
+w14 <- read_tsv('../../03_ASprofile/data/whippetResult/RF14_vs_cntrl_output.diff')
+w89 <- read_tsv('../../03_ASprofile/data/whippetResult/RF89_vs_cntrl_output.diff')
+
+
 ```
 

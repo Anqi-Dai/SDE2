@@ -1,0 +1,60 @@
+---
+title: "01 Sort out the results"
+author: "Anqi Dai"
+date: "2/20/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
+```
+
+The goal is to do the first two pie charts that illustrate what the AS type distribution is in KD and control respetively, so that the difference of the difference (the significance of the delta PSI) will make more sense.
+
+```{r}
+# get the whippet result that has the PSI A and B in all overlapped locus 
+# the significance donesn't matter here since we don't care about the truethness of the delta psi
+
+# find the overlap coord between 14 and 89
+
+w14 <- read_tsv('../../03_ASprofile/data/whippetResult/RF14_vs_cntrl_output.diff')%>%
+  dplyr::select(Coord, Type, Psi_A, Psi_B) %>%
+  filter(!duplicated(Coord))
+w89 <- read_tsv('../../03_ASprofile/data/whippetResult/RF89_vs_cntrl_output.diff')%>%
+  dplyr::select(Coord, Type_89 = Type, Psi_A_89 = Psi_A) %>%
+  filter(!duplicated(Coord))
+
+ol_locus <- intersect(w14$Coord, w89$Coord)
+
+whi <- w14 %>%
+  filter(Coord %in% ol_locus) %>%
+  inner_join(w89 %>%
+              filter(Coord %in% ol_locus) , by = 'Coord')
+
+# make sure they have the same type between the 2
+whi %>%
+  mutate(same = ifelse(Type == Type_89, T, F)) %>%
+  filter(same == F) %>%
+  nrow
+
+# filter out the ones that they have different type
+whi <- whi %>%
+  filter(Type == Type_89)
+
+# now keep the Psi_A that is closer to 0.5
+whippet <- whi %>%
+  mutate(dis14 = abs(Psi_A - 0.5),
+         dis89 = abs(Psi_A_89 - 0.5)) %>%
+  mutate(keep_A =  ifelse(dis14 < dis89,Psi_A, Psi_A_89 ))
+
+# the final table for whippet
+
+final_whippet <- whippet %>%
+  dplyr::select(locus = Coord, type = Type, keep_A, Psi_B) %>%
+  rename(Psi_A = keep_A)
+```
+
+```{r}
+
+```
+
