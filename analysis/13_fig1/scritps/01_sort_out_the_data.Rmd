@@ -253,6 +253,38 @@ rmats <- df14 %>%
 ## deduplicate between rmats and whippet
 
 ```{r}
-# 
+# the duplicated locus
+dup_locus <- intersect(rmats$locus, final_whippet$locus)
+
+#  join the unduplicated part in the two
+undup <- bind_rows(
+  rmats %>%
+    filter(! locus %in% dup_locus),
+  final_whippet %>%
+    filter(! locus %in% dup_locus)
+)
+
+# keep the closer to 0.5 psi in the duplicated locus
+rmats_dup <- rmats %>%
+  filter(locus %in% dup_locus)
+
+whippet_dup <- final_whippet %>%
+  filter(locus %in% dup_locus) %>%
+  rename(type_w = type, Psi_A_w = Psi_A,  Psi_B_w = Psi_B)
+
+dups <- rmats_dup %>%
+  inner_join(whippet_dup, by = 'locus') %>%
+  filter(type == type_w) %>%
+  mutate(disW_A = abs(Psi_A_w - 0.5),
+         disR_A = abs(Psi_A - 0.5),
+         disW_B = abs(Psi_B_w - 0.5),
+         disR_B = abs(Psi_B - 0.5)) %>%
+  mutate(keep_A =  ifelse(disW_A < disR_A,Psi_A_w, Psi_A ),
+         keep_B =  ifelse(disW_B < disR_B,Psi_B_w, Psi_B )) %>%
+  dplyr::select(locus, type, keep_A, keep_B) %>%
+  rename(Psi_A = keep_A, Psi_B = keep_B)
+
+WR_combined <- bind_rows(dups, undup)   
 ```
 
+## 
