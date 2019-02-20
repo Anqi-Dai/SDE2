@@ -287,4 +287,85 @@ dups <- rmats_dup %>%
 WR_combined <- bind_rows(dups, undup)   
 ```
 
-## 
+## sorting out the IRfinder results
+
+```{r}
+IR14 <- read_tsv('../../05_IRfinder/data/rawIRfinderResult/RF14_vs_ctrl.txt', comment = '#')  %>%
+  rename_all( funs(stringr::str_replace_all(., '-', '_'))) %>%
+  mutate(type = 'RI')  %>%
+  dplyr::select(Chr, Start, End, type, A_IRratio, B_IRratio) %>%
+  mutate(Start = Start + 1) %>%
+  mutate(locus = paste(Chr, paste(Start, End, sep = '-'), sep = ':')) %>%
+  dplyr::select(type:locus) %>%
+  filter(!duplicated(locus)) %>%
+  rename(Psi_A = A_IRratio, Psi_B = B_IRratio)
+ 
+
+IR89 <- read_tsv('../../05_IRfinder/data/rawIRfinderResult/RF89_vs_ctrl.txt', comment = '#')  %>%
+  rename_all( funs(stringr::str_replace_all(., '-', '_'))) %>%
+  mutate(type = 'RI')  %>%
+  dplyr::select(Chr, Start, End, type, A_IRratio, B_IRratio)  %>%
+  mutate(Start = Start + 1) %>%
+  mutate(locus = paste(Chr, paste(Start, End, sep = '-'), sep = ':')) %>%
+  filter(!duplicated(locus)) %>%
+  dplyr::select(locus, type_89 = type, Psi_A_89 = A_IRratio, Psi_B_89 = B_IRratio)
+  
+```
+
+```{r}
+# join them together
+IRfinder <- IR14 %>%
+  inner_join(IR89, by  = 'locus') %>%
+  mutate(dis14_A = abs(Psi_A - 0.5),
+         dis89_A = abs(Psi_A_89 - 0.5)) %>%
+  mutate(keep_A =  ifelse(dis14_A < dis89_A,Psi_A, Psi_A_89 )) %>%
+  dplyr::select(locus, type, keep_A, Psi_B) %>%
+  rename(Psi_A = keep_A)
+
+```
+
+## deduplicate between IRfinder and the other 2
+
+```{r}
+# the duplicated locus
+dup_locus <- intersect(IRfinder$locus, WR_combined$locus)
+
+#  join the unduplicated part in the two
+undup <- bind_rows(
+  IRfinder %>%
+    filter(! locus %in% dup_locus),
+  WR_combined %>%
+    filter(! locus %in% dup_locus)
+)
+
+# keep the closer to 0.5 psi in the duplicated locus
+IRfinder_dup <- IRfinder %>%
+  filter(locus %in% dup_locus)
+
+two_dup <- WR_combined %>%
+  filter(locus %in% dup_locus) %>%
+  rename(type_2 = type, Psi_A_2 = Psi_A,  Psi_B_2 = Psi_B)
+
+# merge the dups together
+dups <- IRfinder_dup %>%
+  inner_join(two_dup, by = 'locus') %>%
+  filter(type == type_2) %>%
+  mutate(dis2_A = abs(Psi_A_2 - 0.5),
+         disIR_A = abs(Psi_A - 0.5),
+         dis2_B = abs(Psi_B_2 - 0.5),
+         disIR_B = abs(Psi_B - 0.5)) %>%
+  mutate(keep_A =  ifelse(dis2_A < disIR_A,Psi_A_2, Psi_A ),
+         keep_B =  ifelse(dis2_B < disIR_B,Psi_B_2, Psi_B )) %>%
+  dplyr::select(locus, type, keep_A, keep_B) %>%
+  rename(Psi_A = keep_A, Psi_B = keep_B)
+
+# combined to make the final one! Thank god!!!
+
+final <- bind_rows(dups, undup)
+```
+
+```{r}
+# write out the final data
+write_csv(final, '../output/all_three_PSI_A_B_combined.csv')
+```
+
