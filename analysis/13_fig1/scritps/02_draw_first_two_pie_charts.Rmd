@@ -1,0 +1,69 @@
+---
+title: "02 Draw first two pie charts"
+author: "Anqi Dai"
+date: "2/20/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
+```
+
+
+```{r}
+library(tidyverse)
+library(RColorBrewer)
+```
+
+```{r}
+# import the data, data that I tore my hair to make
+final <- read_csv('../output/all_three_PSI_A_B_combined.csv')
+```
+
+```{r}
+# make a pie chart based on Psi_A
+KD <- final %>%
+  filter(Psi_A > 0.1 & Psi_A < 0.9) 
+
+# draw the pie chart
+hex <- c(brewer.pal(n = 8, name = "Dark2"), '#00468B')
+
+colorPal <- data_frame(type = as.character(names(table(KD$type))), 
+  color = hex) 
+
+res <- KD %>%
+          group_by(type) %>%
+          summarise(count = n())%>%
+          mutate(perc = paste0(round((count / sum(count)) * 100), '%') ) %>%
+          left_join(colorPal, by = 'type') %>%
+          mutate(lbl = paste(type, perc , sep = ' '))
+  
+res <- res[sample(nrow(res), nrow(res)),]
+
+pie(res$count,labels = res$lbl, col= res$color, main = 'Splicing type pie chart in KD samples')
+
+```
+
+```{r}
+# make a pie chart based on Psi_B 
+CTRL <- final %>%
+  filter(Psi_B > 0.1 & Psi_B < 0.9) 
+
+# draw the pie chart
+hex <- c(brewer.pal(n = 8, name = "Dark2"), '#00468B')
+
+colorPal <- data_frame(type = as.character(names(table(CTRL$type))), 
+  color = hex) 
+
+res <- CTRL %>%
+          group_by(type) %>%
+          summarise(count = n())%>%
+          mutate(perc = paste0(round((count / sum(count)) * 100), '%') ) %>%
+          left_join(colorPal, by = 'type') %>%
+          mutate(lbl = paste(type, perc , sep = ' '))
+  
+res <- res[sample(nrow(res), nrow(res)),]
+
+pie(res$count,labels = res$lbl, col= res$color, main = 'Splicing type pie chart in CTRL samples')
+```
+
