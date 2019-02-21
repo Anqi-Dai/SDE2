@@ -90,7 +90,8 @@ RES %>%
   geom_bar(stat="identity", position=position_dodge()) +
   scale_fill_manual(values =  c('#00468B', '#EC0000')) +
   labs(x = 'AS type',
-       title = 'AS type distribution in KD and control samples')
+       title = 'AS type distribution in KD and control samples') +
+  ggsave('../figs/AS type distribution in KD and control samples grouped bar plot.jpg', width = 8, height = 6, dpi = 300)
 ```
 
 ```{r}
@@ -101,7 +102,7 @@ RES %>%
 hex <- c(brewer.pal(n = 8, name = "Dark2"), '#00468B')
 
 
-RES %>%
+diff_pie <- RES %>%
   dplyr::select(type, status, perc) %>%
   mutate(perc = stringr::str_replace_all(perc, '%','')) %>%
   mutate(perc =  as.numeric(perc))  %>%
@@ -110,6 +111,10 @@ RES %>%
   mutate(absDiff = abs(Diff)) %>%
   mutate(DiffPerc = paste0(round((absDiff / sum(absDiff)) * 100), '%')) %>%
   mutate(col = hex) %>%
-  mutate(lbl = paste(type, perc , sep = ' '))
+  mutate(lbl = paste(type, DiffPerc , sep = ' '))
+
+pdf('../figs/Splicing type pie chart of the difference between KD and controls.pdf')
+pie(diff_pie$absDiff,labels = diff_pie$lbl, col= diff_pie$col, main = 'Splicing type pie chart of the difference between KD and control')
+dev.off()
 ```
 
