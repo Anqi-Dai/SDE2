@@ -1,0 +1,204 @@
+---
+title: "03 draw the third pie chart"
+author: "Anqi Dai"
+date: "2/21/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
+```
+
+```{r}
+library(tidyverse)
+library(RColorBrewer)
+```
+
+```{r}
+# The JCEC.txt files of the AS types
+path <- '../../06_rMATS/data/rMATS_result/RF14_control'
+fns <- file.path(path, list.files(path, 'JCEC.txt'))
+```
+
+```{r}
+A3SS <- read_tsv(fns[1]) %>%
+  filter(FDR < 0.05) %>%
+  dplyr::select(chr, longExonStart_0base, shortES, geneSymbol, FDR) %>%
+  rename(start = longExonStart_0base, end = shortES, external_gene_name = geneSymbol, significance  = FDR) %>%
+  mutate(start = start + 1) %>%
+  mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
+  mutate(tool = 'rMATS',
+         type = 'AA') %>%
+  dplyr::select(-chr, -start,-end)
+
+# A5SS 
+A5SS <- read_tsv(fns[2]) %>%
+  filter(FDR < 0.05) %>%
+  dplyr::select(chr, shortEE, longExonEnd, geneSymbol, FDR) %>%
+  rename(start = shortEE, end = longExonEnd, external_gene_name = geneSymbol, significance  = FDR) %>%
+  mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
+  mutate(tool = 'rMATS',
+         type = 'AD') %>%
+  dplyr::select(-chr, -start,-end)
+
+# RI 
+RI <- read_tsv(fns[4]) %>%
+  filter(FDR < 0.05) %>%
+  dplyr::select(chr, upstreamEE, downstreamES, geneSymbol, FDR) %>%
+  rename(start = upstreamEE, end = downstreamES, external_gene_name = geneSymbol, significance  = FDR) %>%
+   mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
+  mutate(tool = 'rMATS',
+         type = 'RI') %>%
+  dplyr::select(-chr, -start,-end)
+
+
+# SE
+SE <-  read_tsv(fns[5]) %>%
+  filter(FDR < 0.05) %>%
+  dplyr::select(chr, exonStart_0base, exonEnd, geneSymbol, FDR) %>%
+  rename(start = exonStart_0base, end = exonEnd, external_gene_name = geneSymbol, significance  = FDR) %>%
+   mutate(start = start + 1) %>%
+  mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
+  mutate(tool = 'rMATS',
+         type = 'CE') %>%
+  dplyr::select(-chr, -start,-end)
+
+
+# MXE
+MXE <- read_tsv(fns[3]) %>%
+  filter(FDR < 0.05) %>%
+  dplyr::select(chr, upstreamES, downstreamEE, geneSymbol, FDR) %>%
+  rename(start = upstreamES, end = downstreamEE, external_gene_name = geneSymbol, significance  = FDR) %>%
+   mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
+  mutate(tool = 'rMATS',
+         type = 'MXE') %>%
+  dplyr::select(-chr, -start,-end)
+
+
+df14 <- bind_rows(A3SS, A5SS, RI, SE, MXE) %>%
+  filter(!duplicated(locus))
+```
+
+```{r}
+# The JCEC.txt files of the AS types
+path <- '../../06_rMATS/data/rMATS_result/RF89_control'
+fns <- file.path(path, list.files(path, 'JCEC.txt'))
+```
+
+```{r}
+A3SS <- read_tsv(fns[1]) %>%
+  filter(FDR < 0.05) %>%
+  dplyr::select(chr, longExonStart_0base, shortES, geneSymbol, FDR) %>%
+  rename(start = longExonStart_0base, end = shortES, external_gene_name = geneSymbol, significance  = FDR) %>%
+  mutate(start = start + 1) %>%
+  mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
+  mutate(tool = 'rMATS',
+         type = 'AA') %>%
+  dplyr::select(-chr, -start,-end)
+
+# A5SS 
+A5SS <- read_tsv(fns[2]) %>%
+  filter(FDR < 0.05) %>%
+  dplyr::select(chr, shortEE, longExonEnd, geneSymbol, FDR) %>%
+  rename(start = shortEE, end = longExonEnd, external_gene_name = geneSymbol, significance  = FDR) %>%
+  mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
+  mutate(tool = 'rMATS',
+         type = 'AD') %>%
+  dplyr::select(-chr, -start,-end)
+
+# RI 
+RI <- read_tsv(fns[4]) %>%
+  filter(FDR < 0.05) %>%
+  dplyr::select(chr, upstreamEE, downstreamES, geneSymbol, FDR) %>%
+  rename(start = upstreamEE, end = downstreamES, external_gene_name = geneSymbol, significance  = FDR) %>%
+   mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
+  mutate(tool = 'rMATS',
+         type = 'RI') %>%
+  dplyr::select(-chr, -start,-end)
+
+
+# SE
+SE <-  read_tsv(fns[5]) %>%
+  filter(FDR < 0.05) %>%
+  dplyr::select(chr, exonStart_0base, exonEnd, geneSymbol, FDR) %>%
+  rename(start = exonStart_0base, end = exonEnd, external_gene_name = geneSymbol, significance  = FDR) %>%
+   mutate(start = start + 1) %>%
+  mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
+  mutate(tool = 'rMATS',
+         type = 'CE') %>%
+  dplyr::select(-chr, -start,-end)
+
+
+# MXE
+MXE <- read_tsv(fns[3]) %>%
+  filter(FDR < 0.05) %>%
+  dplyr::select(chr, upstreamES, downstreamEE, geneSymbol, FDR) %>%
+  rename(start = upstreamES, end = downstreamEE, external_gene_name = geneSymbol, significance  = FDR) %>%
+   mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
+  mutate(tool = 'rMATS',
+         type = 'MXE') %>%
+  dplyr::select(-chr, -start,-end)
+
+
+df89 <- bind_rows(A3SS, A5SS, RI, SE, MXE) %>%
+  filter(!duplicated(locus))
+```
+
+```{r}
+# now find the overlap between the 14 and 89 that is the final results
+ 
+DF <- df14 %>%
+  inner_join(df89 %>%
+               dplyr::select(-tool, -significance, -external_gene_name,-type), by = 'locus')
+```
+
+#### The other two 
+ 
+```{r}
+# revisiting the whippet and IRfinder combined result
+two <- read_csv('../../05_IRfinder/output/Whippet_IRfinder_combined_results_sig_withGeneName.csv') %>%
+  mutate(locus = paste(Chr, paste(Start, End, sep='-'),sep=':')) %>%
+  rename(tool = Program, type = Type) %>%
+  dplyr::select(-Chr, -Start,-End) %>%
+  dplyr::select(locus, tool, type, external_gene_name) %>%
+  filter(!duplicated(locus)) 
+```
+
+```{r}
+dup <- intersect(two$locus, DF$locus)
+twodup <- two %>%
+  filter(locus %in%  dup)
+rdub <- DF  %>%
+  filter(locus %in%  dup) %>%
+  dplyr::select(locus, tool, type)
+  
+join <- rdub %>%
+  full_join(twodup, by = 'locus')
+join %>%
+  mutate(same = type.x == type.y) %>%
+  filter(! same == TRUE)
+# so the duplications are all of the same type.
+# which is a good thing
+rmats_to_join <- DF  %>%
+  filter(!locus %in%  dup) %>%
+  dplyr::select(locus, tool, type, external_gene_name)
+# final merged df
+final <- bind_rows(two, rmats_to_join)
+```
+
+```{r}
+hex <- c(brewer.pal(n = 8, name = "Dark2"), '#00468B')
+# draw a pie chart of that
+colorPal <- data.frame(type = as.character(names(table(final$type))), 
+  color = hex) %>% 
+  mutate(color = as.character(color), type = as.character(type))
+res <- final %>%
+          group_by(type) %>%
+          summarise(count = n())%>%
+          mutate(perc = paste0(round((count / sum(count)) * 100), '%') ) %>%
+          left_join(colorPal, by = 'type') %>%
+          mutate(lbl = paste(type, perc , sep = ' '))
+  
+res <- res[sample(nrow(res), nrow(res)),]
+pie(res$count,labels = res$lbl, col= res$color, main = 'Splicing type pie chart in SIG events')
+```

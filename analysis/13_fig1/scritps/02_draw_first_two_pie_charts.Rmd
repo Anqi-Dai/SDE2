@@ -40,8 +40,9 @@ res <- KD %>%
   
 res <- res[sample(nrow(res), nrow(res)),]
 
+pdf('../figs/Splicing type pie chart in KD samples.pdf')
 pie(res$count,labels = res$lbl, col= res$color, main = 'Splicing type pie chart in KD samples')
-
+dev.off()
 ```
 
 ```{r}
@@ -64,6 +65,8 @@ res <- CTRL %>%
   
 res <- res[sample(nrow(res), nrow(res)),]
 
+pdf('../figs/Splicing type pie chart in CTRL samples.pdf')
 pie(res$count,labels = res$lbl, col= res$color, main = 'Splicing type pie chart in CTRL samples')
+dev.off()
 ```
 
