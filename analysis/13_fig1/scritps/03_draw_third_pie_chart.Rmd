@@ -200,5 +200,8 @@ res <- final %>%
           mutate(lbl = paste(type, perc , sep = ' '))
   
 res <- res[sample(nrow(res), nrow(res)),]
+
+pdf('../figs/Splicing type pie chart in SIG events.pdf')
 pie(res$count,labels = res$lbl, col= res$color, main = 'Splicing type pie chart in SIG events')
+dev.off()
 ```
