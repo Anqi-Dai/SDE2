@@ -1,0 +1,41 @@
+---
+title: "06 relax Whippet to 0.25"
+author: "Anqi Dai"
+date: "3/5/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Relax Whippet to 0.25 threshold and get a table of the significant locus with tool, type and gene name information.
+
+```{r}
+################################################################################
+# THE WHIPPET SIG GENES (absDeltaPsi > 0.1 & **Probability > 0.8** & Psi_A > 0.1)
+################################################################################
+
+RF14.ctrl <- read_tsv('../../03_ASprofile/data/whippetResult/RF14_vs_cntrl_output.diff') %>%
+  mutate(absDeltaPsi = abs(DeltaPsi)) %>%
+  mutate(Gene = str_replace_all(string = Gene, pattern = '\\..+$', replacement = '')) %>%
+  mutate(Group = 'RF14.ctrl')  %>%
+  filter(absDeltaPsi > 0.1 & Probability > 0.8 & Psi_A > 0.1)  %>%
+  mutate(tool = 'Whippet') %>%
+  dplyr::select(locus = Coord, tool, type = Type, GeneID = Gene)
+
+
+RF89.ctrl <- read_tsv('../../03_ASprofile/data/whippetResult/RF89_vs_cntrl_output.diff') %>%
+  mutate(absDeltaPsi = abs(DeltaPsi)) %>%
+  mutate(Gene = str_replace_all(string = Gene, pattern = '\\..+$', replacement = '')) %>%
+  mutate(Group = 'RF89.ctrl')  %>%
+  filter(absDeltaPsi > 0.1 & Probability > 0.8 & Psi_A > 0.1) %>%
+  dplyr::select(locus = Coord)
+
+overlap_whippet  <-  RF14.ctrl %>%
+  inner_join(RF89.ctrl , by = 'locus')
+
+# how many records are there 
+nrow(overlap_whippet)
+```
+

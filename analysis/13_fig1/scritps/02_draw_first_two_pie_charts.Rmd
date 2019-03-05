@@ -113,8 +113,12 @@ diff_pie <- RES %>%
   mutate(col = hex) %>%
   mutate(lbl = paste(type, DiffPerc , sep = ' '))
 
-pdf('../figs/Splicing type pie chart of the difference between KD and controls.pdf')
+jpeg('../figs/Splicing type pie chart of the difference between KD and controls.jpeg')
 pie(diff_pie$absDiff,labels = diff_pie$lbl, col= diff_pie$col, main = 'Splicing type pie chart of the difference between KD and control')
 dev.off()
+```
+
+```{r}
+
 ```
 
