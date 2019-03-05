@@ -196,23 +196,48 @@ final <- bind_rows(two,
 ```{r}
 hex <- c(brewer.pal(n = 8, name = "Dark2"), '#00468B')
 # draw a pie chart of that
-colorPal <- data.frame(type = as.character(names(table(final$type))), 
-  color = hex) %>% 
-  mutate(color = as.character(color), type = as.character(type))
+colorPal <- data_frame(type = c('AL','AD','TS','MXE','RI','AF','CE','AA','TE'), 
+  color = hex) 
+
 res <- final %>%
           group_by(type) %>%
           summarise(count = n())%>%
-          mutate(perc = paste0(round((count / sum(count)) * 100), '%') ) %>%
-          left_join(colorPal, by = 'type') %>%
-          mutate(lbl = paste(type, perc , sep = ' '))
+          mutate(perc = paste0(round((count / sum(count)) * 100), '%') ) 
   
-res <- res[sample(nrow(res), nrow(res)),]
+res <- colorPal %>%
+  left_join(res, by = 'type') %>%
+          mutate(lbl = paste(type, perc , sep = ' '))
 
 pdf('../figs/FDR025 Splicing type pie chart in SIG events.pdf')
 pie(res$count,labels = res$lbl, col= res$color, main = 'FDR025 Splicing type pie chart in SIG events')
 dev.off()
+
+write_csv(res, '../output/type_dist_FDR025.csv')
 ```
 
 ```{r out.width=400}
 knitr::include_graphics('../figs/FDR025 Splicing type pie chart in SIG events.pdf')
 ```
+
+```{r}
+# a side by side comparison on the raw count of the type distribution
+dist005 <- read_csv('../output/type_dist_FDR005.csv') %>%
+  mutate(Group = 'FDR005') %>%
+  dplyr::select(type, count, Group)
+dist025 <- read_csv('../output/type_dist_FDR025.csv') %>%
+  mutate(Group = 'FDR025') %>%
+  dplyr::select(type, count, Group)
+
+dist <- bind_rows(dist005, dist025) %>%
+  mutate(Group =  factor(Group))
+
+dist %>%
+  mutate(type = factor(type, levels = c('RI','CE','TE','TS','AA','AD','AF','AL','MXE'))) %>%
+  ggplot(aes(x = type, y = count, fill = Group)) +
+  geom_bar(stat="identity", position=position_dodge()) +
+  scale_fill_manual(values =  c('#00468B', '#EC0000'))  +
+  labs(title = 'Type distribution in threshold FDR 0.05 and 0.25') +
+  ggsave('../figs/type dist of the two.jpg')
+ 
+```
+
