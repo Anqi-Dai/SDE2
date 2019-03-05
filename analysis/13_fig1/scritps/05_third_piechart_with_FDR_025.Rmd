@@ -159,7 +159,8 @@ df89 <- bind_rows(A3SS, A5SS, RI, SE, MXE) %>%
  
 DF <- df14 %>%
   inner_join(df89 %>%
-               dplyr::select(-tool, -significance, -external_gene_name,-type), by = 'locus')
+               dplyr::select(-tool, -significance, -external_gene_name,-type), by = 'locus') %>%
+  dplyr::select(locus, tool, type, external_gene_name)
 ```
 
 ```{r}
@@ -170,35 +171,26 @@ nrow(DF)
 ## Whippet & IRfinder
  
 ```{r}
-# revisiting the whippet and IRfinder combined result
-two <- read_csv('../../05_IRfinder/output/Whippet_IRfinder_combined_results_sig_withGeneName.csv') %>%
-  mutate(locus = paste(Chr, paste(Start, End, sep='-'),sep=':')) %>%
-  rename(tool = Program, type = Type) %>%
-  dplyr::select(-Chr, -Start,-End) %>%
-  dplyr::select(locus, tool, type, external_gene_name) %>%
-  filter(!duplicated(locus)) 
+# merging the whippet and IRfinder result together and remove duplicates if any
+whi <- read_csv('../output/FDR025_Whippet_results.csv')
+IR <- read_csv('../output/FDR025_IRfinder_results.csv')
+
+dup <- intersect(whi$locus, IR$locus)
+
+two <- bind_rows(whi,
+                 IR %>%
+                   filter(! locus %in% dup)) 
 ```
+
+## Merging the three
 
 ```{r}
 dup <- intersect(two$locus, DF$locus)
-twodup <- two %>%
-  filter(locus %in%  dup)
-rdub <- DF  %>%
-  filter(locus %in%  dup) %>%
-  dplyr::select(locus, tool, type)
-  
-join <- rdub %>%
-  full_join(twodup, by = 'locus')
-join %>%
-  mutate(same = type.x == type.y) %>%
-  filter(! same == TRUE)
-# so the duplications are all of the same type.
-# which is a good thing
-rmats_to_join <- DF  %>%
-  filter(!locus %in%  dup) %>%
-  dplyr::select(locus, tool, type, external_gene_name)
-# final merged df
-final <- bind_rows(two, rmats_to_join)
+
+
+final <- bind_rows(two,
+                 DF %>%
+                   filter(! locus %in% dup)) 
 ```
 
 ```{r}
@@ -216,11 +208,11 @@ res <- final %>%
   
 res <- res[sample(nrow(res), nrow(res)),]
 
-pdf('../figs/Splicing type pie chart in SIG events.pdf')
-pie(res$count,labels = res$lbl, col= res$color, main = 'Splicing type pie chart in SIG events')
+pdf('../figs/FDR025 Splicing type pie chart in SIG events.pdf')
+pie(res$count,labels = res$lbl, col= res$color, main = 'FDR025 Splicing type pie chart in SIG events')
 dev.off()
 ```
 
 ```{r out.width=400}
-knitr::include_graphics('../figs/Splicing type pie chart in SIG events.pdf')
+knitr::include_graphics('../figs/FDR025 Splicing type pie chart in SIG events.pdf')
 ```
