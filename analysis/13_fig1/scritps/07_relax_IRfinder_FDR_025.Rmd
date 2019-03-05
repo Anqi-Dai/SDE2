@@ -77,9 +77,21 @@ overlap_IRfinder <- subset_df_list[[1]] %>%
          type = "RI") %>%
   dplyr::select(locus = Locus, tool, type, external_gene_name = Symbol)
 
+
+
+# correct the IRfinder start position
+Overlap_IRfinder <- overlap_IRfinder %>%
+  separate(locus, into = c('chr','coord'), sep = ':') %>%
+  separate(coord, into = c('start', 'end'), sep = '-', convert = T) %>%
+  mutate(start = start + 1) %>%
+  mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':'))  %>%
+  dplyr::select(locus, tool, type, external_gene_name)
+
 # how many records are there
-nrow(overlap_IRfinder)
+nrow(Overlap_IRfinder)
 
 
+# write out the table
+write_csv(Overlap_IRfinder, '../output/FDR025_IRfinder_results.csv')
 ```
 
