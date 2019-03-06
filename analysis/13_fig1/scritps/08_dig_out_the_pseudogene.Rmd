@@ -1,0 +1,20 @@
+---
+title: "08 dig out the pseudogene"
+author: "Anqi Dai"
+date: "3/5/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
+```
+
+Why novel and normal quantification so different if only one exon.
+Exon bond should be same as the gene bond. 
+Go check the gtf!
+
+
+```{r}
+
+```
+
