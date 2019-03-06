@@ -16,22 +16,16 @@ import os
 sample_dir = '/restricted/projectnb/flynngrp/adai/Day3_SDE2'
 
 sample_names = json.load(open('../samples.json')).keys()
-print(sample_names)
-DNA=os.path.realpath('../../../05_IRfinder/ref/v27/genome.fa')
-GTF=os.path.realpath('../../../05_IRfinder/ref/v27/transcripts.gtf')
 
 IRfinder_path = '../../../05_IRfinder/IRfinder_software/IRFinder-1.2.5/bin/IRFinder'
 Ref_dir = '../../../05_IRfinder/REF/Human-hg38'
 
 # -----------------------------------------------------------
 
-rule all:
+rule output:
     input:
         sample_dir+'/IRfinder_result/RF89_vs_ctrl.txt', sample_dir+'/IRfinder_result/RF14_vs_ctrl.txt'
 
-rule output:
-    input:
-        expand('{sample_dir}/IRfinder_result/{sample_names}/Unsorted.bam', sample_dir =sample_dir, sample_names= sample_names)
 
 # Build reference by using the same genome and annotation file as Whippet so that I can cross reference later
 #  The IRfinder will use 32 cores to run this 
@@ -77,13 +71,13 @@ rule Align_reads:
 # Differential IR analysis between conditions: Small Amounts of Replicates via Audic and Claverie Test
 
 def get_RF14_3replicates_unsorted_bam(wildcards):
-    return glob('{}/IRfinder_result/RF-14*/Unsorted.bam'.format(wildcards.sample_dir))
+    return glob('{}/IRfinder_result/RF-3-14*/Unsorted.bam'.format(wildcards.sample_dir))
 
 def get_RF89_3replicates_unsorted_bam(wildcards):
-    return glob('{}/IRfinder_result/RF-89*/Unsorted.bam'.format(wildcards.sample_dir))
+    return glob('{}/IRfinder_result/RF-3-89*/Unsorted.bam'.format(wildcards.sample_dir))
 
 def get_control_3replicates_unsorted_bam(wildcards):
-    return glob('{}/IRfinder_result/RF-Control*/Unsorted.bam'.format(wildcards.sample_dir))
+    return glob('{}/IRfinder_result/RF-3-M*/Unsorted.bam'.format(wildcards.sample_dir))
 
 rule concate_them:
     input:
@@ -106,7 +100,7 @@ rule concate_them:
 rule pooled_14:
     input:
         bam='{sample_dir}/IRfinder_result/RF14_concat3_unsorted.bam',
-        ref='REF/Human-hg38',
+        ref=Ref_dir,
         IRpath=IRfinder_path 
     output:
         '{sample_dir}/IRfinder_result/Pooled_14/IRFinder-IR-dir.txt'
@@ -124,7 +118,7 @@ rule pooled_14:
 rule pooled_89:
     input:
         bam='{sample_dir}/IRfinder_result/RF89_concat3_unsorted.bam',
-        ref='REF/Human-hg38',
+        ref=Ref_dir,
         IRpath=IRfinder_path 
     output:
         '{sample_dir}/IRfinder_result/Pooled_89/IRFinder-IR-dir.txt'
@@ -142,7 +136,7 @@ rule pooled_89:
 rule pooled_ctrl:
     input:
         bam='{sample_dir}/IRfinder_result/RFctrl_concat3_unsorted.bam',
-        ref='REF/Human-hg38',
+        ref=Ref_dir,
         IRpath=IRfinder_path 
     output:
         '{sample_dir}/IRfinder_result/Pooled_ctrl/IRFinder-IR-dir.txt'
@@ -162,17 +156,17 @@ rule compare_IR_14vsctrl:
     input:
         pooled_14='{sample_dir}/IRfinder_result/Pooled_14/IRFinder-IR-dir.txt',
         pooled_ctrl='{sample_dir}/IRfinder_result/Pooled_ctrl/IRFinder-IR-dir.txt',
-        RF14_1='{sample_dir}/IRfinder_result/RF-14-1/IRFinder-IR-dir.txt',
-        RF14_2='{sample_dir}/IRfinder_result/RF-14-2/IRFinder-IR-dir.txt',
-        RF14_3='{sample_dir}/IRfinder_result/RF-14-3/IRFinder-IR-dir.txt',
-        c1='{sample_dir}/IRfinder_result/RF-Control-1/IRFinder-IR-dir.txt',
-        c2='{sample_dir}/IRfinder_result/RF-Control-2/IRFinder-IR-dir.txt',
-        c3='{sample_dir}/IRfinder_result/RF-Control-3/IRFinder-IR-dir.txt'
+        RF14_1='{sample_dir}/IRfinder_result/RF-3-14-1/IRFinder-IR-dir.txt',
+        RF14_2='{sample_dir}/IRfinder_result/RF-3-14-2/IRFinder-IR-dir.txt',
+        RF14_3='{sample_dir}/IRfinder_result/RF-3-14-3/IRFinder-IR-dir.txt',
+        c1='{sample_dir}/IRfinder_result/RF-3-M-1/IRFinder-IR-dir.txt',
+        c2='{sample_dir}/IRfinder_result/RF-3-M-2/IRFinder-IR-dir.txt',
+        c3='{sample_dir}/IRfinder_result/RF-3-M-3/IRFinder-IR-dir.txt'
     output:
         '{sample_dir}/IRfinder_result/RF14_vs_ctrl.txt'
     shell:
         '''
-        IRfinder_software/IRFinder-1.2.5/bin/analysisWithLowReplicates.pl  \
+        ../../../05_IRfinder/IRfinder_software/IRFinder-1.2.5/bin/analysisWithLowReplicates.pl  \
             -A {input.pooled_14} {input.RF14_1} {input.RF14_2} {input.RF14_3}  \
             -B {input.pooled_ctrl} {input.c1} {input.c2}  {input.c3} > {output}
         '''
@@ -182,17 +176,17 @@ rule compare_IR_89vsctrl:
     input:
         pooled_89='{sample_dir}/IRfinder_result/Pooled_89/IRFinder-IR-dir.txt',
         pooled_ctrl='{sample_dir}/IRfinder_result/Pooled_ctrl/IRFinder-IR-dir.txt',
-        RF89_1='{sample_dir}/IRfinder_result/RF-89-1/IRFinder-IR-dir.txt',
-        RF89_2='{sample_dir}/IRfinder_result/RF-89-2/IRFinder-IR-dir.txt',
-        RF89_3='{sample_dir}/IRfinder_result/RF-89-3/IRFinder-IR-dir.txt',
-        c1='{sample_dir}/IRfinder_result/RF-Control-1/IRFinder-IR-dir.txt',
-        c2='{sample_dir}/IRfinder_result/RF-Control-2/IRFinder-IR-dir.txt',
-        c3='{sample_dir}/IRfinder_result/RF-Control-3/IRFinder-IR-dir.txt'
+        RF89_1='{sample_dir}/IRfinder_result/RF-3-89-1/IRFinder-IR-dir.txt',
+        RF89_2='{sample_dir}/IRfinder_result/RF-3-89-2/IRFinder-IR-dir.txt',
+        RF89_3='{sample_dir}/IRfinder_result/RF-3-89-3/IRFinder-IR-dir.txt',
+        c1='{sample_dir}/IRfinder_result/RF-3-M-1/IRFinder-IR-dir.txt',
+        c2='{sample_dir}/IRfinder_result/RF-3-M-2/IRFinder-IR-dir.txt',
+        c3='{sample_dir}/IRfinder_result/RF-3-M-3/IRFinder-IR-dir.txt'
     output:
         '{sample_dir}/IRfinder_result/RF89_vs_ctrl.txt'
     shell:
         '''
-        IRfinder_software/IRFinder-1.2.5/bin/analysisWithLowReplicates.pl  \
+        ../../../05_IRfinder/IRfinder_software/IRFinder-1.2.5/bin/analysisWithLowReplicates.pl  \
             -A {input.pooled_89} {input.RF89_1} {input.RF89_2} {input.RF89_3}  \
             -B {input.pooled_ctrl} {input.c1} {input.c2}  {input.c3}  > {output}
         '''
