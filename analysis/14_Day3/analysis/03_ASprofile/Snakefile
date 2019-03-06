@@ -62,13 +62,13 @@ rule quant_PE_reads:
 # using functions to glob the psi.gz files for each SAMPLE
 
 def psi_14(wildcards):
-    return glob('{}/RF-14*psi.gz'.format(wildcards.sample_dir))
+    return glob('{}/RF-3-14*psi.gz'.format(wildcards.sample_dir))
 
 def psi_89(wildcards):
-    return glob('{}/RF-89*psi.gz'.format(wildcards.sample_dir))
+    return glob('{}/RF-3-89*psi.gz'.format(wildcards.sample_dir))
 
 def psi_cntrl(wildcards):
-    return glob('{}/RF-Control*psi.gz'.format(wildcards.sample_dir))
+    return glob('{}/RF-3-M*psi.gz'.format(wildcards.sample_dir))
 
 
 ########################
@@ -87,7 +87,7 @@ rule delta_call_14_cntrl:
         '''
         singularity run  --bind /usr4:/usr4,/restricted:/restricted,/projectnb:/projectnb \
             /projectnb/bubhub/singularity/whippet.simg delta \
-            -d {sample_dir}   -a  RF-14   -b  RF-Control   -o {params.prefix}
+            -d {sample_dir}   -a  RF-3-14   -b  RF-3-M   -o {params.prefix}
         '''
 ###########################
 ###  compare 89 VS control
@@ -104,24 +104,6 @@ rule delta_call_89_cntrl:
         '''
         singularity run  --bind /usr4:/usr4,/restricted:/restricted,/projectnb:/projectnb \
             /projectnb/bubhub/singularity/whippet.simg delta \
-            -d {sample_dir}   -a  RF-89   -b  RF-Control   -o {params.prefix}
-        '''
-####################
-### compare 14 VS 89
-###################
-
-rule delta_call_89_14:
-    input:
-        psi_89,
-        psi_14
-    output:
-        '{sample_dir}/rf89_vs_14_output.diff.gz' 
-    params:
-        prefix='{sample_dir}/rf89_vs_14_output'
-    shell:
-        '''
-        singularity run  --bind /usr4:/usr4,/restricted:/restricted,/projectnb:/projectnb \
-            /projectnb/bubhub/singularity/whippet.simg delta \
-            -d {sample_dir}   -a  RF-89   -b  RF-14   -o {params.prefix}
+            -d {sample_dir}   -a  RF-3-89   -b  RF-3-M   -o {params.prefix}
         '''
 
