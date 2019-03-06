@@ -19,3 +19,12 @@ analysis/*/Send
 analysis/*/scripts/*.html
 analysis/*/*detk_report*
 analysis/*/scripts/*detk_report*
+analysis/14_Day3/analysis/*/*/*.txt
+analysis/14_Day3/analysis/*/scripts/.R*
+analysis/14_Day3/analysis/*/scripts/*.html
+analysis/14_Day3/analysis/*/report/*.html
+analysis/14_Day3/analysis/*/data/*
+analysis/14_Day3/analysis/*/output/*
+analysis/14_Day3/analysis/*/figs/*
+analysis/14_Day3/analysis/*/.*
+*snakejob*

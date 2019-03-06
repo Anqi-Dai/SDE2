@@ -1,0 +1,105 @@
+'''
+# This Snakefile is the pipeline for the processes:
+# QC(data visualization) and trim
+# Step:
+# 1. fastQC 
+# 2. trim
+# 3. fastQC again on the trimmed files
+#
+** ATTENTION!**
+This is for the new data Day 3 (2019-03-05)
+'''
+
+
+
+import glob
+import json
+
+
+# Globals ---------------------------------------------------------------------
+
+# Sample names
+FILES = json.load(open('../samples.json'))
+sample_names = sorted(FILES.keys())
+
+# The samples directory
+sample_dir = '/restricted/projectnb/flynngrp/adai/Day3_SDE2'
+
+
+# Rules -----------------------------------------------------------------------
+
+
+trimmed_fastqc_fns  = [item.replace('_001.fastq.gz','_001_paired_fastqc.zip') for item in glob.glob(sample_dir+'/*_001.fastq.gz')]
+
+rule all:
+    input:
+        trimmed_fastqc_fns
+
+#fastqc for every single file
+
+fastqc_result_fns = [item.replace(".fastq.gz","_fastqc.zip") for item in glob.glob(sample_dir+'/*_001.fastq.gz')]
+
+rule fastqc_result:
+    input:
+         fastqc_result_fns
+
+
+rule fastqc:
+    input:
+        '{sample_dir}/{fullname}_001.fastq.gz'
+    output:
+        '{sample_dir}/{fullname}_001_fastqc.zip'
+    threads:
+        8
+    shell:
+        'fastqc {input}  -t {threads}'
+
+
+#trimmomatic for every single file
+
+trim_paired1 = [item.replace('.fastq.gz', '_paired.fastq.gz') for item in glob.glob(sample_dir+'/*R1_001.fastq.gz')]
+trim_unpaired1 = [item.replace('paired', 'unpaired') for item in trim_paired1]
+trim_paired2 = [item.replace('R1','R2') for item in trim_paired1]
+trim_unpaired2 = [item.replace('R1','R2').replace('paired', 'unpaired') for item in trim_paired1]
+trim_res_txt = [item.replace('_R1_001_paired.fastq.gz', '.txt') for item in trim_paired1]
+
+rule trimmomatic_result:
+    input:
+        trim_paired1
+
+rule trimmomatic:
+    input:
+        R1 = '{sample_dir}/{partname}_R1_001.fastq.gz',
+        R2 = '{sample_dir}/{partname}_R2_001.fastq.gz'
+    output:
+        paired1 = '{sample_dir}/{partname}_R1_001_paired.fastq.gz',
+        unpaired1 = '{sample_dir}/{partname}_R1_001_unpaired.fastq.gz',
+        paired2 = '{sample_dir}/{partname}_R2_001_paired.fastq.gz',
+        unpaired2 = '{sample_dir}/{partname}_R2_001_unpaired.fastq.gz',
+        res_txt = '{sample_dir}/{partname}.txt'
+    threads:
+        8
+    shell:
+        """ java -jar /projectnb/bubhub/conda_root/user_conda/adai/envs/flynn_altstatus/share/trimmomatic-0.38-1/trimmomatic.jar \
+            PE {input.R1} {input.R2} {output.paired1} {output.unpaired1} {output.paired2} {output.unpaired2} \
+            ILLUMINACLIP:TruSeq3-PE.fa:2:30:10 \
+            LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36 \
+            -threads {threads} \
+            2> {output.res_txt}; """
+
+
+
+#fastqc again for the trimmed paired reads
+
+rule trimmed_fastqc:
+    input:
+        '{sample_dir}/{fullname}_paired.fastq.gz'
+    output:
+        '{sample_dir}/{fullname}_paired_fastqc.zip'
+    threads:
+        8
+    shell:
+        'fastqc {input}  -t {threads} '
+
+
+
