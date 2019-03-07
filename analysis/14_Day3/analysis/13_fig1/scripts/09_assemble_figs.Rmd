@@ -1,0 +1,40 @@
+---
+title: "09 figs"
+author: "Anqi Dai"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc_depth: 3
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
+```
+
+# Left: Day 5. Right: Day 3.
+
+```{r out.width='50%' }
+# the sig 05 pie chart
+knitr::include_graphics(c('../../../../13_fig1/figs/FDR005 Splicing type pie chart in SIG events.png','../figs/FDR005 Splicing type pie chart in SIG events.png' ))
+
+```
+
+```{r out.width='50%'}
+knitr::include_graphics(c('../../../../13_fig1/figs/AS type of the FDR < 0.05 locus.jpg','../figs/AS type of the FDR < 0.05 locus.jpg'))
+```
+
+```{r out.width='50%'}
+# the dist bar plot
+knitr::include_graphics(c('../../../../13_fig1/figs/AS type distribution in KD and control samples grouped bar plot.jpg','../figs/AS type distribution in KD and control samples grouped bar plot.jpg'))
+```
+
+```{r out.width='50%'}
+# the gsea heatmap
+knitr::include_graphics(c('../../../../13_fig1/output/Metascape/sig05_2288_unique_gene/Enrichment_heatmap/HeatmapSelectedGO.png','../output/Metascape/day3_sig_05_gene_gsea/Enrichment_heatmap/HeatmapSelectedGO.png'))
+```
+
+```{r out.width='50%'}
+# the 005 and 025 bar plot
+knitr::include_graphics(c('../../../../13_fig1/figs/type dist of the two.jpg','../figs/type dist of the two.jpg'))
+```

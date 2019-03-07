@@ -11,6 +11,10 @@ knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
 
 The goal is to do the first two pie charts that illustrate what the AS type distribution is in KD and control respetively, so that the difference of the difference (the significance of the delta PSI) will make more sense.
 
+Keeping the psi that is closer to 0.5 from the 14control and 89control comparison, since the psi will later be used for filtering.
+
+Don't need to filter since we are not caring about the significance level here.
+
 ## sorting out whippet results
 
 ```{r}
@@ -60,10 +64,6 @@ final_whippet <- whippet %>%
 ```{r}
 # now do the above for the rMATS result
 
-```
-
-
-```{r}
 # The JCEC.txt files of the AS types
 path <- '../../06_rMATS/data/rMATS_result/RF14_control'
 fns <- file.path(path, list.files(path, 'JCEC.txt'))
@@ -99,7 +99,6 @@ A5SS <- read_tsv(fns[2]) %>%
   
 # RI 
 RI <- read_tsv(fns[4]) %>%
-  filter(FDR < 0.05) %>%
   dplyr::select(chr, upstreamEE, downstreamES, geneSymbol, FDR, IncLevel1, IncLevel2) %>%
   mutate(Significance = ifelse(FDR < 0.05, TRUE, FALSE)) %>%
   rename(start = upstreamEE, end = downstreamES, external_gene_name = geneSymbol, Psi_A = IncLevel1, Psi_B = IncLevel2) %>%
@@ -114,7 +113,6 @@ RI <- read_tsv(fns[4]) %>%
 
 # SE
 SE <-  read_tsv(fns[5]) %>%
-  filter(FDR < 0.05) %>%
   dplyr::select(chr, exonStart_0base, exonEnd, geneSymbol, FDR, IncLevel1, IncLevel2) %>%
   mutate(Significance = ifelse(FDR < 0.05, TRUE, FALSE)) %>%
   rename(start = exonStart_0base, end = exonEnd, external_gene_name = geneSymbol, Psi_A = IncLevel1, Psi_B = IncLevel2) %>%
@@ -130,7 +128,6 @@ SE <-  read_tsv(fns[5]) %>%
 
 # MXE
 MXE <- read_tsv(fns[3]) %>%
-  filter(FDR < 0.05) %>%
   dplyr::select(chr, upstreamES, downstreamEE, geneSymbol, FDR, IncLevel1, IncLevel2) %>%
   mutate(Significance = ifelse(FDR < 0.05, TRUE, FALSE)) %>%
   rename(start = upstreamES, end = downstreamEE, external_gene_name = geneSymbol, Psi_A = IncLevel1, Psi_B = IncLevel2) %>%
@@ -186,7 +183,6 @@ A5SS <- read_tsv(fns[2]) %>%
   
 # RI 
 RI <- read_tsv(fns[4]) %>%
-  filter(FDR < 0.05) %>%
   dplyr::select(chr, upstreamEE, downstreamES, geneSymbol, FDR, IncLevel1, IncLevel2) %>%
   mutate(Significance = ifelse(FDR < 0.05, TRUE, FALSE)) %>%
   rename(start = upstreamEE, end = downstreamES, external_gene_name = geneSymbol, Psi_A = IncLevel1, Psi_B = IncLevel2) %>%
@@ -201,7 +197,6 @@ RI <- read_tsv(fns[4]) %>%
 
 # SE
 SE <-  read_tsv(fns[5]) %>%
-  filter(FDR < 0.05) %>%
   dplyr::select(chr, exonStart_0base, exonEnd, geneSymbol, FDR, IncLevel1, IncLevel2) %>%
   mutate(Significance = ifelse(FDR < 0.05, TRUE, FALSE)) %>%
   rename(start = exonStart_0base, end = exonEnd, external_gene_name = geneSymbol, Psi_A = IncLevel1, Psi_B = IncLevel2) %>%
@@ -217,7 +212,6 @@ SE <-  read_tsv(fns[5]) %>%
 
 # MXE
 MXE <- read_tsv(fns[3]) %>%
-  filter(FDR < 0.05) %>%
   dplyr::select(chr, upstreamES, downstreamEE, geneSymbol, FDR, IncLevel1, IncLevel2) %>%
   mutate(Significance = ifelse(FDR < 0.05, TRUE, FALSE)) %>%
   rename(start = upstreamES, end = downstreamEE, external_gene_name = geneSymbol, Psi_A = IncLevel1, Psi_B = IncLevel2) %>%
@@ -366,6 +360,6 @@ final <- bind_rows(dups, undup)
 
 ```{r}
 # write out the final data
-write_csv(final, '../output/all_three_PSI_A_B_combined.csv')
+write_csv(final, '../output/all_three_PSI_A_B_combined_not_filtered.csv')
 ```
 

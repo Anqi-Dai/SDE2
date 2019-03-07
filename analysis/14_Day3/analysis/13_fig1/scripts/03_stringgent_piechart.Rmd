@@ -1,0 +1,350 @@
+---
+title: "03 draw the third pie chart"
+author: "Anqi Dai"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
+```
+
+```{r}
+library(tidyverse)
+library(RColorBrewer)
+```
+
+```{r}
+# The JCEC.txt files of the AS types
+path <- '../../06_rMATS/data/rMATS_result/RF14_control'
+fns <- file.path(path, list.files(path, 'JCEC.txt'))
+```
+
+```{r}
+A3SS <- read_tsv(fns[1]) %>%
+  filter(FDR < 0.05) %>%
+  dplyr::select(chr, longExonStart_0base, shortES, geneSymbol, FDR) %>%
+  rename(start = longExonStart_0base, end = shortES, external_gene_name = geneSymbol, significance  = FDR) %>%
+  mutate(start = start + 1) %>%
+  mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
+  mutate(tool = 'rMATS',
+         type = 'AA') %>%
+  dplyr::select(-chr, -start,-end)
+
+# A5SS 
+A5SS <- read_tsv(fns[2]) %>%
+  filter(FDR < 0.05) %>%
+  dplyr::select(chr, shortEE, longExonEnd, geneSymbol, FDR) %>%
+  rename(start = shortEE, end = longExonEnd, external_gene_name = geneSymbol, significance  = FDR) %>%
+  mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
+  mutate(tool = 'rMATS',
+         type = 'AD') %>%
+  dplyr::select(-chr, -start,-end)
+
+# RI 
+RI <- read_tsv(fns[4]) %>%
+  filter(FDR < 0.05) %>%
+  dplyr::select(chr, upstreamEE, downstreamES, geneSymbol, FDR) %>%
+  rename(start = upstreamEE, end = downstreamES, external_gene_name = geneSymbol, significance  = FDR) %>%
+   mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
+  mutate(tool = 'rMATS',
+         type = 'RI') %>%
+  dplyr::select(-chr, -start,-end)
+
+
+# SE
+SE <-  read_tsv(fns[5]) %>%
+  filter(FDR < 0.05) %>%
+  dplyr::select(chr, exonStart_0base, exonEnd, geneSymbol, FDR) %>%
+  rename(start = exonStart_0base, end = exonEnd, external_gene_name = geneSymbol, significance  = FDR) %>%
+   mutate(start = start + 1) %>%
+  mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
+  mutate(tool = 'rMATS',
+         type = 'CE') %>%
+  dplyr::select(-chr, -start,-end)
+
+
+# MXE
+MXE <- read_tsv(fns[3]) %>%
+  filter(FDR < 0.05) %>%
+  dplyr::select(chr, upstreamES, downstreamEE, geneSymbol, FDR) %>%
+  rename(start = upstreamES, end = downstreamEE, external_gene_name = geneSymbol, significance  = FDR) %>%
+   mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
+  mutate(tool = 'rMATS',
+         type = 'MXE') %>%
+  dplyr::select(-chr, -start,-end)
+
+
+df14 <- bind_rows(A3SS, A5SS, RI, SE, MXE) %>%
+  filter(!duplicated(locus))
+```
+
+```{r}
+# The JCEC.txt files of the AS types
+path <- '../../06_rMATS/data/rMATS_result/RF89_control'
+fns <- file.path(path, list.files(path, 'JCEC.txt'))
+```
+
+```{r}
+A3SS <- read_tsv(fns[1]) %>%
+  filter(FDR < 0.05) %>%
+  dplyr::select(chr, longExonStart_0base, shortES, geneSymbol, FDR) %>%
+  rename(start = longExonStart_0base, end = shortES, external_gene_name = geneSymbol, significance  = FDR) %>%
+  mutate(start = start + 1) %>%
+  mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
+  mutate(tool = 'rMATS',
+         type = 'AA') %>%
+  dplyr::select(-chr, -start,-end)
+
+# A5SS 
+A5SS <- read_tsv(fns[2]) %>%
+  filter(FDR < 0.05) %>%
+  dplyr::select(chr, shortEE, longExonEnd, geneSymbol, FDR) %>%
+  rename(start = shortEE, end = longExonEnd, external_gene_name = geneSymbol, significance  = FDR) %>%
+  mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
+  mutate(tool = 'rMATS',
+         type = 'AD') %>%
+  dplyr::select(-chr, -start,-end)
+
+# RI 
+RI <- read_tsv(fns[4]) %>%
+  filter(FDR < 0.05) %>%
+  dplyr::select(chr, upstreamEE, downstreamES, geneSymbol, FDR) %>%
+  rename(start = upstreamEE, end = downstreamES, external_gene_name = geneSymbol, significance  = FDR) %>%
+   mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
+  mutate(tool = 'rMATS',
+         type = 'RI') %>%
+  dplyr::select(-chr, -start,-end)
+
+
+# SE
+SE <-  read_tsv(fns[5]) %>%
+  filter(FDR < 0.05) %>%
+  dplyr::select(chr, exonStart_0base, exonEnd, geneSymbol, FDR) %>%
+  rename(start = exonStart_0base, end = exonEnd, external_gene_name = geneSymbol, significance  = FDR) %>%
+   mutate(start = start + 1) %>%
+  mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
+  mutate(tool = 'rMATS',
+         type = 'CE') %>%
+  dplyr::select(-chr, -start,-end)
+
+
+# MXE
+MXE <- read_tsv(fns[3]) %>%
+  filter(FDR < 0.05) %>%
+  dplyr::select(chr, upstreamES, downstreamEE, geneSymbol, FDR) %>%
+  rename(start = upstreamES, end = downstreamEE, external_gene_name = geneSymbol, significance  = FDR) %>%
+   mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
+  mutate(tool = 'rMATS',
+         type = 'MXE') %>%
+  dplyr::select(-chr, -start,-end)
+
+
+df89 <- bind_rows(A3SS, A5SS, RI, SE, MXE) %>%
+  filter(!duplicated(locus))
+```
+
+```{r}
+# now find the overlap between the 14 and 89 that is the final results
+ 
+DF <- df14 %>%
+  inner_join(df89 %>%
+               dplyr::select(-tool, -significance, -external_gene_name,-type), by = 'locus')
+```
+
+#### The other two 
+ 
+```{r}
+# re- do the whippet sig probability 0.9
+
+RF14.ctrl <- read_tsv('../../03_ASprofile/data/whippetResult/RF14_vs_cntrl_output.diff') %>%
+  mutate(absDeltaPsi = abs(DeltaPsi)) %>%
+  mutate(Gene = str_replace_all(string = Gene, pattern = '\\..+$', replacement = '')) %>%
+  mutate(Group = 'RF14.ctrl')  %>%
+  filter(absDeltaPsi > 0.1 & Probability > 0.9 & Psi_A > 0.1)  %>%
+  mutate(tool = 'Whippet') %>%
+  dplyr::select(locus = Coord, tool, type = Type, GeneID = Gene)
+
+RF89.ctrl <- read_tsv('../../03_ASprofile/data/whippetResult/RF89_vs_cntrl_output.diff') %>%
+  mutate(absDeltaPsi = abs(DeltaPsi)) %>%
+  mutate(Gene = str_replace_all(string = Gene, pattern = '\\..+$', replacement = '')) %>%
+  mutate(Group = 'RF89.ctrl')  %>%
+  filter(absDeltaPsi > 0.1 & Probability > 0.9 & Psi_A > 0.1) %>%
+  dplyr::select(locus = Coord)
+
+overlap_whippet  <-  RF14.ctrl %>%
+  inner_join(RF89.ctrl , by = 'locus')
+
+# get the gene name for the table
+mart <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+# the ensembl_gene_id of the genes that you are interested in 
+genes <- overlap_whippet$GeneID
+# retrieve the feature information of the listed attributes
+symbol <- getBM(filters = "ensembl_gene_id",
+                attributes = c('ensembl_gene_id','external_gene_name'),
+                values = genes, 
+                mart = mart)
+# add the gene name to the table
+Overlap_whippet <- overlap_whippet %>%
+  left_join(symbol %>%
+              rename(GeneID = ensembl_gene_id), by = 'GeneID') %>%
+  dplyr::select(-GeneID)
+# how many records are there 
+nrow(Overlap_whippet)
+
+```
+
+ 
+```{r}
+# re -do the IRfinder FDR 0.05
+data_path <- '../../05_IRfinder/data/rawIRfinderResult'
+fns <- file.path(data_path, list.files(data_path, pattern = 'txt'))
+# format the table like below (generate the locus ID, change the colnames, format the geneID string, separate that one column to three, generate the padj value.)
+raw_df_list <- lapply(fns, function(fn){
+  res = read_tsv(fn,comment = '#',col_names = T) %>%
+    mutate(Locus =paste(Chr,paste(Start, End, sep = '-'), sep = ':' ) ) 
+  
+  colnames(res) <- colnames(res) %>%
+    gsub('-', '_', .)
+  
+  res = res %>%
+    separate('Intron_GeneName/GeneID', into = c('Symbol', 'GeneID', 'Category'), sep = '/') %>%
+    # get rid of the . and digits after that in GeneID
+    mutate(GeneID = str_replace_all(string = GeneID, pattern = '\\..*$', replacement = '')) %>%
+    mutate(padj = p.adjust(p_diff, method = 'BH')) 
+})
+##################################################################################
+# filter the result like below:
+# * Remove records marked with "known-exon". 
+# * Remove records marked with "MinorIsoform" either in experiment or control. 
+# * Adjust the P-value with BH method 
+# * Select the records with padj < 0.25
+true_df_list <- lapply(raw_df_list, function(df) {
+  res = df  %>%
+    filter(! Category == 'known-exon') %>%
+    filter( A_IRok != 'MinorIsoform' &  B_IRok != 'MinorIsoform' ) %>%
+    filter(padj < 0.05) 
+  return(res)
+} )
+
+##################################################################################
+# TRUE: sig in both
+# FALSE: sig in neither but overlapped in both
+true_locus <- intersect(true_df_list[[1]]$Locus, true_df_list[[2]]$Locus)
+
+# subset the df to include only the true and false locus
+subset_df_list <- lapply(raw_df_list, function(df){
+  res = df %>%
+    filter(Locus %in% true_locus) 
+})
+overlap_IRfinder <- subset_df_list[[1]] %>%
+  mutate(tool = 'IRfinder',
+         type = "RI") %>%
+  dplyr::select(locus = Locus, tool, type, external_gene_name = Symbol)
+# correct the IRfinder start position
+Overlap_IRfinder <- overlap_IRfinder %>%
+  separate(locus, into = c('chr','coord'), sep = ':') %>%
+  separate(coord, into = c('start', 'end'), sep = '-', convert = T) %>%
+  mutate(start = start + 1) %>%
+  mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':'))  %>%
+  dplyr::select(locus, tool, type, external_gene_name)
+# how many records are there
+nrow(Overlap_IRfinder)
+```
+
+```{r}
+# merging Whippet & IRfinder
+dup <- intersect(Overlap_whippet$locus, Overlap_IRfinder$locus)
+two <- bind_rows(Overlap_whippet,
+                 Overlap_IRfinder %>%
+                   filter(! locus %in% dup)) 
+
+# merging the two with rMATS
+dup <- intersect(two$locus, DF$locus)
+final <- bind_rows(two,
+                 DF %>% 
+                   filter(! locus %in% dup)) 
+```
+
+```{r}
+hex <- c(brewer.pal(n = 8, name = "Dark2"), '#00468B')
+# draw a pie chart of that
+colorPal <- data_frame(type = c('AL','AD','TS','MXE','RI','AF','CE','AA','TE'), 
+  color = hex) 
+
+res <- final %>%
+          group_by(type) %>%
+          summarise(count = n())%>%
+          mutate(perc = paste0(round((count / sum(count)) * 100), '%') ) 
+  
+res <- colorPal %>%
+  left_join(res, by = 'type') %>%
+          mutate(lbl = paste(type, perc , sep = ' '))
+
+
+
+png('../figs/FDR005 Splicing type pie chart in SIG events.png',pointsize = 8, res = 300, width = 4, height = 4, units = 'in')
+pie(res$count,labels = res$lbl, col= res$color, main = 'FDR005 Splicing type pie chart in SIG events')
+dev.off()
+
+
+write_csv(res, '../output/type_dist_FDR005.csv')
+```
+
+```{r out.width=400}
+knitr::include_graphics('../figs/FDR005 Splicing type pie chart in SIG events.pdf')
+```
+
+```{r}
+# bar plot to show the counts
+final %>%
+  group_by(type) %>%
+  summarise(cts = n()) %>%
+  arrange(desc(cts)) %>% 
+  ggbarplot(x ='type', y = 'cts', 
+            palette = 'lancet',label = TRUE,
+            title = 'AS type of the FDR < 0.05 locus',
+            color = '#00468B', fill = '#00468B') +
+  ggsave('../figs/AS type of the FDR < 0.05 locus.jpg', dpi = 300, width = 10, height = 6)
+```
+
+
+```{r}
+final %>%
+  group_by(external_gene_name) %>%
+  summarise(type_all = paste0(type, collapse = ","),
+            cnt = n()) %>%
+  arrange(desc(cnt)) %>%
+  write_csv('../output/all_tools_sig05_summarise_on_gene_level.csv')
+ 
+  
+
+summ  <- final %>%
+  group_by(external_gene_name) %>%
+  summarise(type_all = paste0(type, collapse = ","),
+            cnt = n()) %>%
+  arrange(desc(cnt))
+
+# how many unique genes are there
+final %>%
+  filter(!duplicated(external_gene_name)) %>%
+  nrow
+
+final%>% 
+  write_csv('../output/all_tools_sig05_locus_info.csv')
+
+# the unique gene's name
+unique_name <- summ$external_gene_name
+write.table(unique_name, '../output/all_tools_sig05_unique_gene_name.txt', quote= F, col.names = F, row.names = F) 
+```
+
+```{r out.width=400}
+# put these unique genes into Metascape and see what turns out
+#knitr::include_graphics('../output/Metascape/sig05_2288_unique_gene/Enrichment_heatmap/HeatmapSelectedGO.png')
+```
+

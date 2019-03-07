@@ -1,0 +1,189 @@
+---
+title: "04 the remaining part of fig1"
+author: "Anqi Dai"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
+library(tidyverse)
+library(biomaRt)
+library(ggpubr)
+```
+
+Need to do an overlap between 14 and 89 again ....
+
+## 14
+
+```{r}
+# 14
+novel14 <- read_tsv('../../10_norval_annotation_quantification/output/novel_14_control_DE.csv')
+normal14 <- read_tsv('../../10_norval_annotation_quantification/output/normal_14_control_DE.csv')
+
+res14 <- novel14 %>%
+  dplyr::select(X, novel14log2FC = Status__KD1__log2FoldChange, novel_baseMean = baseMean) %>%
+  inner_join(normal14 %>%
+              dplyr::select(X, normal14log2FC = Status__KD1__log2FoldChange, normal_baseMean= baseMean), by = 'X') 
+
+```
+
+```{r}
+# color the dots with red: AS blue: not AS but have expression
+sig_gene <- read_table('../../08_findingGenes/data/union_sig_genes_from_3_analysis.txt', col_names = F)
+
+detkF <- read_csv('../../08_findingGenes/data/detk_fil_Norm_salmon_cts_replicate1_matrix.csv') %>%
+  mutate(Name = str_replace_all(string = Name, pattern = '\\..*$', replacement = ''))
+
+blue_genes <- setdiff(detkF$Name, sig_gene$X1)
+
+red_genes <- intersect(detkF$Name, sig_gene$X1)
+
+
+# mark the res14 table with the different categories of genes
+
+res <- res14 %>% 
+  mutate(Color = factor(if_else(X %in% blue_genes, 'no AS', if_else(X %in% red_genes, 'AS', 'other'))) ) %>%
+  mutate(novelNormalDiffFC = novel14log2FC - normal14log2FC ) %>%
+  filter(abs(normal14log2FC) < 5) %>%
+  filter(abs(novel14log2FC) < 5) 
+```
+
+
+```{r}
+# add a new column to mark the pseudogenes
+mart <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+# retrieve the feature information of the listed attributes
+symbol <- getBM(filters = "ensembl_gene_id",
+                attributes = c('ensembl_gene_id',
+                               'external_gene_name',
+                               'chromosome_name',
+                               'start_position',
+                               'end_position', 
+                               'description'),
+                values = res$X, 
+                mart = mart)
+symbol <- symbol %>%
+  rename(chr = chromosome_name)
+
+
+# join to the res table
+ret <- symbol %>%
+  dplyr::select(ensembl_gene_id, description) %>%
+  left_join(res %>%
+              rename(ensembl_gene_id = X), by  ='ensembl_gene_id') %>%
+  mutate(pseudogene = ifelse(grepl('pseudogene|novel transcript', description), T,F))
+
+```
+
+
+```{r}
+# the basemean plot with colors
+pseudo <- ret %>%
+  filter(pseudogene == T)
+
+
+ret %>%
+  ggplot(aes(x = normal_baseMean, y = novel_baseMean, color = Color))+
+  geom_point(alpha = 0.5) +
+  geom_point(data = pseudo, color = 'yellow', alpha = 0.3) +
+  yscale("log10", .format = TRUE) +
+  xscale("log10", .format = TRUE) +
+  geom_abline(slope=1, intercept=0, color = 'black', alpha = 0.4) +
+   labs(title = 'Novel VS normal basemean') +
+  scale_fill_manual(values =  c('#EC0000', '#00468B')) +
+  scale_color_manual(values =  c('#EC0000', '#00468B')) +
+  labs(x = 'base mean in normal quantification',
+       y = 'base mean in novel quantification') +
+  ggsave('../figs/novel_normal_basemean_color 14.jpg', width = 8, height =6, dpi = 300) 
+```
+
+## 89
+
+```{r}
+
+novel14 <- read_tsv('../../10_norval_annotation_quantification/output/novel_89_control_DE.csv')
+normal14 <- read_tsv('../../10_norval_annotation_quantification/output/normal_89_control_DE.csv')
+
+res14 <- novel14 %>%
+  dplyr::select(X, novel14log2FC = Status__KD2__log2FoldChange, novel_baseMean = baseMean) %>%
+  inner_join(normal14 %>%
+              dplyr::select(X, normal14log2FC = Status__KD2__log2FoldChange, normal_baseMean= baseMean), by = 'X') 
+
+```
+
+```{r}
+# color the dots with red: AS blue: not AS but have expression
+sig_gene <- read_table('../../08_findingGenes/data/union_sig_genes_from_3_analysis.txt', col_names = F)
+
+detkF <- read_csv('../../08_findingGenes/data/detk_fil_Norm_salmon_cts_replicate1_matrix.csv') %>%
+  mutate(Name = str_replace_all(string = Name, pattern = '\\..*$', replacement = ''))
+
+blue_genes <- setdiff(detkF$Name, sig_gene$X1)
+
+red_genes <- intersect(detkF$Name, sig_gene$X1)
+
+
+# mark the res14 table with the different categories of genes
+
+res <- res14 %>% 
+  mutate(Color = factor(if_else(X %in% blue_genes, 'no AS', if_else(X %in% red_genes, 'AS', 'other'))) ) %>%
+  mutate(novelNormalDiffFC = novel14log2FC - normal14log2FC ) %>%
+  filter(abs(normal14log2FC) < 5) %>%
+  filter(abs(novel14log2FC) < 5) 
+```
+
+
+```{r}
+# add a new column to mark the pseudogenes
+mart <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+# retrieve the feature information of the listed attributes
+symbol <- getBM(filters = "ensembl_gene_id",
+                attributes = c('ensembl_gene_id',
+                               'external_gene_name',
+                               'chromosome_name',
+                               'start_position',
+                               'end_position', 
+                               'description'),
+                values = res$X, 
+                mart = mart)
+symbol <- symbol %>%
+  rename(chr = chromosome_name)
+
+
+# join to the res table
+ret <- symbol %>%
+  dplyr::select(ensembl_gene_id, description) %>%
+  left_join(res %>%
+              rename(ensembl_gene_id = X), by  ='ensembl_gene_id') %>%
+  mutate(pseudogene = ifelse(grepl('pseudogene|novel transcript', description), T,F))
+
+```
+
+
+```{r}
+# the basemean plot with colors
+pseudo <- ret %>%
+  filter(pseudogene == T)
+
+
+ret %>%
+  ggplot(aes(x = normal_baseMean, y = novel_baseMean, color = Color))+
+  geom_point(alpha = 0.5) +
+  geom_point(data = pseudo, color = 'yellow', alpha = 0.3) +
+  yscale("log10", .format = TRUE)+
+  xscale("log10", .format = TRUE) +
+  geom_abline(slope=1, intercept=0, color = 'black', alpha = 0.4) +
+   labs(title = 'Novel VS normal basemean') +
+  scale_fill_manual(values =  c('#EC0000', '#00468B')) +
+  scale_color_manual(values =  c('#EC0000', '#00468B')) +
+  labs(x = 'base mean in normal quantification',
+       y = 'base mean in novel quantification') +
+  ggsave('../figs/novel_normal_basemean_color 89.jpg', width = 8, height =6, dpi = 300) 
+```
+

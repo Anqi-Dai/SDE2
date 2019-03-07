@@ -17,7 +17,7 @@ library(RColorBrewer)
 
 ```{r}
 # import the data, data that I tore my hair to make
-final <- read_csv('../output/all_three_PSI_A_B_combined.csv')
+final <- read_csv('../output/all_three_PSI_A_B_combined_not_filtered.csv')
 ```
 
 ```{r}
@@ -91,10 +91,10 @@ RES %>%
   scale_fill_manual(values =  c('#00468B', '#EC0000')) +
   labs(x = 'AS type',
        title = 'AS type distribution in KD and control samples') +
-  ggsave('../figs/AS type distribution in KD and control samples grouped bar plot.jpg', width = 8, height = 6, dpi = 300)
+  ggsave('../figs/AS type distribution in KD and control samples grouped bar plot.jpg', width = 10, height = 6, dpi = 300)
 ```
 
-```{r}
+```{r eval=F}
 #could you please create one more pie chart, which has only the difference in proportion between these two?
 #IOW, just subtract the relative proportions for each event, like RI 7% - 5% = 2%, #AD = 7% - 9% = -2%
 #In the case where you have negative changes for KD - WT, use the negative value for the label but the absolute value for the plot
@@ -118,7 +118,5 @@ pie(diff_pie$absDiff,labels = diff_pie$lbl, col= diff_pie$col, main = 'Splicing 
 dev.off()
 ```
 
-```{r}
 
-```
 

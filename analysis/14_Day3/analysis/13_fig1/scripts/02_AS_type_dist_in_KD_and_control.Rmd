@@ -1,0 +1,122 @@
+---
+title: "02 Draw first two pie charts"
+author: "Anqi Dai"
+date: "2/20/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
+```
+
+
+```{r}
+library(tidyverse)
+library(RColorBrewer)
+```
+
+```{r}
+# import the data, data that I tore my hair to make
+final <- read_csv('../output/all_three_PSI_A_B_combined_not_filtered.csv')
+```
+
+```{r}
+# make a pie chart based on Psi_A
+KD <- final %>%
+  filter(Psi_A > 0.1 & Psi_A < 0.9) 
+
+# draw the pie chart
+hex <- c(brewer.pal(n = 8, name = "Dark2"), '#00468B')
+
+colorPal <- data_frame(type = as.character(names(table(KD$type))), 
+  color = hex) 
+
+res <- KD %>%
+          group_by(type) %>%
+          summarise(count = n())%>%
+          mutate(perc = paste0(round((count / sum(count)) * 100), '%') ) %>%
+          left_join(colorPal, by = 'type') %>%
+          mutate(lbl = paste(type, perc , sep = ' '))
+  
+res_kd <- res[sample(nrow(res), nrow(res)),]
+
+pdf('../figs/Splicing type pie chart in KD samples.pdf')
+pie(res$count,labels = res$lbl, col= res$color, main = 'Splicing type pie chart in KD samples')
+dev.off()
+```
+
+```{r}
+# make a pie chart based on Psi_B 
+CTRL <- final %>%
+  filter(Psi_B > 0.1 & Psi_B < 0.9) 
+
+# draw the pie chart
+hex <- c(brewer.pal(n = 8, name = "Dark2"), '#00468B')
+
+colorPal <- data_frame(type = as.character(names(table(CTRL$type))), 
+  color = hex) 
+
+res <- CTRL %>%
+          group_by(type) %>%
+          summarise(count = n())%>%
+          mutate(perc = paste0(round((count / sum(count)) * 100), '%') ) %>%
+          left_join(colorPal, by = 'type') %>%
+          mutate(lbl = paste(type, perc , sep = ' '))
+  
+res_ctrl <- res[sample(nrow(res), nrow(res)),]
+
+pdf('../figs/Splicing type pie chart in CTRL samples.pdf')
+pie(res$count,labels = res$lbl, col= res$color, main = 'Splicing type pie chart in CTRL samples')
+dev.off()
+```
+
+```{r}
+# creating a grouped bar chart. The x-axis has the different types of events, an the y-axis is the number of events of that type. Each type will have two bars, one for KD and one for WT
+RES <- bind_rows(
+  res_kd %>%
+    dplyr::select(type, count, perc) %>%
+    mutate(status = 'KD') %>% 
+    mutate(type = factor(type, levels = c('CE','TE','TS','AA','AD','RI','AF','AL','MXE'))),
+  res_ctrl %>%
+    dplyr::select(type, count, perc) %>%
+    mutate(status = 'CTRL') %>% 
+    mutate(type = factor(type, levels = c('CE','TE','TS','AA','AD','RI','AF','AL','MXE')))
+) %>%
+  mutate(status = factor(status))
+
+
+RES %>%
+  ggplot(aes(x = type, y = count, fill = status)) +
+  geom_bar(stat="identity", position=position_dodge()) +
+  scale_fill_manual(values =  c('#00468B', '#EC0000')) +
+  labs(x = 'AS type',
+       title = 'AS type distribution in KD and control samples') +
+  ggsave('../figs/AS type distribution in KD and control samples grouped bar plot.jpg', width = 10, height = 6, dpi = 300)
+```
+
+```{r eval=F}
+#could you please create one more pie chart, which has only the difference in proportion between these two?
+#IOW, just subtract the relative proportions for each event, like RI 7% - 5% = 2%, #AD = 7% - 9% = -2%
+#In the case where you have negative changes for KD - WT, use the negative value for the label but the absolute value for the plot
+
+hex <- c(brewer.pal(n = 8, name = "Dark2"), '#00468B')
+
+
+diff_pie <- RES %>%
+  dplyr::select(type, status, perc) %>%
+  mutate(perc = stringr::str_replace_all(perc, '%','')) %>%
+  mutate(perc =  as.numeric(perc))  %>%
+  spread(key =  status, value = perc) %>%
+  mutate(Diff = KD - CTRL) %>%
+  mutate(absDiff = abs(Diff)) %>%
+  mutate(DiffPerc = paste0(round((absDiff / sum(absDiff)) * 100), '%')) %>%
+  mutate(col = hex) %>%
+  mutate(lbl = paste(type, DiffPerc , sep = ' '))
+
+jpeg('../figs/Splicing type pie chart of the difference between KD and controls.jpeg')
+pie(diff_pie$absDiff,labels = diff_pie$lbl, col= diff_pie$col, main = 'Splicing type pie chart of the difference between KD and control')
+dev.off()
+```
+
+
+

@@ -286,8 +286,10 @@ res <- colorPal %>%
   left_join(res, by = 'type') %>%
           mutate(lbl = paste(type, perc , sep = ' '))
 
-pdf('../figs/Splicing type pie chart in SIG events.pdf')
-pie(res$count,labels = res$lbl, col= res$color, main = 'Splicing type pie chart in SIG events')
+
+
+png('../figs/FDR005 Splicing type pie chart in SIG events.png',pointsize = 8, res = 300, width = 4, height = 4, units = 'in')
+pie(res$count,labels = res$lbl, col= res$color, main = 'FDR005 Splicing type pie chart in SIG events')
 dev.off()
 
 
@@ -295,8 +297,22 @@ write_csv(res, '../output/type_dist_FDR005.csv')
 ```
 
 ```{r out.width=400}
-knitr::include_graphics('../figs/Splicing type pie chart in SIG events.pdf')
+knitr::include_graphics('../figs/FDR005 Splicing type pie chart in SIG events.pdf')
 ```
+
+```{r}
+# bar plot to show the counts
+final %>%
+  group_by(type) %>%
+  summarise(cts = n()) %>%
+  arrange(desc(cts)) %>% 
+  ggbarplot(x ='type', y = 'cts', 
+            palette = 'lancet',label = TRUE,
+            title = 'AS type of the FDR < 0.05 locus',
+            color = '#00468B', fill = '#00468B') +
+  ggsave('../figs/AS type of the FDR < 0.05 locus.jpg', dpi = 300, width = 10, height = 6)
+```
+
 
 ```{r}
 final %>%
@@ -329,6 +345,6 @@ write.table(unique_name, '../output/all_tools_sig05_unique_gene_name.txt', quote
 
 ```{r out.width=400}
 # put these unique genes into Metascape and see what turns out
-knitr::include_graphics('../output/Metascape/sig05_2288_unique_gene/Enrichment_heatmap/HeatmapSelectedGO.png')
+#knitr::include_graphics('../output/Metascape/sig05_2288_unique_gene/Enrichment_heatmap/HeatmapSelectedGO.png')
 ```
 
