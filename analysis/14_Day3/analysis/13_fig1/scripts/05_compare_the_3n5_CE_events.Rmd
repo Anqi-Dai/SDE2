@@ -1,0 +1,85 @@
+---
+title: "Compare the difference in CE events"
+author: "Anqi Dai"
+date: "3/7/2019"
+output: html_document
+---
+
+Look at the genes that are not CE on day 3 but are on day 5.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
+library(VennDiagram)
+library(tidyverse)
+```
+
+```{r}
+d3 <- read_csv('../output/all_tools_sig05_locus_info.csv')
+d5 <- read_csv('../../../../13_fig1/output/all_tools_sig05_locus_info.csv')
+```
+
+```{r}
+finding_D3andD5_difference_venn <- function(Type){
+  diff_list <- list(Day3 = d3 %>%
+                    filter(type == Type) %>%
+                    pull(locus),
+                  Day5 = d5 %>%
+                    filter(type == Type) %>%
+                    pull(locus))
+  fill <- c("yellow", "red")
+  size  <- rep(0.5, 2)
+  venn <- venn.diagram(x = diff_list, 
+        filename = NULL,
+        height = 2000,
+        width = 2000, fill = fill,
+        cat.default.pos = "text", 
+        cat.cex = size,
+        main = str_glue("Day 3 VS Day 5 Comparison on {Type}"));
+  png(str_glue('../figs/Day 3 VS Day 5 Comparison on {Type}.png'), width = 4, height = 4, units = 'in', res = 300)
+  grid.draw(venn)
+  dev.off()
+}
+
+all_types <- names(table(d3$type))
+
+lapply(all_types, finding_D3andD5_difference_venn)
+```
+
+```{r}
+# look at the overlap genes in CE
+ol_locus  <- intersect(d3 %>%
+                    filter(type == 'CE') %>%
+                    pull(locus),
+                  d5 %>%
+                    filter(type == 'CE') %>%
+                    pull(locus))
+
+ol_genes <- d3 %>%
+              filter(type == 'CE' & locus %in% ol_locus) %>%
+              dplyr::select(external_gene_name) 
+
+#
+```
+
+
+```{r out.width=600}
+# the RI genes in day 3 in metascape
+d3_RI_genes <- d3 %>%
+  filter(type == 'RI') %>%
+  filter(!duplicated(external_gene_name)) %>%
+  pull(external_gene_name)
+
+d3_RI_genes %>%
+  write.table('../data/d3_RI_genes_name.txt', quote = F, row.names = F, col.names = F)
+
+knitr::include_graphics('../output/Metascape/d3_RI_genes/Enrichment_heatmap/HeatmapSelectedGO.png')
+```
+```{r}
+# from above heatmap the genes that are about DNA repair
+repair <- read_csv('../output/Metascape/d3_RI_genes/Enrichment_GO/GO_AllLists.csv') %>%
+  filter(Description == 'DNA repair') %>%
+  pull(Hits) %>%
+  strsplit( '\\|') %>% # you have to escape the | it's a special characer in regex
+  unlist
+```
+
