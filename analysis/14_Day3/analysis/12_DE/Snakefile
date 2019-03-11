@@ -1,0 +1,43 @@
+'''
+This Snakefile will do:
+* filter on the raw count matrix to remove any rows with zeros in it
+* DE between two KD and Control
+* annotate the DE result with gene name
+'''
+
+rule raw_cnts_filter:
+    input:
+        raw='/restricted/projectnb/flynngrp/adai/Day3_SDE2/salmon_quant/raw_salmon_cts_day3_matrix.csv'
+    output:
+        'data/fil_salmon_cts_day3_matrix.csv'
+    shell:
+        '''detk-filter -o {output}  'zero(all) == 0' {input}'''
+
+rule DE:
+    input:
+        pheno='data/pheno_pooled_KD.csv',
+        cts='data/fil_salmon_cts_day3_matrix.csv'
+    output:
+        'output/'
+    shell:
+        'detk-de deseq2 "counts ~ Status" {input.cts} {input.pheno} > {output}'
+
+rule download_gtf:
+    output:
+        'homo_sapiens_grch38.json'
+    shell:
+        '''
+        piomart  gtf -u --species homo_sapiens --release release-93 --output homo_sapiens_grch38.gtf \
+        && piomart json -f homo_sapiens_grch38.gtf -o {output[0]}
+        '''
+
+rule annotated_deseq_results:
+    input:
+        'homo_sapiens_grch38.json',
+        'output/03_pooledKD_DE.tsv'
+    output:
+        'output/03_pooledKD_DE_annotated.csv'
+    shell:
+        '''
+        piomart dataframe {input[1]} --offline -f {input[0]} --columns=gene_name --output={output[0]}
+        '''
