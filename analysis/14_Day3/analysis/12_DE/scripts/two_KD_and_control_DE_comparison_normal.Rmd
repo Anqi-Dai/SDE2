@@ -1,0 +1,54 @@
+---
+title: "R Notebook"
+author: "Anqi Dai"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning = FALSE)
+library(Biobase)
+library(tidyverse)
+library(ggpubr)
+library(kableExtra) 
+```
+
+##  Get the DE result for the normal quantification 
+ 
+Have to re-do this because I have to add the filtering step prior to DE
+
+```{r}
+# clean the table a little bit
+
+normal <- read_tsv('../../11_salmon_quant/data/raw_salmon_cts_day3_matrix.csv') %>%
+  mutate(Name = stringr::str_replace_all(Name, '\\..+$','')) %>%
+  rename_all(
+    funs(stringr::str_replace_all(., '-', '_'))) %>%
+  column_to_rownames('Name') 
+
+write.csv(normal,  '../data/normal_quant_salmon_raw_cts.csv', row.names = T, quote = F)
+
+```
+
+
+```{bash}
+# filter on the raw counts matrix
+#detk-filter -o ../data/normal_quant_salmon_raw_cts_filtered.csv 'zero(all) == 0' ../data/normal_quant_salmon_raw_cts.csv
+
+```
+
+```{r}
+# de 14 VS control
+
+#detk-de deseq2 "counts ~ Status" ../data/normal_quant_salmon_raw_cts_filtered.csv ../data/pheno14_ctrl.csv > ../output/normal_14_control_DE.csv
+
+# de 89 VS control
+
+#detk-de deseq2 "counts ~ Status" ../data/normal_quant_salmon_raw_cts_filtered.csv ../data/pheno89_ctrl.csv > ../output/normal_89_control_DE.csv
+```
+
