@@ -1,0 +1,95 @@
+---
+title: "blue intron 2.0"
+author: "Anqi Dai"
+date: "3/10/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(VennDiagram)
+library(ggpubr)
+```
+
+```{r}
+# use the detk  filtered result to represent the genes that have expression
+detkF <- read_csv('../../12_DE/data/normal_quant_salmon_raw_cts_filtered.csv') 
+  
+# loading the sig genes
+sig_gene <- read_table('../data/union_sig_genes_from_3_analysis_relaxed.txt', col_names = F)
+```
+
+```{r}
+# venn
+diff_list <- list(haveExpre = detkF$X1,
+                  significant = sig_gene$X1)
+fill <- c("light blue", "pink")
+size  <- rep(0.5, 2)
+venn <- venn.diagram(x = diff_list, 
+                     filename = NULL,
+                     height = 2000,
+                     width = 2000, fill = fill,
+                     cat.default.pos = "text", 
+                     cat.cex = size,
+                     main = "haveExpression VS sig genes");
+png('../figs/haveExpression VS unfiltered sig genes detk.png', width = 4, height = 4, units = 'in', res = 300)
+grid.draw(venn)
+dev.off()
+```
+
+```{r}
+# the genes that exist in the first but not in the second
+haveExpreOnly <- setdiff(detkF$X1, sig_gene$X1)
+
+# look at the tpm of the haveExpreonly and the intersection
+intersection_ <- intersect(detkF$X1, sig_gene$X1)
+
+# loading the tpm data
+tpm <- read_csv('../data/meanTPM.genes.whippet.csv')
+
+# to put the groups to differentiate
+tpm_plot <- tpm %>%
+  filter(GeneID %in% haveExpreOnly | GeneID %in% intersection_) %>%
+  mutate(Group = ifelse(GeneID %in% intersection_, 'Intersection', 'haveExpreOnly'))
+```
+
+```{r}
+tpm_plot %>%
+  gghistogram(x = c('RF14','RF89','RFControl'), combine = T, 
+              palette = 'lancet',
+              color = 'white', fill = 'Group', 
+              bins = 80,
+              #add = "median",
+              title = 'Histogram of log10(mean TPM)',
+              xlab = 'log10(mean TPM)')  + scale_x_log10() +
+  ggsave('../figs/log10(mean TPM) of have expression only and intersection genes.jpg', width = 8, height = 6)
+```
+```{r}
+#load the intron information table
+med_intron <- read_csv('../../../../09_mitochondria/data/gene_median_intron_num.csv')
+
+blue <- data_frame(
+  gene_id = haveExpreOnly
+) %>%
+  left_join(med_intron, by = 'gene_id')
+
+# the gene IDs of the genes that have at least 3 introns in the blue only region
+target_geneID <- blue %>%
+  filter(med_intron_num >= 3) %>%
+  pull(gene_id) 
+
+
+# use the genes that have at least 50 tpm
+
+threshold <- 50
+target_high <- tpm_plot %>%
+    filter(GeneID %in% target_geneID) %>%
+    filter(RF14 >= threshold & RF89 >= threshold & RFControl >= threshold) %>%
+    pull(GeneID)
+
+write.table(target_high, '../output/genes_with_at_least_3_introns_ids_highTPM.txt', quote = F, col.names = F, row.names = F)
+
+# there are 1659 of them
+```
+

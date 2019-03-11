@@ -157,5 +157,7 @@ length(sig_genes_rMATS)
 
 union_sig_genes <- union(sig_genes_rMATS, union(sig_genes_whippet, sig_genes_IRfinder))
 
+  
+
 ## output those genes
 write.table(union_sig_genes, 'analysis/08_findingGenes/data/union_sig_genes_from_3_analysis.txt', quote = F, col.names = F, row.names = F)

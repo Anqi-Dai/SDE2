@@ -364,3 +364,27 @@ dist %>%
  
 ```
 
+```{r}
+# unique gene IDs of the sig 025 locus
+unique_names <- final %>%
+  filter(!duplicated(external_gene_name)) %>%
+  pull(external_gene_name)
+
+mart <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+
+# the ensembl_gene_id of the genes that you are interested in 
+genes <- unique_names
+
+# retrieve the feature information of the listed attributes
+symbol <- getBM(filters = "external_gene_name",
+                attributes = c('ensembl_gene_id','external_gene_name'),
+                values = genes, 
+                mart = mart)
+
+ret <- symbol %>%
+  filter(!duplicated(external_gene_name)) %>%
+  pull(ensembl_gene_id)
+
+write.table(ret, '../data/union_sig_genes_from_3_analysis_relaxed.txt', col.names = F, row.names = F, quote = F)
+```
+
