@@ -12,29 +12,46 @@ output:
 knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
 ```
 
-# Left: Day 5. Right: Day 3.
+# Left: Day 3. Right: Day 5.
+
+## Filtered significant data
 
 ```{r out.width='50%' }
 # the sig 05 pie chart
-knitr::include_graphics(c('../../../../13_fig1/figs/FDR005 Splicing type pie chart in SIG events.png','../figs/FDR005 Splicing type pie chart in SIG events.png' ))
+knitr::include_graphics(c('../figs/FDR005 Splicing type pie chart in SIG events.png','../../../../13_fig1/figs/FDR005 Splicing type pie chart in SIG events.png' ))
 
 ```
 
 ```{r out.width='50%'}
-knitr::include_graphics(c('../../../../13_fig1/figs/AS type of the FDR < 0.05 locus.jpg','../figs/AS type of the FDR < 0.05 locus.jpg'))
+knitr::include_graphics(c('../figs/AS type of the FDR < 0.05 locus.jpg','../../../../13_fig1/figs/AS type of the FDR < 0.05 locus.jpg'))
 ```
 
-```{r out.width='50%'}
-# the dist bar plot
-knitr::include_graphics(c('../../../../13_fig1/figs/AS type distribution in KD and control samples grouped bar plot.jpg','../figs/AS type distribution in KD and control samples grouped bar plot.jpg'))
-```
-
+The GSEA of the significant FDR < 0.05 genes.
 ```{r out.width='50%'}
 # the gsea heatmap
-knitr::include_graphics(c('../../../../13_fig1/output/Metascape/sig05_2288_unique_gene/Enrichment_heatmap/HeatmapSelectedGO.png','../output/Metascape/day3_sig_05_gene_gsea/Enrichment_heatmap/HeatmapSelectedGO.png'))
+knitr::include_graphics(c('../output/Metascape/day3_sig_05_gene_gsea/Enrichment_heatmap/HeatmapSelectedGO.png','../../../../13_fig1/output/Metascape/sig05_2288_unique_gene/Enrichment_heatmap/HeatmapSelectedGO.png'))
 ```
 
 ```{r out.width='50%'}
 # the 005 and 025 bar plot
-knitr::include_graphics(c('../../../../13_fig1/figs/type dist of the two.jpg','../figs/type dist of the two.jpg'))
+knitr::include_graphics(c('../figs/type dist of the two.jpg','../../../../13_fig1/figs/type dist of the two.jpg'))
 ```
+
+
+## Unfiltered data
+
+```{r out.width='50%'}
+# the dist bar plot
+knitr::include_graphics(c('../figs/AS type distribution in KD and control samples grouped bar plot.jpg','../../../../13_fig1/figs/AS type distribution in KD and control samples grouped bar plot.jpg'))
+```
+
+## Overlap between the two
+
+```{r out.width='40%'}
+knitr::include_graphics(c('../figs/Day 3 VS Day 5 Comparison on RI.png','../figs/Day 3 VS Day 5 Comparison on CE.png'))
+knitr::include_graphics(c('../figs/Day 3 VS Day 5 Comparison on TE.png','../figs/Day 3 VS Day 5 Comparison on TS.png'))
+knitr::include_graphics(c('../figs/Day 3 VS Day 5 Comparison on AA.png','../figs/Day 3 VS Day 5 Comparison on AD.png'))
+knitr::include_graphics(c('../figs/Day 3 VS Day 5 Comparison on MXE.png','../figs/Day 3 VS Day 5 Comparison on AF.png'))
+knitr::include_graphics('../figs/Day 3 VS Day 5 Comparison on AL.png')
+```
+

@@ -1,0 +1,52 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+## This notebook will be about assemble the TPM of the genes in each sample
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+f.dir <- '../../03_ASprofile/data/whippetResult/'
+fns <- list.files(path = f.dir, pattern = 'gene.tpm$')
+full.fns <- paste(f.dir, fns, sep = '')
+```
+
+```{r}
+# read the files and make them into a count matrix
+sample_names <- str_split_fixed(fns, pattern = '_',n = 2)[,1]
+
+test <- suppressWarnings(read_delim(full.fns[1], delim = '\t', col_names = T))
+```
+
+```{r}
+# read the files out and add sample names
+list.dfs <-  lapply(full.fns, function(fn) {
+  suppressWarnings(read_delim(fn, delim = '\t', col_names = T))
+})
+
+for( i in 1:length(list.dfs)) {
+  list.dfs[[i]]$Sample <- rep(fns[i], nrow(list.dfs[[i]]))
+}
+
+# result is a counts matrix with the mean TPM in three batches of each SAMPLE
+DF <- bind_rows(list.dfs) %>%
+  mutate(GeneID = str_replace_all(string = Gene, pattern = '\\..*$', replacement = '')) %>%
+  mutate(Sample = str_replace_all(string = Sample, pattern = '_output.gene.tpm', replacement = '')) %>%
+  dplyr::select(GeneID, Sample, TpM) %>%
+  mutate(Sample = str_replace_all(string = Sample, pattern = '-3-', replacement = '')) %>%
+  separate(Sample, into = c('SampleName', 'Batch'), sep = '-') %>%
+  group_by(GeneID, SampleName) %>%
+  summarise(meanTPM = mean(TpM)) %>%
+  spread(SampleName, meanTPM) %>%
+  rename(RFControl = RFM)
+
+DF %>%
+  write_csv('../data/meanTPM.genes.whippet.csv')
+  
+
+```
+

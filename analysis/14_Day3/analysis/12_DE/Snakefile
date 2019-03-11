@@ -7,7 +7,7 @@ This Snakefile will do:
 
 rule raw_cnts_filter:
     input:
-        raw='/restricted/projectnb/flynngrp/adai/Day3_SDE2/salmon_quant/raw_salmon_cts_day3_matrix.csv'
+        ''
     output:
         'data/fil_salmon_cts_day3_matrix.csv'
     shell:
