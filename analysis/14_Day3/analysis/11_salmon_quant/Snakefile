@@ -1,0 +1,81 @@
+'''
+This Snakefile will do the following:
+for the 9 samples of the replicate1 of the SDE2 project
+* quantify the reads using Salmon
+
+'''
+
+from glob import glob
+import json
+
+sample_dir = '../../samples/replicate1'
+
+file = json.load(open('../samples.json'))
+sample_names = file.keys()
+
+rule all:
+    input:
+        expand('{sample_dir}/salmon_quant/{sample_names}_salmon_quant', sample_dir = sample_dir,sample_names = sample_names )
+
+'''
+# Salmon quantify
+
+rule salmon_call:
+    input:
+        ref='/projectnb/bubhub/bubhub-reference/genome/human/GENCODE/v27/gencode.v27.transcripts.salmon_quasi_index',
+        R1='{sample_dir}/{sample_names}__concat_R1_trimmed.fastq.gz',
+        R2='{sample_dir}/{sample_names}__concat_R2_trimmed.fastq.gz',
+        gtf='/projectnb/bubhub/bubhub-reference/genome/human/GENCODE/v27/gencode.v27.annotation.gtf'
+    output:
+        directory('{sample_dir}/salmon_quant/{sample_names}_salmon_quant')
+    threads:
+        16
+    shell:
+        'salmon quant -i {input.ref} \
+            -l A \
+            -1 {input.R1} -2 {input.R2} \
+            -g {input.gtf}\
+            -p {threads} \
+            -o {output}'
+'''
+
+'''
+
+# concatenate the quant.genes.sf file of the salmon results and then transform it to be a matrix using csvgather
+
+def gather_salmon_cts(wildcards):
+    return glob('{}/salmon_quant/*_salmon_quant/quant.genes.sf'.format(wildcards.sample_dir))
+
+
+
+rule concat_salmon_cts:
+    input:
+        expand('{sample_dir}/salmon_quant/{sample_names}_salmon_quant/quant.genes.sf',sample_dir = sample_dir,sample_names = sample_names  )
+    output:
+        '{sample_dir}/salmon_quant/raw_salmon_cts_replicate1_matrix.csv'
+    params:
+        dir='{sample_names}_salmon_quant'
+    shell:
+        'csvgather -j 0 -f NumReads -t "s:NumReads:{params.dir}:"  -t "s:_salmon_quant::" {input} -o {output}'
+'''
+
+#have trouble writing the above csvgather in snakemake ...
+
+# csvgather -j 0 -f NumReads -t "s:NumReads:{dir}:"  -t "s:_salmon_quant::" *_salmon_quant/quant.genes.sf -o raw_salmon_cts_replicate1_matrix.csv
+
+
+
+rule output:
+    input:
+        sample_dir+'/salmon_quant/Norm_salmon_cts_replicate1_matrix.csv'
+
+
+# normalize the matrix using detk deseq2 method
+
+rule norm_matrix:
+    input:
+        '{sample_dir}/salmon_quant/raw_salmon_cts_replicate1_matrix.csv'
+    output:
+        '{sample_dir}/salmon_quant/Norm_salmon_cts_replicate1_matrix.csv'
+    shell:
+        'detk-norm deseq2  {input} -o {output}'
