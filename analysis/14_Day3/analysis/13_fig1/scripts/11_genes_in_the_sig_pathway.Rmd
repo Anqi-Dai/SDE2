@@ -1,0 +1,156 @@
+---
+title: "Genes in the sig pathway"
+author: "Anqi Dai"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
+library(tidyverse)
+library(kableExtra)
+library(gplots)
+library(VennDiagram)
+```
+
+```{r}
+d3 <- read_csv('../output/Metascape/day3_sig_05_gene_gsea/Enrichment_GO/GO_AllLists.csv')
+d5 <- read_csv('../../../../13_fig1/output/Metascape/sig05_2288_unique_gene/Enrichment_GO/GO_AllLists.csv')
+
+```
+
+## The full table of enriched genesets with -Log(q-value) > 4
+**Looking at the q-value here, which is the FDR, which is more stringent**
+Genes are highlighted in pink. Log(q-value) are highlighted in yellow.
+
+### Day 3
+
+```{r}
+d3 %>%
+  dplyr::select(-GeneID, -GeneList) %>%
+  filter(`Log(q-value)` < -4) %>%
+  kable() %>%
+  kable_styling() %>%
+  column_spec(14, width = "1em", background = "pink") %>%
+  column_spec(15,  background = "yellow")
+```
+
+### Day 5
+
+```{r}
+d5 %>%
+  dplyr::select(-GeneID, -GeneList) %>%
+  filter(`Log(q-value)` < -4) %>%
+  kable() %>%
+  kable_styling() %>%
+  column_spec(14, width = "1em", background = "pink") %>%
+  column_spec(15,  background = "yellow")
+```
+
+## Overlapped genes between Day 3 and Day5
+
+### Metabolism of RNA & DNA repair
+
+```{r}
+pull_hits_genes <- function(df, desp){
+  ret = df %>%
+    filter(Description == desp) %>%
+    pull(Hits) %>%
+    strsplit( '\\|') %>% 
+    unlist
+}
+
+
+metab <- list(d3 = d3, d5 =d5) %>%
+  map(., ~ pull_hits_genes(., 'Metabolism of RNA'))
+
+
+```
+
+```{r}
+draw_venn_sig_genesets_genes <- function(list_of_genes, desp){
+  diff_list <- list_of_genes
+  fill <- c("light blue", "orange")
+  size  <- rep(0.5, 2)
+  venn <- venn.diagram(x = diff_list, 
+                       filename = NULL,
+                       height = 2000,
+                       width = 2000, fill = fill,
+                       cat.default.pos = "text", 
+                       cat.cex = size,
+                       main = str_glue('Comparison of genes in enriched geneset - {desp}'));
+  svg(str_glue('../figs/Comparison of genes in enriched geneset - {desp}.svg', width = 3, height = 3, units = 'in', res = 400))
+  grid.draw(venn)
+  dev.off()
+}
+
+
+for (i in c('Metabolism of RNA','DNA repair')){
+  draw_venn_sig_genesets_genes(list(d3 = d3, d5 =d5) %>%
+  map(., ~ pull_hits_genes(., i)),i)
+}
+```
+
+```{r out.width=400}
+knitr::include_graphics('../figs/Comparison of genes in enriched geneset - DNA repair.svg') 
+knitr::include_graphics('../figs/Comparison of genes in enriched geneset - Metabolism of RNA.svg')
+```
+
+### The overlapped genes in the venn
+
+```{r}
+repair <-  list(d3 = d3, d5 = d5) %>%
+  map(., ~ pull_hits_genes(., 'DNA repair'))
+
+ol_repair <- intersect(repair$d3, repair$d5)
+
+
+ol_metab <- intersect(metab$d3, metab$d5)
+```
+
+#### DNA repair
+
+```{r}
+library(biomaRt)
+
+mart <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+
+genes <- ol_repair
+
+# retrieve the feature information of the listed attributes
+symbol <- getBM(filters = "external_gene_name",
+                attributes = c('external_gene_name', 'description'),
+                values = genes, 
+                mart = mart)
+```
+
+```{r}
+symbol %>%
+  kable() %>%
+  kable_styling(full_width = F)
+```
+
+#### Metabolism of RNA
+
+```{r}
+
+genes <- ol_metab
+
+# retrieve the feature information of the listed attributes
+symbol <- getBM(filters = "external_gene_name",
+                attributes = c('external_gene_name', 'description'),
+                values = genes, 
+                mart = mart)
+```
+
+```{r}
+symbol %>%
+  kable() %>%
+  kable_styling(full_width = F)
+```
+
