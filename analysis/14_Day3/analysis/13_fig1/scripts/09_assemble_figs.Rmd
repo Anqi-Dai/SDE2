@@ -57,20 +57,16 @@ knitr::include_graphics('../figs/Day 3 VS Day 5 Comparison on AL.png')
 
 ## Blue intron
 
-### Day 3
+```{r out.width='50%'}
+knitr::include_graphics(c('../figs/haveExpression VS unfiltered sig genes detk.png','../../../../13_fig1/figs/haveExpression VS unfiltered sig genes detk.png'))
+```
 
 ```{r out.width='50%'}
-knitr::include_graphics(c('../figs/haveExpression VS unfiltered sig genes detk.png','../figs/log10(mean TPM) of have expression only and intersection genes.jpg'))
+knitr::include_graphics(c('../figs/log10(mean TPM) of have expression only and intersection genes.jpg','../../../../13_fig1/figs/log10(mean TPM) of have expression only and intersection genes.jpg'))
 ```
 
 For the genes that have at least 3 introns and have TPM > 50 in all three
-```{r out.width='100%'}
-knitr::include_graphics('../output/Metascape/blue_intron/Enrichment_heatmap/HeatmapSelectedGO.png')
-```
-
-### Day 5
 
 ```{r out.width='50%'}
-knitr::include_graphics(c('../../../../13_fig1/figs/haveExpression VS unfiltered sig genes detk.png','../../../../13_fig1/figs/log10(mean TPM) of have expression only and intersection genes.jpg'))
+knitr::include_graphics(c('../output/Metascape/blue_intron2.0/Enrichment_heatmap/HeatmapSelectedGO.png','../../../../13_fig1/output/Metascape/blue_intron1.0/Enrichment_heatmap/HeatmapSelectedGO.png'))
 ```
-
