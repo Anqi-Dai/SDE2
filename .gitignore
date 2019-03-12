@@ -28,3 +28,4 @@ analysis/14_Day3/analysis/*/output/*
 analysis/14_Day3/analysis/*/figs/*
 analysis/14_Day3/analysis/*/.*
 *snakejob*
+analysis/14_Day3/samples/

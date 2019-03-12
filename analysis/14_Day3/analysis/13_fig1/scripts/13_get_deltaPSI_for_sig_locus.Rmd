@@ -1,0 +1,35 @@
+---
+title: "Retrieve the deltaPSI of the significant locus"
+author: "Anqi Dai"
+date: "3/12/2019"
+output: html_document
+---
+
+# Day 3
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
+library(tidyverse)
+library(kableExtra)
+```
+
+```{r}
+# since I have got the PSI A and B for unfiltered locus, now I get the difference between them in sig locus and that is what I want!!!
+all <- read_csv('../output/all_three_PSI_A_B_combined_not_filtered.csv')%>%
+  mutate(deltaPSI = Psi_A - Psi_B)
+
+# the table for the sig locus FDR < 0.05
+sig05 <- read_csv('../output/all_tools_sig05_locus_info_day3.csv')
+```
+
+```{r}
+RET <- sig05 %>%
+  left_join(all %>%
+              dplyr::select(locus, deltaPSI), by = 'locus') %>%
+  arrange(desc(abs(deltaPSI))) %>%
+  dplyr::select(locus, deltaPSI, type, external_gene_name, tool)
+
+
+write_csv(RET,'../output/all_tools_sig05_locus_info_day3_with_deltaPSI.csv')
+```
+
