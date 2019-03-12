@@ -9,7 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(VennDiagram)
-library(ggpubr)
+library(ggpubr)  
 ```
 
 ```{r}
@@ -65,10 +65,11 @@ tpm_plot %>%
               xlab = 'log10(mean TPM)')  + scale_x_log10() +
   ggsave('../figs/log10(mean TPM) of have expression only and intersection genes.jpg', width = 8, height = 6)
 ```
+
 ```{r}
 #load the intron information table
 med_intron <- read_csv('../../../../09_mitochondria/data/gene_median_intron_num.csv')
-
+ 
 blue <- data_frame(
   gene_id = haveExpreOnly
 ) %>%
@@ -76,20 +77,22 @@ blue <- data_frame(
 
 # the gene IDs of the genes that have at least 3 introns in the blue only region
 target_geneID <- blue %>%
-  filter(med_intron_num >= 3) %>%
+  filter(med_intron_num >= 1) %>%
   pull(gene_id) 
 
 
 # use the genes that have at least 50 tpm
 
-threshold <- 50
+threshold <- 20
 target_high <- tpm_plot %>%
     filter(GeneID %in% target_geneID) %>%
     filter(RF14 >= threshold & RF89 >= threshold & RFControl >= threshold) %>%
     pull(GeneID)
 
-write.table(target_high, '../output/genes_with_at_least_3_introns_ids_highTPM.txt', quote = F, col.names = F, row.names = F)
+length(target_high)
 
-# there are 1659 of them
+write.table(target_high, '../output/genes_with_at_least_1_introns_ids_highTPM20.txt', quote = F, col.names = F, row.names = F)
+
+ 
 ```
-
+ 

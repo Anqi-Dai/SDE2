@@ -24,6 +24,13 @@ d5 <- read_csv('../../../../13_fig1/output/Metascape/sig05_2288_unique_gene/Enri
 
 ```
 
+## The FULL result table
+
+[TABLE: Day3 sig genes FDR005 Metascape result](day3_result)
+
+
+[TABLE: Day5 sig genes FDR005 Metascape result](day5_result)
+
 ## The full table of enriched genesets with -Log(q-value) > 4
 **Looking at the q-value here, which is the FDR, which is more stringent**
 Genes are highlighted in pink. Log(q-value) are highlighted in yellow.

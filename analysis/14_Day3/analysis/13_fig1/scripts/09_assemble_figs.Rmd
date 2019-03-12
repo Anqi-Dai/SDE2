@@ -10,6 +10,8 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
+library(tidyverse)
+library(kableExtra)
 ```
 
 # Left: Day 3. Right: Day 5.
@@ -58,6 +60,7 @@ knitr::include_graphics('../figs/Day 3 VS Day 5 Comparison on AL.png')
 ## Blue intron
 
 ```{r out.width='50%'}
+# the pie chart
 knitr::include_graphics(c('../figs/haveExpression VS unfiltered sig genes detk.png','../../../../13_fig1/figs/haveExpression VS unfiltered sig genes detk.png'))
 ```
 
@@ -68,5 +71,43 @@ knitr::include_graphics(c('../figs/log10(mean TPM) of have expression only and i
 For the genes that have at least 3 introns and have TPM > 50 in all three
 
 ```{r out.width='50%'}
-knitr::include_graphics(c('../output/Metascape/blue_intron2.0/Enrichment_heatmap/HeatmapSelectedGO.png','../../../../13_fig1/output/Metascape/blue_intron1.0/Enrichment_heatmap/HeatmapSelectedGO.png'))
+knitr::include_graphics(c('../output/Metascape/day3_blue_intron_gt3_tpm50/Enrichment_heatmap/HeatmapSelectedGO.png','../../../../13_fig1/output/Metascape/d5_blue_intron3_tpm50/Enrichment_heatmap/HeatmapSelectedGO.png'))
+
 ```
+
+For the genes that have at least 1 intron and have TPM > 20 in all three
+
+```{r out.width='50%'}
+knitr::include_graphics(c('../output/Metascape/day3_blue_intron_gt1_tpm20/Enrichment_heatmap/HeatmapSelectedGO.png','../../../../13_fig1/output/Metascape/d5_blue_intron1_tpm20/Enrichment_heatmap/HeatmapSelectedGO.png'))
+
+```
+
+
+```{r}
+# what are the translation genes in d3-3inton-tpm50
+
+pull_hits_genes <- function(df, desp){
+  ret = df %>%
+    filter(Description == desp) %>%
+    pull(Hits) %>%
+    strsplit( '\\|') %>% 
+    unlist
+  
+  return(ret)
+}
+
+library(biomaRt)
+mart <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+genes <- pull_hits_genes(read_csv('../output/Metascape/day3_blue_intron_gt3_tpm50/Enrichment_GO/GO_AllLists.csv'),'Translation')
+# retrieve the feature information of the listed attributes
+symbol <- getBM(filters = "external_gene_name",
+                attributes = c('external_gene_name', 'description'),
+                values = genes, 
+                mart = mart)
+
+symbol %>%
+  kable( caption = 'What are the genes in *Translation* in day 3 with 3 introns and TPM at least 50') %>%
+  kable_styling(full_width = F) 
+```
+
+
