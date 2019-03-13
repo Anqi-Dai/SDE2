@@ -1,8 +1,13 @@
 ---
 title: "blue intron 2.0"
 author: "Anqi Dai"
-date: "3/10/2019"
-output: html_document
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    code_folding: hide
 ---
 
 ```{r setup, include=FALSE}
@@ -10,6 +15,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(VennDiagram)
 library(ggpubr)  
+library(kableExtra)
 ```
 
 
@@ -130,4 +136,44 @@ length(target_high)
 write.table(target_high, '../output/Pink_sig_genes_with_at_least_3_introns_ids_highTPM50.txt', quote = F, col.names = F, row.names = F)
 
 ```
+```{r}
+# what's the name of those genes
+library(biomaRt)
+mart <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
 
+# retrieve the feature information of the listed attributes
+symbol <- getBM(filters = "ensembl_gene_id",
+                attributes = c( 'external_gene_name', 'description'),
+                values = target_high, 
+                mart = mart)
+
+```
+
+### Corresponding table in pink region
+
+```{r}
+# join the table to get the deltaPSI of those genes
+delta <- read_csv('../output/all_tools_sig05_locus_info_day3_with_deltaPSI.csv')
+
+
+# the genes in the below are actually: FDR < 0.05 in both, intron number > 3 and TPM > 50
+ret <-symbol %>%
+  filter(!duplicated(external_gene_name)) %>%
+  inner_join(delta, by  = 'external_gene_name') %>%
+  arrange(desc(abs(deltaPSI))) 
+
+ret %>%
+  kable(caption = 'FDR < 0.05 locus in both KDs, intron number > 3 and TPM > 50 , sorted by the descending order of absolute deltaPSI') %>%
+  kable_styling()
+```
+
+### related to ribosome 
+
+```{r}
+# the above genes with ribosome in its descriptions
+ret %>%
+  filter(grepl(pattern = 'riboso', x = description)) %>%
+  kable(caption = 'Ribosome related genes in the above table') %>%
+  kable_styling()
+```
+ 
