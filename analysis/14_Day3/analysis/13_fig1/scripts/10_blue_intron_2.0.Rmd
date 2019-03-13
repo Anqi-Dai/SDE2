@@ -12,6 +12,8 @@ library(VennDiagram)
 library(ggpubr)  
 ```
 
+
+
 ```{r}
 # use the detk  filtered result to represent the genes that have expression
 detkF <- read_csv('../../12_DE/data/normal_quant_salmon_raw_cts_filtered.csv') 
@@ -37,6 +39,8 @@ png('../figs/haveExpression VS unfiltered sig genes detk.png', width = 4, height
 grid.draw(venn)
 dev.off()
 ```
+
+## Blue intron
 
 ```{r}
 # the genes that exist in the first but not in the second
@@ -96,3 +100,34 @@ write.table(target_high, '../output/genes_with_at_least_1_introns_ids_highTPM20.
  
 ```
  
+## Pink intron
+ 
+```{r}
+# doing the same filtering and metascape for the genes that are significant in the pink circle.
+sigOnly <- intersect(sig_gene$X1, detkF$X1)
+
+pink <- data_frame(
+  gene_id = sigOnly
+) %>%
+  left_join(med_intron, by = 'gene_id')
+
+# the gene IDs of the genes that have at least 3 introns in the blue only region
+target_geneID <- pink %>%
+  filter(med_intron_num >= 3) %>%
+  pull(gene_id) 
+
+
+# use the genes that have at least 50 tpm
+
+threshold <- 50
+target_high <- tpm_plot %>%
+    filter(GeneID %in% target_geneID) %>%
+    filter(RF14 >= threshold & RF89 >= threshold & RFControl >= threshold) %>%
+    pull(GeneID)
+
+length(target_high)
+
+write.table(target_high, '../output/Pink_sig_genes_with_at_least_3_introns_ids_highTPM50.txt', quote = F, col.names = F, row.names = F)
+
+```
+

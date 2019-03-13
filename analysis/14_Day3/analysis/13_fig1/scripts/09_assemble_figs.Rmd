@@ -68,18 +68,26 @@ knitr::include_graphics(c('../figs/haveExpression VS unfiltered sig genes detk.p
 knitr::include_graphics(c('../figs/log10(mean TPM) of have expression only and intersection genes.jpg','../../../../13_fig1/figs/log10(mean TPM) of have expression only and intersection genes.jpg'))
 ```
 
-For the genes that have at least 3 introns and have TPM > 50 in all three
+**For the genes that have at least 3 introns and have TPM > 50 in all three in BLUE**
 
 ```{r out.width='50%'}
 knitr::include_graphics(c('../output/Metascape/day3_blue_intron_gt3_tpm50/Enrichment_heatmap/HeatmapSelectedGO.png','../../../../13_fig1/output/Metascape/d5_blue_intron3_tpm50/Enrichment_heatmap/HeatmapSelectedGO.png'))
+ 
+```
+
+**For the genes that have at least 3 introns and have TPM > 50 in all three in PINK**
+
+```{r out.width='50%'}
+knitr::include_graphics(c('../output/Metascape/day3_pink_intron_3_50/Enrichment_heatmap/HeatmapSelectedGO.png','../../../../13_fig1/output/Metascape/d5_pink_intron_3_50/Enrichment_heatmap/HeatmapSelectedGO.png'))
 
 ```
 
-For the genes that have at least 1 intron and have TPM > 20 in all three
+
+For the genes that have at least 1 intron and have TPM > 20 in all three in BLUE
 
 ```{r out.width='50%'}
 knitr::include_graphics(c('../output/Metascape/day3_blue_intron_gt1_tpm20/Enrichment_heatmap/HeatmapSelectedGO.png','../../../../13_fig1/output/Metascape/d5_blue_intron1_tpm20/Enrichment_heatmap/HeatmapSelectedGO.png'))
-
+ 
 ```
 
 
