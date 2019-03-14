@@ -1,7 +1,7 @@
 ---
-title: "01 Sort out the results"
+title: "Filter on both PSI14 and PSI89 to get the abundant transcripts"
 author: "Anqi Dai"
-date: "2/20/2019"
+date: "3/14/2019"
 output: html_document
 ---
 
@@ -9,55 +9,53 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
 ```
 
-The goal is to do the first two pie charts that illustrate what the AS type distribution is in KD and control respetively, so that the difference of the difference (the significance of the delta PSI) will make more sense.
-
-Keeping the psi that is closer to 0.5 from the 14control and 89control comparison, since the psi will later be used for filtering.
-
-Don't need to filter since we are not caring about the significance level here.
+* Get the PSI for both 14 and 89, as well as control
+* Filter on PSI_14 and PSI_89 both > 0.1
+* Compute the deltaPSI 
+* Filter on abs(deltaPSI) > 0.1
+* See the overlap with the sig ones, or see how the sig ones are doing in this.
 
 ## sorting out whippet results
 
 ```{r}
 # get the whippet result that has the PSI A and B in all overlapped locus 
 # the significance donesn't matter here since we don't care about the truethness of the delta psi
+
 # find the overlap coord between 14 and 89
+
 w14 <- read_tsv('../../03_ASprofile/data/whippetResult/RF14_vs_cntrl_output.diff')%>%
   dplyr::select(Coord, Type, Psi_A, Psi_B) %>%
   filter(!duplicated(Coord))
+
 w89 <- read_tsv('../../03_ASprofile/data/whippetResult/RF89_vs_cntrl_output.diff')%>%
   dplyr::select(Coord, Type_89 = Type, Psi_A_89 = Psi_A) %>%
   filter(!duplicated(Coord))
+
 ol_locus <- intersect(w14$Coord, w89$Coord)
+
 whi <- w14 %>%
   filter(Coord %in% ol_locus) %>%
   inner_join(w89 %>%
               filter(Coord %in% ol_locus) , by = 'Coord')
-# make sure they have the same type between the 2
-whi %>%
-  mutate(same = ifelse(Type == Type_89, T, F)) %>%
-  filter(same == F) %>%
-  nrow
+
 # filter out the ones that they have different type
 whi <- whi %>%
   filter(Type == Type_89)
-# now keep the Psi_A that is closer to 0.5
-whippet <- whi %>%
-  mutate(dis14 = abs(Psi_A - 0.5),
-         dis89 = abs(Psi_A_89 - 0.5)) %>%
-  mutate(keep_A =  ifelse(dis14 < dis89,Psi_A, Psi_A_89 ))
+
 # the final table for whippet
-final_whippet <- whippet %>%
-  dplyr::select(locus = Coord, type = Type, keep_A, Psi_B) %>%
-  rename(Psi_A = keep_A)
+final_whippet <- whi %>%
+  dplyr::select(locus = Coord, type = Type, Psi_14 = Psi_A, Psi_89 = Psi_A_89, Psi_B = Psi_B) 
 ```
 
 ## sorting out rmats results
 
 ```{r}
 # now do the above for the rMATS result
+
 # The JCEC.txt files of the AS types
 path <- '../../06_rMATS/data/rMATS_result/RF14_control'
 fns <- file.path(path, list.files(path, 'JCEC.txt'))
+
 # A3SS 
 A3SS <- read_tsv(fns[1]) %>%
   dplyr::select(chr, longExonStart_0base, shortES, geneSymbol, FDR, IncLevel1, IncLevel2) %>%
@@ -71,7 +69,8 @@ A3SS <- read_tsv(fns[1]) %>%
   mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
   mutate(tool = 'rMATS',
          type = 'AA') %>%
-  dplyr::select(external_gene_name, Significance:type)
+  dplyr::select(locus, type, Psi_A, Psi_B)
+
 # A5SS 
 A5SS <- read_tsv(fns[2]) %>%
   dplyr::select(chr, shortEE, longExonEnd, geneSymbol, FDR, IncLevel1, IncLevel2) %>%
@@ -84,7 +83,7 @@ A5SS <- read_tsv(fns[2]) %>%
   mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
   mutate(tool = 'rMATS',
          type = 'AD') %>%
-  dplyr::select(external_gene_name, Significance:type)
+  dplyr::select(locus, type, Psi_A, Psi_B)
   
 # RI 
 RI <- read_tsv(fns[4]) %>%
@@ -98,7 +97,8 @@ RI <- read_tsv(fns[4]) %>%
   mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
   mutate(tool = 'rMATS',
          type = 'RI') %>%
-  dplyr::select(external_gene_name, Significance:type)
+  dplyr::select(locus, type, Psi_A, Psi_B)
+
 # SE
 SE <-  read_tsv(fns[5]) %>%
   dplyr::select(chr, exonStart_0base, exonEnd, geneSymbol, FDR, IncLevel1, IncLevel2) %>%
@@ -112,7 +112,8 @@ SE <-  read_tsv(fns[5]) %>%
   mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
   mutate(tool = 'rMATS',
          type = 'CE') %>%
-  dplyr::select(external_gene_name, Significance:type)
+  dplyr::select(locus, type, Psi_A, Psi_B)
+
 # MXE
 MXE <- read_tsv(fns[3]) %>%
   dplyr::select(chr, upstreamES, downstreamEE, geneSymbol, FDR, IncLevel1, IncLevel2) %>%
@@ -125,19 +126,19 @@ MXE <- read_tsv(fns[3]) %>%
   mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
   mutate(tool = 'rMATS',
          type = 'MXE') %>%
-  dplyr::select(external_gene_name, Significance:type)
+  dplyr::select(locus, type, Psi_A, Psi_B)
 ```
 
 ```{r}
 df14 <- bind_rows(A3SS, A5SS, RI, SE, MXE) %>%
-  filter(!duplicated(locus)) %>%
-  dplyr::select(locus, type, Psi_A, Psi_B)
+  filter(!duplicated(locus))
 ```
 
 ```{r}
 # The JCEC.txt files of the AS types
 path <- '../../06_rMATS/data/rMATS_result/RF89_control'
 fns <- file.path(path, list.files(path, 'JCEC.txt'))
+
 # A3SS 
 A3SS <- read_tsv(fns[1]) %>%
   dplyr::select(chr, longExonStart_0base, shortES, geneSymbol, FDR, IncLevel1, IncLevel2) %>%
@@ -151,7 +152,8 @@ A3SS <- read_tsv(fns[1]) %>%
   mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
   mutate(tool = 'rMATS',
          type = 'AA') %>%
-  dplyr::select(external_gene_name, Significance:type)
+  dplyr::select(locus, type, Psi_A, Psi_B)
+
 # A5SS 
 A5SS <- read_tsv(fns[2]) %>%
   dplyr::select(chr, shortEE, longExonEnd, geneSymbol, FDR, IncLevel1, IncLevel2) %>%
@@ -164,7 +166,7 @@ A5SS <- read_tsv(fns[2]) %>%
   mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
   mutate(tool = 'rMATS',
          type = 'AD') %>%
-  dplyr::select(external_gene_name, Significance:type)
+  dplyr::select(locus, type, Psi_A, Psi_B)
   
 # RI 
 RI <- read_tsv(fns[4]) %>%
@@ -178,7 +180,8 @@ RI <- read_tsv(fns[4]) %>%
   mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
   mutate(tool = 'rMATS',
          type = 'RI') %>%
-  dplyr::select(external_gene_name, Significance:type)
+  dplyr::select(locus, type, Psi_A, Psi_B)
+
 # SE
 SE <-  read_tsv(fns[5]) %>%
   dplyr::select(chr, exonStart_0base, exonEnd, geneSymbol, FDR, IncLevel1, IncLevel2) %>%
@@ -192,7 +195,8 @@ SE <-  read_tsv(fns[5]) %>%
   mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
   mutate(tool = 'rMATS',
          type = 'CE') %>%
-  dplyr::select(external_gene_name, Significance:type)
+  dplyr::select(locus, type, Psi_A, Psi_B)
+
 # MXE
 MXE <- read_tsv(fns[3]) %>%
   dplyr::select(chr, upstreamES, downstreamEE, geneSymbol, FDR, IncLevel1, IncLevel2) %>%
@@ -205,24 +209,21 @@ MXE <- read_tsv(fns[3]) %>%
   mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
   mutate(tool = 'rMATS',
          type = 'MXE') %>%
-  dplyr::select(external_gene_name, Significance:type)
+  dplyr::select(locus, type, Psi_A, Psi_B)
 ```
 
 ```{r}
 df89 <- bind_rows(A3SS, A5SS, RI, SE, MXE) %>%
   filter(!duplicated(locus))  %>%
   dplyr::select(locus, type_89 = type, Psi_A_89 = Psi_A, Psi_B_89 = Psi_B)
+
+
 rmats <- df14 %>%
   inner_join(df89, by  = 'locus') %>%
   filter(type == type_89) %>%
-  mutate(dis14_A = abs(Psi_A - 0.5),
-         dis89_A = abs(Psi_A_89 - 0.5),
-         dis14_B = abs(Psi_B - 0.5),
-         dis89_B = abs(Psi_B_89 - 0.5)) %>%
-  mutate(keep_A =  ifelse(dis14_A < dis89_A,Psi_A, Psi_A_89 ),
-         keep_B =  ifelse(dis14_B < dis89_B,Psi_B, Psi_B_89 )) %>%
-  dplyr::select(locus, type, keep_A, keep_B) %>%
-  rename(Psi_A = keep_A, Psi_B = keep_B)
+  mutate(Psi_B = mean(c(Psi_B, Psi_B_89), na.rm = T)) %>%
+  dplyr::select(locus, type, Psi_14 = Psi_A, Psi_89 = Psi_A_89, Psi_B)
+
 ```
 
 ## deduplicate between rmats and whippet
@@ -230,36 +231,16 @@ rmats <- df14 %>%
 ```{r}
 # the duplicated locus
 dup_locus <- intersect(rmats$locus, final_whippet$locus)
-#  join the unduplicated part in the two
-undup <- bind_rows(
-  rmats %>%
-    filter(! locus %in% dup_locus),
-  final_whippet %>%
-    filter(! locus %in% dup_locus)
-)
-# keep the closer to 0.5 psi in the duplicated locus
-rmats_dup <- rmats %>%
-  filter(locus %in% dup_locus)
-whippet_dup <- final_whippet %>%
-  filter(locus %in% dup_locus) %>%
-  rename(type_w = type, Psi_A_w = Psi_A,  Psi_B_w = Psi_B)
-dups <- rmats_dup %>%
-  inner_join(whippet_dup, by = 'locus') %>%
-  filter(type == type_w) %>%
-  mutate(disW_A = abs(Psi_A_w - 0.5),
-         disR_A = abs(Psi_A - 0.5),
-         disW_B = abs(Psi_B_w - 0.5),
-         disR_B = abs(Psi_B - 0.5)) %>%
-  mutate(keep_A =  ifelse(disW_A < disR_A,Psi_A_w, Psi_A ),
-         keep_B =  ifelse(disW_B < disR_B,Psi_B_w, Psi_B )) %>%
-  dplyr::select(locus, type, keep_A, keep_B) %>%
-  rename(Psi_A = keep_A, Psi_B = keep_B)
-WR_combined <- bind_rows(dups, undup)   
+
+two <- bind_rows(final_whippet, rmats %>%
+                   filter(!locus %in% dup_locus))
+  
 ```
 
 ## sorting out the IRfinder results
 
 ```{r}
+
 IR14 <- read_tsv('../../05_IRfinder/data/rawIRfinderResult/RF14_vs_ctrl.txt', comment = '#')  %>%
   rename_all( funs(stringr::str_replace_all(., '-', '_'))) %>%
   mutate(type = 'RI')  %>%
@@ -270,6 +251,7 @@ IR14 <- read_tsv('../../05_IRfinder/data/rawIRfinderResult/RF14_vs_ctrl.txt', co
   filter(!duplicated(locus)) %>%
   rename(Psi_A = A_IRratio, Psi_B = B_IRratio)
  
+
 IR89 <- read_tsv('../../05_IRfinder/data/rawIRfinderResult/RF89_vs_ctrl.txt', comment = '#')  %>%
   rename_all( funs(stringr::str_replace_all(., '-', '_'))) %>%
   mutate(type = 'RI')  %>%
@@ -283,51 +265,28 @@ IR89 <- read_tsv('../../05_IRfinder/data/rawIRfinderResult/RF89_vs_ctrl.txt', co
 
 ```{r}
 # join them together
+
 IRfinder <- IR14 %>%
   inner_join(IR89, by  = 'locus') %>%
-  mutate(dis14_A = abs(Psi_A - 0.5),
-         dis89_A = abs(Psi_A_89 - 0.5)) %>%
-  mutate(keep_A =  ifelse(dis14_A < dis89_A,Psi_A, Psi_A_89 )) %>%
-  dplyr::select(locus, type, keep_A, Psi_B) %>%
-  rename(Psi_A = keep_A)
+  dplyr::select(locus, type, Psi_14 = Psi_A, Psi_89 = Psi_A_89, Psi_B) 
+
 ```
 
 ## deduplicate between IRfinder and the other 2
 
 ```{r}
 # the duplicated locus
-dup_locus <- intersect(IRfinder$locus, WR_combined$locus)
-#  join the unduplicated part in the two
-undup <- bind_rows(
-  IRfinder %>%
-    filter(! locus %in% dup_locus),
-  WR_combined %>%
-    filter(! locus %in% dup_locus)
-)
-# keep the closer to 0.5 psi in the duplicated locus
-IRfinder_dup <- IRfinder %>%
-  filter(locus %in% dup_locus)
-two_dup <- WR_combined %>%
-  filter(locus %in% dup_locus) %>%
-  rename(type_2 = type, Psi_A_2 = Psi_A,  Psi_B_2 = Psi_B)
-# merge the dups together
-dups <- IRfinder_dup %>%
-  inner_join(two_dup, by = 'locus') %>%
-  filter(type == type_2) %>%
-  mutate(dis2_A = abs(Psi_A_2 - 0.5),
-         disIR_A = abs(Psi_A - 0.5),
-         dis2_B = abs(Psi_B_2 - 0.5),
-         disIR_B = abs(Psi_B - 0.5)) %>%
-  mutate(keep_A =  ifelse(dis2_A < disIR_A,Psi_A_2, Psi_A ),
-         keep_B =  ifelse(dis2_B < disIR_B,Psi_B_2, Psi_B )) %>%
-  dplyr::select(locus, type, keep_A, keep_B) %>%
-  rename(Psi_A = keep_A, Psi_B = keep_B)
-# combined to make the final one! Thank god!!!
-final <- bind_rows(dups, undup)
+dup_locus <- intersect(IRfinder$locus, two$locus)
+
+
+final <- bind_rows(IRfinder, two %>%
+                   filter(!locus %in% dup_locus))
+
+
 ```
 
 ```{r}
 # write out the final data
-write_csv(final, '../output/all_three_PSI_A_B_combined_not_filtered.csv')
+write_csv(final, '../output/all_three_PSI_14_and_89_and_control_not_filtered.csv')
 ```
 

@@ -10,8 +10,10 @@ output:
     code_folding: hide
 ---
 
+On day 3.
+
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
 library(tidyverse)
 library(VennDiagram)
 library(ggpubr)  
@@ -167,7 +169,7 @@ ret %>%
   kable_styling()
 ```
 
-### related to ribosome 
+### Related to ribosome 
 
 ```{r}
 # the above genes with ribosome in its descriptions
