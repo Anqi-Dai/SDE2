@@ -1,16 +1,24 @@
 ---
 title: "Retrieve the deltaPSI of the significant locus"
-author: "Anqi Dai"
-date: "3/12/2019"
-output: html_document
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    code_folding: hide
 ---
 
-# Day 3
+Day 3
+
+
+## The PSI filtered full result of the sig locus 
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
 library(tidyverse)
 library(kableExtra)
+library(ggpubr)
 ```
 
 ```{r}
@@ -32,4 +40,81 @@ RET <- sig05 %>%
 
 write_csv(RET,'../output/all_tools_sig05_locus_info_day3_with_deltaPSI.csv')
 ```
+
+```{r}
+# combine the above table with the PSI_A and PSI_B
+
+both <- read_csv('../output/all_three_PSI_14_and_89_and_control_not_filtered.csv') %>%
+  dplyr::select(-type)
+
+final <- RET %>%
+  left_join(both, by = 'locus')
+```
+
+```{r}
+# filter on the above table: * Filter on PSI_14 and PSI_89 both > 0.1; Filter on abs(deltaPSI) > 0.1
+
+fil <- final %>%
+  filter(Psi_14 > 0.1 & Psi_89 > 0.1  & abs(deltaPSI) > 0.1) %>%
+  dplyr::select(locus, external_gene_name, type, Psi_14, Psi_89, Psi_B, deltaPSI, tool)
+
+# the bar plot of the count of each type
+
+fil %>%
+  group_by(type) %>%
+  summarise(cts = n()) %>%
+  arrange(desc(cts)) %>% 
+  ggbarplot(x ='type', y = 'cts', 
+            palette = 'lancet',label = TRUE,
+            title = 'AS type of the sig locus that Psi_14 > 0.1 & Psi_89 > 0.1  & abs(deltaPSI) > 0.1',
+            color = '#00468B', fill = '#00468B')
+```
+```{r}
+fil %>%
+  kable(caption = 'Table of the sig locus that Psi_14 > 0.1 & Psi_89 > 0.1  & abs(deltaPSI) > 0.1') %>%
+  kable_styling()
+```
+
+## RI specifically
+
+```{r}
+# the above locus that have RI
+abun_RI <- fil %>%
+  filter(type == 'RI') %>%
+  dplyr::select(locus, Psi_14, Psi_89, Psi_B, deltaPSI) %>%
+  gather(key = PSI_type, value = value, Psi_14:deltaPSI)
+
+# a histgram  showing the PSI
+abun_RI %>%
+  ggplot(aes(value)) +
+  geom_histogram(binwidth = 0.01) +
+  facet_grid(PSI_type ~ .) +
+  scale_x_continuous( breaks = seq(-0.5,1.0, 0.1)) +
+  theme_linedraw() +
+  labs(title = 'sig RI locus that pass filter threshold PSI values distribution') +
+  ggsave('../figs/sig RI locus that pass filter threshold PSI values distribution.jpg', width = 7, height = 7, dpi = 300)
+```
+```{r}
+# look at the above locus that have a higher delta PSI
+high_delta_RI <- abun_RI <- fil %>%
+  filter(type == 'RI') %>%
+  filter(deltaPSI > 0.3) 
+# fetch the description for those genes
+library(biomaRt)
+
+
+mart <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+
+# retrieve the feature information of the listed attributes
+symbol <- getBM(filters = "external_gene_name",
+                attributes = c('external_gene_name', 'description'),
+                values = high_delta_RI$external_gene_name, 
+                mart = mart)
+
+symbol %>%
+  kable(caption = 'sig locus that have PSI_14 and PSI_89 both > 0.1 and are RI type and deltaPSI > 0.3') %>%
+  kable_styling(full_width = F)
+```
+
+
 
