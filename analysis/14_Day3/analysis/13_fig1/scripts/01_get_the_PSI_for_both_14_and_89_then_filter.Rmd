@@ -63,6 +63,7 @@ A3SS <- read_tsv(fns[1]) %>%
   rename(start = longExonStart_0base, end = shortES, external_gene_name = geneSymbol, Psi_A = IncLevel1, Psi_B = IncLevel2) %>%
   separate(Psi_A, into = c('Psi_A1','Psi_A2','Psi_A3'), sep = ',', convert = T) %>%
   separate(Psi_B, into = c('Psi_B1','Psi_B2','Psi_B3'), sep = ',', convert = T) %>%
+  rowwise() %>%
   mutate(Psi_A = mean(c(Psi_A1, Psi_A2, Psi_A3), na.rm = T),
          Psi_B = mean(c(Psi_B1, Psi_B2, Psi_B3), na.rm = T))  %>%
   mutate(start = start + 1) %>%
@@ -78,6 +79,7 @@ A5SS <- read_tsv(fns[2]) %>%
   rename(start = shortEE, end = longExonEnd, external_gene_name = geneSymbol,  Psi_A = IncLevel1, Psi_B = IncLevel2) %>%
   separate(Psi_A, into = c('Psi_A1','Psi_A2','Psi_A3'), sep = ',', convert = T) %>%
   separate(Psi_B, into = c('Psi_B1','Psi_B2','Psi_B3'), sep = ',', convert = T) %>%
+  rowwise() %>%
   mutate(Psi_A = mean(c(Psi_A1, Psi_A2, Psi_A3), na.rm = T),
          Psi_B = mean(c(Psi_B1, Psi_B2, Psi_B3), na.rm = T))  %>%
   mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
@@ -92,6 +94,7 @@ RI <- read_tsv(fns[4]) %>%
   rename(start = upstreamEE, end = downstreamES, external_gene_name = geneSymbol, Psi_A = IncLevel1, Psi_B = IncLevel2) %>%
   separate(Psi_A, into = c('Psi_A1','Psi_A2','Psi_A3'), sep = ',', convert = T) %>%
   separate(Psi_B, into = c('Psi_B1','Psi_B2','Psi_B3'), sep = ',', convert = T) %>%
+  rowwise() %>%
   mutate(Psi_A = mean(c(Psi_A1, Psi_A2, Psi_A3), na.rm = T),
          Psi_B = mean(c(Psi_B1, Psi_B2, Psi_B3), na.rm = T))  %>%
   mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
@@ -106,6 +109,7 @@ SE <-  read_tsv(fns[5]) %>%
   rename(start = exonStart_0base, end = exonEnd, external_gene_name = geneSymbol, Psi_A = IncLevel1, Psi_B = IncLevel2) %>%
   separate(Psi_A, into = c('Psi_A1','Psi_A2','Psi_A3'), sep = ',', convert = T) %>%
   separate(Psi_B, into = c('Psi_B1','Psi_B2','Psi_B3'), sep = ',', convert = T) %>%
+  rowwise() %>%
   mutate(Psi_A = mean(c(Psi_A1, Psi_A2, Psi_A3), na.rm = T),
          Psi_B = mean(c(Psi_B1, Psi_B2, Psi_B3), na.rm = T))  %>%
   mutate(start = start + 1) %>%
@@ -121,6 +125,7 @@ MXE <- read_tsv(fns[3]) %>%
   rename(start = upstreamES, end = downstreamEE, external_gene_name = geneSymbol, Psi_A = IncLevel1, Psi_B = IncLevel2) %>%
   separate(Psi_A, into = c('Psi_A1','Psi_A2','Psi_A3'), sep = ',', convert = T) %>%
   separate(Psi_B, into = c('Psi_B1','Psi_B2','Psi_B3'), sep = ',', convert = T) %>%
+  rowwise() %>%
   mutate(Psi_A = mean(c(Psi_A1, Psi_A2, Psi_A3), na.rm = T),
          Psi_B = mean(c(Psi_B1, Psi_B2, Psi_B3), na.rm = T))  %>%
   mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
@@ -146,6 +151,7 @@ A3SS <- read_tsv(fns[1]) %>%
   rename(start = longExonStart_0base, end = shortES, external_gene_name = geneSymbol, Psi_A = IncLevel1, Psi_B = IncLevel2) %>%
   separate(Psi_A, into = c('Psi_A1','Psi_A2','Psi_A3'), sep = ',', convert = T) %>%
   separate(Psi_B, into = c('Psi_B1','Psi_B2','Psi_B3'), sep = ',', convert = T) %>%
+  rowwise() %>%
   mutate(Psi_A = mean(c(Psi_A1, Psi_A2, Psi_A3), na.rm = T),
          Psi_B = mean(c(Psi_B1, Psi_B2, Psi_B3), na.rm = T))  %>%
   mutate(start = start + 1) %>%
@@ -161,6 +167,7 @@ A5SS <- read_tsv(fns[2]) %>%
   rename(start = shortEE, end = longExonEnd, external_gene_name = geneSymbol,  Psi_A = IncLevel1, Psi_B = IncLevel2) %>%
   separate(Psi_A, into = c('Psi_A1','Psi_A2','Psi_A3'), sep = ',', convert = T) %>%
   separate(Psi_B, into = c('Psi_B1','Psi_B2','Psi_B3'), sep = ',', convert = T) %>%
+  rowwise() %>%
   mutate(Psi_A = mean(c(Psi_A1, Psi_A2, Psi_A3), na.rm = T),
          Psi_B = mean(c(Psi_B1, Psi_B2, Psi_B3), na.rm = T))  %>%
   mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
@@ -175,6 +182,7 @@ RI <- read_tsv(fns[4]) %>%
   rename(start = upstreamEE, end = downstreamES, external_gene_name = geneSymbol, Psi_A = IncLevel1, Psi_B = IncLevel2) %>%
   separate(Psi_A, into = c('Psi_A1','Psi_A2','Psi_A3'), sep = ',', convert = T) %>%
   separate(Psi_B, into = c('Psi_B1','Psi_B2','Psi_B3'), sep = ',', convert = T) %>%
+  rowwise() %>%
   mutate(Psi_A = mean(c(Psi_A1, Psi_A2, Psi_A3), na.rm = T),
          Psi_B = mean(c(Psi_B1, Psi_B2, Psi_B3), na.rm = T))  %>%
   mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
@@ -189,6 +197,7 @@ SE <-  read_tsv(fns[5]) %>%
   rename(start = exonStart_0base, end = exonEnd, external_gene_name = geneSymbol, Psi_A = IncLevel1, Psi_B = IncLevel2) %>%
   separate(Psi_A, into = c('Psi_A1','Psi_A2','Psi_A3'), sep = ',', convert = T) %>%
   separate(Psi_B, into = c('Psi_B1','Psi_B2','Psi_B3'), sep = ',', convert = T) %>%
+  rowwise() %>%
   mutate(Psi_A = mean(c(Psi_A1, Psi_A2, Psi_A3), na.rm = T),
          Psi_B = mean(c(Psi_B1, Psi_B2, Psi_B3), na.rm = T))  %>%
   mutate(start = start + 1) %>%
@@ -204,6 +213,7 @@ MXE <- read_tsv(fns[3]) %>%
   rename(start = upstreamES, end = downstreamEE, external_gene_name = geneSymbol, Psi_A = IncLevel1, Psi_B = IncLevel2) %>%
   separate(Psi_A, into = c('Psi_A1','Psi_A2','Psi_A3'), sep = ',', convert = T) %>%
   separate(Psi_B, into = c('Psi_B1','Psi_B2','Psi_B3'), sep = ',', convert = T) %>%
+  rowwise() %>%
   mutate(Psi_A = mean(c(Psi_A1, Psi_A2, Psi_A3), na.rm = T),
          Psi_B = mean(c(Psi_B1, Psi_B2, Psi_B3), na.rm = T))  %>%
   mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':')) %>%
@@ -221,6 +231,7 @@ df89 <- bind_rows(A3SS, A5SS, RI, SE, MXE) %>%
 rmats <- df14 %>%
   inner_join(df89, by  = 'locus') %>%
   filter(type == type_89) %>%
+  rowwise() %>%
   mutate(Psi_B = mean(c(Psi_B, Psi_B_89), na.rm = T)) %>%
   dplyr::select(locus, type, Psi_14 = Psi_A, Psi_89 = Psi_A_89, Psi_B)
 
