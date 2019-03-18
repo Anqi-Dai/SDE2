@@ -96,9 +96,10 @@ abun_RI %>%
 ```
 ```{r}
 # look at the above locus that have a higher delta PSI
-high_delta_RI <- abun_RI <- fil %>%
+high_delta_RI <- fil %>%
   filter(type == 'RI') %>%
   filter(deltaPSI > 0.3) 
+
 # fetch the description for those genes
 library(biomaRt)
 
@@ -116,5 +117,25 @@ symbol %>%
   kable_styling(full_width = F)
 ```
 
+## CE specifically
+
+```{r}
+fil %>%
+  filter(type == 'CE') %>%
+  kable(caption = 'Table of the CE sig locus that Psi_14 > 0.1 & Psi_89 > 0.1  & abs(deltaPSI) > 0.1') %>%
+  kable_styling()
+```
+
+```{r}
+# the CE events that have a positive delta PSI
+fil %>%
+  filter(type == 'CE') %>%
+  rowwise() %>%
+  mutate(Psi_A = mean(c(Psi_14, Psi_89))) %>%
+  filter(Psi_A < Psi_B) %>%
+  filter(deltaPSI > 0) %>%
+  kable(caption = 'The weird ones') %>%
+  kable_styling() 
+```
 
 
