@@ -16,14 +16,31 @@ Go check the gtf!
 
 
 ```{r}
-gtf <- read_tsv('../../../reference/v29/gencode.v29.annotation.gtf' , comment = '#', col_names = F) %>%
+gtf <- read_tsv('../../../../../reference/v27/gencode.v27.annotation.gtf' , comment = '#', col_names = F) %>%
   filter(X3 == 'exon') %>%
   dplyr::select(X1,X4,X5, X9)
 
-col9 <- gtf %>%
+gtf <- gtf %>%
   separate(X9, into = c('gene_id','transcript_id','gene_type','gene_name','transcript_type','transcript_name','exon_number','exon_id','level','transcript_support_level','tag','havana_gene','havana_transcript'), sep = '; ')
 
-col9_sub <- col9 %>%
-  dplyr::select(X1,X4,X5,gene_id,transcript_id) 
+
+exon <- gtf %>%
+  dplyr::select(X1: gene_id) %>%
+  rename(chr = X1, start = X4, end = X5)
+
+collapsed_exon <- exon %>%
+  group_by(gene_id) %>%
+  summarise(chr = chr[1],
+            startM = min(start),
+            endM = max(end))
+
+
+collapsed_exon %>%
+  filter(gene_id  == 'gene_id "ENSG00000228463.10"')
+
+
+collapsed_exon %>%
+  dplyr::select(-gene_id) %>%
+  arrange(chr, startM)
 ```
 
