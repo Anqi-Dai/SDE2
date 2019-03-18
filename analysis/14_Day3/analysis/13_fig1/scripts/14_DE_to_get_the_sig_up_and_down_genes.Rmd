@@ -1,0 +1,187 @@
+---
+title: "DE to find the sig up and down genes"
+author: "Anqi Dai"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
+library(tidyverse)
+library(ggpubr)
+library(kableExtra)
+library(knitr)
+library(biomaRt)
+```
+
+
+## The FULL table
+
+[TABLE: full table of stats from the DE between 14 and control](normal_14_control_DE.csv)
+
+
+[TABLE: full table of stats from the DE between 89 and control](normal_89_control_DE.csv)
+
+```{r}
+# load the DE results for the 14 and 89 pair (normal). I have done this and don't forget!
+de14 <- read_tsv('../../12_DE/output/normal_14_control_DE.csv')
+de89 <- read_tsv('../../12_DE/output/normal_89_control_DE.csv')
+```
+
+## Filtering on the sig genes
+
+How many overlapped genes are there if only selecting for genes that have FDR < 0.05?
+
+```{r}
+# see the overlap SIG genes between the two pairs
+overlap_sig <- intersect(
+  de14 %>%
+    filter(Status__KD1__padj < 0.05) %>%
+    pull(X),
+  de89 %>%
+    filter(Status__KD2__padj < 0.05) %>%
+    pull(X)
+)
+
+length(overlap_sig)
+
+# check how these genes look in volcano plot in 14 data
+de14_plot <- de14 %>%
+  filter(abs(Status__KD1__log2FoldChange ) < 5) %>%
+  mutate(Significance = factor(ifelse(X %in% overlap_sig, 'sig', 'no' ))) %>%
+  mutate(log10Padj = -log10(Status__KD1__padj))
+# plot the volcano plot
+de14_plot %>%
+  ggscatter(x = 'Status__KD1__log2FoldChange',
+            y = 'log10Padj',
+            color = 'Significance',
+            alpha = 0.1,
+            xlab =  'log2 Fold Change',
+            ylab = '-log10(PADJ)',
+            title = 'Volcano plot for 14 VS control'
+            ) + 
+  geom_vline(xintercept = 1, linetype = 'dashed') + 
+  geom_vline(xintercept = -1, linetype = 'dashed') +
+  scale_color_manual(values = c('#00468B', '#EC0000')) 
+```
+
+## Overlap two pairs of DE 
+
+**Now beside selecting for FDR < 0.05, also filtering for 1 < abs(log2FoldChange) < 5.**
+
+How many overlapped ones left?
+
+```{r}
+# Therefore I decided to filter on the sig gene list to keep only those have absolute log2FC greater than 1
+Sig <- intersect(
+  de14 %>%
+    filter(Status__KD1__padj < 0.05) %>%
+    filter(abs(Status__KD1__log2FoldChange ) < 5) %>%
+    filter(abs(Status__KD1__log2FoldChange ) > 1) %>%
+    pull(X),
+  de89 %>%
+    filter(Status__KD2__padj < 0.05) %>%
+    filter(abs(Status__KD2__log2FoldChange ) < 5) %>%
+    filter(abs(Status__KD2__log2FoldChange ) > 1) %>%
+    pull(X)
+)
+# how many genes
+length(Sig)
+# output those genes for Metascape
+write.table(Sig, col.names = F, row.names = F, quote = F, '../output/overlap_sig_genes_ID_logFC_gt_one.txt')
+```
+
+## What are the genes
+
+The metrics below are from the 14-control comparison. 
+**log2FoldChange is KD minus control.**
+
+```{r}
+# get the feature info
+mart <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+# retrieve the feature information of the listed attributes
+symbol <- getBM(filters = "ensembl_gene_id",
+                attributes = c('ensembl_gene_id',
+                               'external_gene_name',
+                               'chromosome_name',
+                               'start_position',
+                               'end_position', 
+                               'description'),
+                values = Sig, 
+                mart = mart)
+symbol <- symbol %>%
+  rename(chr = chromosome_name)
+sig_de_info <- de14 %>%
+  rename_all(
+    funs(
+        stringr::str_replace_all(., 'Status__KD1__', '')
+    )) %>%
+  rename(ensembl_gene_id = X)
+out_sig_14 <- symbol %>%
+  left_join(sig_de_info, by = 'ensembl_gene_id')
+write_csv(out_sig_14, '../output/02_overlap_sig_genes_stats_info_14.csv')
+```
+
+### Overview
+```{r}
+# split to up and down by looking at the sign of the log2FC
+out_sig_14 %>%
+  summarise(pos_log2FC = sum(log2FoldChange > 0),
+            neg_log2FC = sum(log2FoldChange < 0)) %>%
+  kable(caption = 'How many genes up and down regulated in KD VS control') %>%
+  kable_styling(full_width = F) 
+
+```
+
+### Upregulated in KD
+
+```{r}
+# show in kable separately for them   
+out_sig_14 %>%
+  filter(log2FoldChange > 0) %>%
+  kable(caption = 'Table of the upregulated genes in KD') %>%
+  kable_styling()
+```
+
+### Downregulated in KD
+
+```{r}
+out_sig_14 %>%
+  filter(log2FoldChange < 0) %>%
+  kable(caption = 'Table of the downregulated genes in KD') %>%
+  kable_styling()  
+
+
+# write out
+out_sig_14 %>%
+  filter(log2FoldChange > 0) %>%
+  dplyr::select(ensembl_gene_id) %>%
+  write_csv('../output/02_overlap_sig_genes_stats_info_14_UP_ID.csv')
+
+
+out_sig_14 %>%
+  filter(log2FoldChange < 0) %>%
+  dplyr::select(ensembl_gene_id) %>%
+  write_csv('../output/02_overlap_sig_genes_stats_info_14_DOWN_ID.csv')
+```
+
+
+## Metascape results
+
+### for UP genes
+
+For the below plot, actually only the first one is significant if looking at the FDR (q value).
+```{r out.width=800}
+knitr::include_graphics('../output/Metascape/sig_DE_up/Enrichment_heatmap/HeatmapSelectedGO.png')
+```
+
+### for DOWN genes
+
+None of them are significant.
+
+
