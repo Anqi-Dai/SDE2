@@ -7,6 +7,8 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
+library(tidyverse)
+
 ```
 
 The goal is to do the first two pie charts that illustrate what the AS type distribution is in KD and control respetively, so that the difference of the difference (the significance of the delta PSI) will make more sense.
@@ -222,6 +224,7 @@ MXE <- read_tsv(fns[3]) %>%
 df89 <- bind_rows(A3SS, A5SS, RI, SE, MXE) %>%
   filter(!duplicated(locus))  %>%
   dplyr::select(locus, type_89 = type, Psi_A_89 = Psi_A, Psi_B_89 = Psi_B)
+
 rmats <- df14 %>%
   inner_join(df89, by  = 'locus') %>%
   filter(type == type_89) %>%
@@ -240,31 +243,8 @@ rmats <- df14 %>%
 ```{r}
 # the duplicated locus
 dup_locus <- intersect(rmats$locus, final_whippet$locus)
-#  join the unduplicated part in the two
-undup <- bind_rows(
-  rmats %>%
-    filter(! locus %in% dup_locus),
-  final_whippet %>%
-    filter(! locus %in% dup_locus)
-)
-# keep the closer to 0.5 psi in the duplicated locus
-rmats_dup <- rmats %>%
-  filter(locus %in% dup_locus)
-whippet_dup <- final_whippet %>%
-  filter(locus %in% dup_locus) %>%
-  rename(type_w = type, Psi_A_w = Psi_A,  Psi_B_w = Psi_B)
-dups <- rmats_dup %>%
-  inner_join(whippet_dup, by = 'locus') %>%
-  filter(type == type_w) %>%
-  mutate(disW_A = abs(Psi_A_w - 0.5),
-         disR_A = abs(Psi_A - 0.5),
-         disW_B = abs(Psi_B_w - 0.5),
-         disR_B = abs(Psi_B - 0.5)) %>%
-  mutate(keep_A =  ifelse(disW_A < disR_A,Psi_A_w, Psi_A ),
-         keep_B =  ifelse(disW_B < disR_B,Psi_B_w, Psi_B )) %>%
-  dplyr::select(locus, type, keep_A, keep_B) %>%
-  rename(Psi_A = keep_A, Psi_B = keep_B)
-WR_combined <- bind_rows(dups, undup)   
+two <- bind_rows(final_whippet, rmats %>%
+                   filter(!locus %in% dup_locus))  
 ```
 
 ## sorting out the IRfinder results
@@ -306,34 +286,14 @@ IRfinder <- IR14 %>%
 
 ```{r}
 # the duplicated locus
-dup_locus <- intersect(IRfinder$locus, WR_combined$locus)
-#  join the unduplicated part in the two
-undup <- bind_rows(
-  IRfinder %>%
-    filter(! locus %in% dup_locus),
-  WR_combined %>%
-    filter(! locus %in% dup_locus)
-)
-# keep the closer to 0.5 psi in the duplicated locus
-IRfinder_dup <- IRfinder %>%
-  filter(locus %in% dup_locus)
-two_dup <- WR_combined %>%
-  filter(locus %in% dup_locus) %>%
-  rename(type_2 = type, Psi_A_2 = Psi_A,  Psi_B_2 = Psi_B)
-# merge the dups together
-dups <- IRfinder_dup %>%
-  inner_join(two_dup, by = 'locus') %>%
-  filter(type == type_2) %>%
-  mutate(dis2_A = abs(Psi_A_2 - 0.5),
-         disIR_A = abs(Psi_A - 0.5),
-         dis2_B = abs(Psi_B_2 - 0.5),
-         disIR_B = abs(Psi_B - 0.5)) %>%
-  mutate(keep_A =  ifelse(dis2_A < disIR_A,Psi_A_2, Psi_A ),
-         keep_B =  ifelse(dis2_B < disIR_B,Psi_B_2, Psi_B )) %>%
-  dplyr::select(locus, type, keep_A, keep_B) %>%
-  rename(Psi_A = keep_A, Psi_B = keep_B)
-# combined to make the final one! Thank god!!!
-final <- bind_rows(dups, undup)
+dup_locus <- intersect(IRfinder$locus, two$locus)
+final <- bind_rows(IRfinder, two %>%
+                   filter(!locus %in% dup_locus))
+
+
+final %>%
+  filter(duplicated(locus)) %>%
+  nrow 
 ```
 
 ```{r}

@@ -28,6 +28,11 @@ all <- read_csv('../output/all_three_PSI_A_B_combined_not_filtered.csv')%>%
 
 # the table for the sig locus FDR < 0.05
 sig05 <- read_csv('../output/all_tools_sig05_locus_info_day3.csv')
+
+
+all %>%
+  filter(duplicated(locus)) %>%
+  nrow()
 ```
 
 ```{r}
