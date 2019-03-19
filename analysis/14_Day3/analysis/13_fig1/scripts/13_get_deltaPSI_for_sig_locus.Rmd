@@ -23,45 +23,32 @@ library(ggpubr)
 
 ```{r}
 # since I have got the PSI A and B for unfiltered locus, now I get the difference between them in sig locus and that is what I want!!!
-all <- read_csv('../output/all_three_PSI_A_B_combined_not_filtered.csv')%>%
+all <- read_csv('../output/all_three_PSI_14_and_89_and_control_not_filtered.csv')%>%
+  rowwise() %>%
+  mutate(Psi_A = mean(c(Psi_14, Psi_89), na.rm = T)) %>%
   mutate(deltaPSI = Psi_A - Psi_B)
 
 # the table for the sig locus FDR < 0.05
-sig05 <- read_csv('../output/all_tools_sig05_locus_info_day3.csv')
+sig05 <- read_csv('../output/all_tools_sig05_locus_info.csv')
 
-
-all %>%
-  filter(duplicated(locus)) %>%
-  nrow()
 ```
 
 ```{r}
-RET <- sig05 %>%
-  left_join(all %>%
-              dplyr::select(locus, deltaPSI), by = 'locus') %>%
-  arrange(desc(abs(deltaPSI))) %>%
-  dplyr::select(locus, deltaPSI, type, external_gene_name, tool)
+# get the psi valus for the sig locus
+final <- sig05 %>%
+  dplyr::select(locus, tool, external_gene_name) %>%
+  left_join(all, by = 'locus')
 
-
-write_csv(RET,'../output/all_tools_sig05_locus_info_day3_with_deltaPSI.csv')
+write_csv(final, '../output/all_tools_sig05_locus_info_day3_with_all_PSI_values.csv')
 ```
 
-```{r}
-# combine the above table with the PSI_A and PSI_B
-
-both <- read_csv('../output/all_three_PSI_14_and_89_and_control_not_filtered.csv') %>%
-  dplyr::select(-type)
-
-final <- RET %>%
-  left_join(both, by = 'locus')
-```
 
 ```{r}
 # filter on the above table: * Filter on PSI_14 and PSI_89 both > 0.1; Filter on abs(deltaPSI) > 0.1
 
 fil <- final %>%
   filter(Psi_14 > 0.1 & Psi_89 > 0.1  & abs(deltaPSI) > 0.1) %>%
-  dplyr::select(locus, external_gene_name, type, Psi_14, Psi_89, Psi_B, deltaPSI, tool)
+  dplyr::select(locus, external_gene_name, type, Psi_14, Psi_89, Psi_A, Psi_B, deltaPSI, tool)
 
 # the bar plot of the count of each type
 
@@ -131,16 +118,6 @@ fil %>%
   kable_styling()
 ```
 
-```{r}
-# the CE events that have a positive delta PSI
-fil %>%
-  filter(type == 'CE') %>%
-  rowwise() %>%
-  mutate(Psi_A = mean(c(Psi_14, Psi_89))) %>%
-  filter(Psi_A < Psi_B) %>%
-  filter(deltaPSI > 0) %>%
-  kable(caption = 'The weird ones') %>%
-  kable_styling() 
-```
+
 
 

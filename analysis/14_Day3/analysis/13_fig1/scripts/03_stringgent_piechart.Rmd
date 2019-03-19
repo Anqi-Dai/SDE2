@@ -23,9 +23,8 @@ library(RColorBrewer)
 # The JCEC.txt files of the AS types
 path <- '../../06_rMATS/data/rMATS_result/RF14_control'
 fns <- file.path(path, list.files(path, 'JCEC.txt'))
-```
 
-```{r}
+
 A3SS <- read_tsv(fns[1]) %>%
   filter(FDR < 0.05) %>%
   dplyr::select(chr, longExonStart_0base, shortES, geneSymbol, FDR) %>%
@@ -79,18 +78,19 @@ MXE <- read_tsv(fns[3]) %>%
          type = 'MXE') %>%
   dplyr::select(-chr, -start,-end)
 
+```
 
+```{r}
 df14 <- bind_rows(A3SS, A5SS, RI, SE, MXE) %>%
-  filter(!duplicated(locus))
+  distinct(locus, .keep_all = T)
 ```
 
 ```{r}
 # The JCEC.txt files of the AS types
 path <- '../../06_rMATS/data/rMATS_result/RF89_control'
 fns <- file.path(path, list.files(path, 'JCEC.txt'))
-```
 
-```{r}
+
 A3SS <- read_tsv(fns[1]) %>%
   filter(FDR < 0.05) %>%
   dplyr::select(chr, longExonStart_0base, shortES, geneSymbol, FDR) %>%
@@ -146,18 +146,19 @@ MXE <- read_tsv(fns[3]) %>%
 
 
 df89 <- bind_rows(A3SS, A5SS, RI, SE, MXE) %>%
-  filter(!duplicated(locus))
+  distinct(locus, .keep_all = T)
 ```
 
 ```{r}
 # now find the overlap between the 14 and 89 that is the final results
- 
+
+
 DF <- df14 %>%
   inner_join(df89 %>%
                dplyr::select(-tool, -significance, -external_gene_name,-type), by = 'locus')
 ```
 
-#### The other two 
+#### whippet
  
 ```{r}
 # re- do the whippet sig probability 0.9
@@ -259,16 +260,17 @@ nrow(Overlap_IRfinder)
 
 ```{r}
 # merging Whippet & IRfinder
-dup <- intersect(Overlap_whippet$locus, Overlap_IRfinder$locus)
-two <- bind_rows(Overlap_whippet,
-                 Overlap_IRfinder %>%
-                   filter(! locus %in% dup)) 
+
+two <- bind_rows(Overlap_whippet,Overlap_IRfinder )  %>%
+  distinct(locus, .keep_all = T)
 
 # merging the two with rMATS
-dup <- intersect(two$locus, DF$locus)
-final <- bind_rows(two,
-                 DF %>% 
-                   filter(! locus %in% dup)) 
+
+final <- bind_rows(two,DF )  %>%
+  distinct(locus, .keep_all = T)
+ 
+final%>% 
+  write_csv('../output/all_tools_sig05_locus_info.csv')
 ```
 
 ```{r}
@@ -335,8 +337,7 @@ final %>%
   filter(!duplicated(external_gene_name)) %>%
   nrow
 
-final%>% 
-  write_csv('../output/all_tools_sig05_locus_info.csv')
+
 
 # the unique gene's name
 unique_name <- summ$external_gene_name
