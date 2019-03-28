@@ -1,0 +1,60 @@
+---
+title: "Fetching the sequence for AS and non AS"
+author: "Anqi Dai"
+date: "3/28/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
+library(tidyverse)
+library(GenomicRanges)
+library(BSgenome)
+library(BSgenome.Hsapiens.NCBI.GRCh38)
+library(seqinr)
+require(ggseqlogo)
+require(ggplot2)
+```
+
+```{r}
+# load the seq table
+as_seq <- read_csv('../data/as_RI_seq_coord.csv') %>%
+  mutate(chr = str_replace_all(chr, 'chr',''))
+
+no_seq <- read_csv('../data/no_as_RI_seq_coord.csv')%>%
+  mutate(chr = str_replace_all(chr, 'chr',''))
+```
+
+```{r}
+
+```
+
+```{r}
+# get the actual sequence in a function 
+genome <- BSgenome.Hsapiens.NCBI.GRCh38 
+
+get_seq_function <- function(df) {
+  
+  grange5 <-  makeGRangesFromDataFrame(df, 
+                                     seqnames.field=c("chr"),  
+                                     start.field="ss5_start", 
+                                     end.field=c("ss5_end"), 
+                                     strand.field="direction")
+
+
+  grange3 <-  makeGRangesFromDataFrame(df, 
+                                       seqnames.field=c("chr"),  
+                                       start.field="ss3_start", 
+                                       end.field=c("ss3_end"), 
+                                       strand.field="direction")
+  
+  ret <- df %>%
+    mutate(ss5_seq = as.character(BSgenome::getSeq(genome, grange5)),
+           ss3_seq = as.character(BSgenome::getSeq(genome, grange3)) )
+  return(ret)
+}
+
+df_AS <- get_seq_function(as_seq)
+df_non_AS <- get_seq_function(no_seq)
+```
+
