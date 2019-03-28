@@ -53,7 +53,8 @@ short <- res %>%
 
 ```{r}
 # load the sig RI locus in day 3 and check out the length of that RI
-d3RI <- read_csv('../output/all_tools_sig05_locus_info.csv') %>%
+d3RI <- read_csv('../output/all_tools_sig05_locus_info_day3_with_all_PSI_values.csv') %>%
+  filter(Psi_14 > 0.1 & Psi_89 > 0.1  & abs(deltaPSI) > 0.1) %>%
   dplyr::select(locus, type, external_gene_name) %>%
   filter(type == 'RI') %>%
   separate(locus, into = c('chr','coord'), sep = ':') %>%
@@ -99,6 +100,8 @@ sig_RI <- unique_gene %>%
 ```
 
 ```{r}
-width(introns$ENSG00000165458.13)
+# what is happening with MEX3A
+sig <- d3RI %>%
+  filter(RIlen == 112 & external_gene_name == 'MEX3A')
 ```
 
