@@ -1,0 +1,140 @@
+---
+title: "Retrieve sequences near splice site"
+author: "Anqi Dai"
+date: "3/28/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
+library(tidyverse)
+```
+
+```{r}
+# pick comparable RI length of AS and non-AS from the IRfinder result using the day 3 data.
+
+# re-do the IRfinder FDR 0.05
+data_path <- '../../05_IRfinder/data/rawIRfinderResult'
+fns <- file.path(data_path, list.files(data_path, pattern = 'txt'))
+# format the table like below (generate the locus ID, change the colnames, format the geneID string, separate that one column to three, generate the padj value.)
+raw_df_list <- lapply(fns, function(fn){
+  res = read_tsv(fn,comment = '#',col_names = T) %>%
+    mutate(Locus =paste(Chr,paste(Start, End, sep = '-'), sep = ':' ) ) 
+  
+  colnames(res) <- colnames(res) %>%
+    gsub('-', '_', .)
+  
+  res = res %>%
+    separate('Intron_GeneName/GeneID', into = c('Symbol', 'GeneID', 'Category'), sep = '/') %>%
+    # get rid of the . and digits after that in GeneID
+    mutate(GeneID = str_replace_all(string = GeneID, pattern = '\\..*$', replacement = '')) %>%
+    mutate(padj = p.adjust(p_diff, method = 'BH')) 
+})
+##################################################################################
+# filter the result like below:
+# * Remove records marked with "known-exon". 
+# * Remove records marked with "MinorIsoform" either in experiment or control. 
+# * Adjust the P-value with BH method 
+# * Select the records with padj < 0.25
+true_df_list <- lapply(raw_df_list, function(df) {
+  res = df  %>%
+    filter(! Category == 'known-exon') %>%
+    filter( A_IRok != 'MinorIsoform' &  B_IRok != 'MinorIsoform' ) %>%
+    filter(padj < 0.05) 
+  return(res)
+} )
+
+false_df_list <- lapply(raw_df_list, function(df) {
+  res = df  %>%
+    filter(! Category == 'known-exon') %>%
+    filter( A_IRok != 'MinorIsoform' &  B_IRok != 'MinorIsoform' ) %>%
+    filter(padj >= 0.05) 
+  return(res)
+} )
+
+##################################################################################
+# TRUE: sig in both (AS)
+# FALSE: sig in neither but overlapped in both (non AS)
+true_locus <- intersect(true_df_list[[1]]$Locus, true_df_list[[2]]$Locus)
+false_locus <- intersect(false_df_list[[1]]$Locus, false_df_list[[2]]$Locus)
+```
+
+```{r}
+# finding the true and false locus that are of comparable length
+as_locus <-  true_df_list[[1]] %>%
+  filter(Locus %in% true_locus) %>%
+  dplyr::select(ensemble_gene_id = GeneID, symbol = Symbol, locus = Locus, direction = Direction)  %>%
+  separate(locus, into = c('chr','coord'), sep = ':') %>%
+  separate(coord, into = c('start','end'),sep = '-', convert = T)  %>%
+  mutate(RIlen = end - start) %>%
+  arrange(RIlen)
+
+nonAs_locus <-  false_df_list[[1]] %>%
+  filter(Locus %in% false_locus) %>%
+  dplyr::select(ensemble_gene_id = GeneID, symbol = Symbol, locus = Locus, direction = Direction)  %>%
+  separate(locus, into = c('chr','coord'), sep = ':') %>%
+  separate(coord, into = c('start','end'),sep = '-', convert = T)  %>%
+  mutate(RIlen = end - start) %>%
+  arrange(RIlen)
+
+```
+
+```{r}
+# plan to use the gene that only have one event and the length is about 400-500
+unique_gene_AS <- as_locus %>%
+  group_by(symbol) %>%
+  arrange(RIlen, .by_group = TRUE) %>%
+  summarise(RI_len_all = paste0(RIlen, collapse = ","),
+            cnt = n()) %>%
+  arrange(desc(cnt)) %>%
+  filter(cnt == 1) %>%
+  mutate(RI_len_all = as.numeric(RI_len_all)) %>%
+  filter(RI_len_all > 400 & RI_len_all < 500) %>%
+  rename(RIlen = RI_len_all)
+
+unique_gene_non_AS <- nonAs_locus %>%
+  group_by(symbol) %>%
+  arrange(RIlen, .by_group = TRUE) %>%
+  summarise(RI_len_all = paste0(RIlen, collapse = ","),
+            cnt = n()) %>%
+  arrange(desc(cnt)) %>%
+  filter(cnt == 1) %>%
+  mutate(RI_len_all = as.numeric(RI_len_all)) %>%
+  filter(RI_len_all > 400 & RI_len_all < 500) %>%
+  rename(RIlen = RI_len_all)
+
+
+# join the tables so I have the RI locus coords
+as_select <- unique_gene_AS %>%
+  left_join(as_locus %>% 
+              dplyr::select(-RIlen), by = 'symbol')
+
+no_select <-  unique_gene_non_AS %>%
+  left_join(nonAs_locus %>% 
+              dplyr::select(-RIlen), by = 'symbol')
+
+```
+
+```{r}
+# generate the start and end coord for 5 and 3 site for those two
+
+generate_ss_seq_coord <- function(df){
+  ret = df %>%
+    mutate(ss5_start = start - 30,
+         ss5_end = start + 29,
+         ss3_start = end - 30,
+         ss3_end = end + 29 )
+  return(ret)
+}
+
+as_seq <- generate_ss_seq_coord(as_select)
+no_seq <- generate_ss_seq_coord(no_select)
+
+# write out the table
+as_seq %>%
+  write_csv('../data/as_RI_seq_coord.csv')
+
+no_seq %>%
+  write_csv('../data/no_as_RI_seq_coord.csv')
+```
+
