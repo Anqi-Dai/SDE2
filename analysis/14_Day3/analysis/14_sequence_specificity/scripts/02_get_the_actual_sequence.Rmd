@@ -26,10 +26,6 @@ no_seq <- read_csv('../data/no_as_RI_seq_coord.csv')%>%
 ```
 
 ```{r}
-
-```
-
-```{r}
 # get the actual sequence in a function 
 genome <- BSgenome.Hsapiens.NCBI.GRCh38 
 
@@ -54,7 +50,28 @@ get_seq_function <- function(df) {
   return(ret)
 }
 
-df_AS <- get_seq_function(as_seq)
-df_non_AS <- get_seq_function(no_seq)
+```
+
+```{r}
+all <- list(as_seq %>%
+              mutate(status = 'AS'), 
+            NONAS = no_seq %>%
+              mutate(status = 'NO')) %>%
+  map_dfr(., ~ get_seq_function(.)) 
+
+final <- all %>%
+  dplyr::select(status, ss5_seq, ss3_seq) %>%
+  gather(key = group, value = seq, ... = ss5_seq: ss3_seq ) %>%
+  unite(col = Group, ... = status:group, sep = '_')
+
+
+```
+
+```{r}
+# use the ggseqlogo pkg to plot the logo
+final %>%
+  split(.$Group) %>%
+  map(~ ggplot() + geom_logo( .$seq ) + theme_logo())
+
 ```
 
