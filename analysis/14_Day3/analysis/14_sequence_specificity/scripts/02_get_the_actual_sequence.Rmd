@@ -63,8 +63,6 @@ final <- all %>%
   dplyr::select(status, ss5_seq, ss3_seq) %>%
   gather(key = group, value = seq, ... = ss5_seq: ss3_seq ) %>%
   unite(col = Group, ... = status:group, sep = '_')
-
-
 ```
 
 ```{r}

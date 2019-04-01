@@ -8,6 +8,7 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
 library(tidyverse)
+library(knitr)
 ```
 
 ```{r}
@@ -78,6 +79,78 @@ nonAs_locus <-  false_df_list[[1]] %>%
   arrange(RIlen)
 
 ```
+
+```{r}
+# for every sig locus pick non-sig one of similar length
+# see the distribution of the length first
+list(AS = as_locus, non_AS = nonAs_locus) %>%
+  map(~ ggplot(., aes(RIlen)) + geom_histogram(binwidth =100) )
+
+```
+
+```{r}
+# bin them into every 100 per bin and count how many in them 
+# as_locus %>%
+#   dplyr::select(RIlen) %>%
+as_bin <- table(cut_interval(as_locus$RIlen, length=50)) %>%
+  as.data.frame
+  
+
+no_bin <- table(cut_interval(nonAs_locus$RIlen, length=50)) %>%
+  as.data.frame 
+
+# the way I decided how many to select for each interval
+all <- no_bin %>%
+  left_join(as_bin, by = 'Var1') %>%
+  rename(interval = Var1, non_AS = Freq.x, AS = Freq.y) %>%
+  rowwise() %>%
+  mutate(numSelect = min(non_AS, AS)) %>%
+  filter(!is.na(numSelect))
+
+all %>%
+  kable(caption = "Number of AS and non-AS events to select for each interval") %>%
+  kable_styling(full_width = F)
+
+
+# if I can use a df as input for every row
+input_all <- all %>%
+  mutate(interval = str_replace_all(string = interval, pattern = "]$",replacement = '')) %>%
+  mutate(interval = str_replace_all(string = interval, pattern = "\\(|\\[",replacement = '')) %>%
+  separate(interval, into = c('lower','upper'), convert = T) %>%
+  dplyr::select(-non_AS, -AS)
+
+```
+
+```{r}
+# a function that takes a interval and return the rows that meet that interval
+
+records_in_interval_AS <- function(lower, upper,numSelect) {
+  ret = as_locus %>%
+    filter(RIlen > lower & RIlen <= upper) %>%
+    sample_n(numSelect)
+  return(ret)
+} 
+
+res_AS <- pmap_dfr(input_all, function(lower, upper, numSelect){
+  records_in_interval_AS(lower, upper, numSelect)
+})
+
+
+# for non-as
+records_in_interval_non_AS <- function(lower, upper,numSelect) {
+  ret = nonAs_locus %>%
+    filter(RIlen > lower & RIlen <= upper) %>%
+    sample_n(numSelect)
+  return(ret)
+} 
+
+res_non_AS <- pmap_dfr(input_all, function(lower, upper, numSelect){
+  records_in_interval_non_AS(lower, upper, numSelect)
+})
+
+```
+
+
 
 ```{r}
 # plan to use the gene that only have one event and the length is about 400-500
