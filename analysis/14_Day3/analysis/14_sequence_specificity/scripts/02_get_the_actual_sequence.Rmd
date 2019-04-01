@@ -1,8 +1,13 @@
 ---
 title: "Fetching the sequence for AS and non AS"
 author: "Anqi Dai"
-date: "3/28/2019"
-output: html_document
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    code_folding: hide
 ---
 
 ```{r setup, include=FALSE}
@@ -69,7 +74,16 @@ final <- all %>%
 # use the ggseqlogo pkg to plot the logo
 final %>%
   split(.$Group) %>%
-  map(~ ggplot() + geom_logo( .$seq ) + theme_logo())
+  map(~ ggplot() + 
+        geom_logo( .$seq ) + 
+        theme_logo() + 
+        labs(title = str_glue('{.$Group} logo'))+
+        theme_classic() +
+        theme(
+              text = element_text(size=25),
+              axis.text.x = element_text(angle = 90, hjust = 1, size = 15))+
+        ggsave(str_glue('../figs/{.$Group} logo.pdf'),device = 'pdf', width = 18, height = 10, dpi = 300))
+
 
 ```
 
