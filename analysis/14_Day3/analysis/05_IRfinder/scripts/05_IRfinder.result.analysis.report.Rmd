@@ -1,0 +1,308 @@
+---
+title: "[DAY 3] IRfinder result analysis: 14 VS control and 89 VS control"
+author: "Anqi Dai"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    code_folding: hide
+---
+
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning = FALSE)
+```
+
+
+```{r}
+library(tidyverse)
+library(ggpubr)
+```
+
+
+## Filtering to get the significant results:
+
+* Remove records marked with "known-exon". "known-exon" indicates that there are known transcripts both including and splicing out this region. IRFinder quantifies the relative abundance of these occurrences.
+* Remove records marked with "MinorIsoform" either in experiment or control. "MinorIsoform" indicates IRFinder has detected there is additional alternate-splicing occurring, as such the detection of intron-retention may be confounded by other changes in alternate splicing.
+* Adjust the P-value with BH method (The Audic and Claverie test is used for low replicates situations (<= 3 replicates). The assumption is that the IR ratio (log transformed) follows a Poisson distribution)
+* Select the records with padj < 0.05
+
+
+```{r}
+# load the result table
+RES <- read_csv('../data/IRfinder.res.filtered.14n89.analysis2.csv')
+```
+
+
+## Overview of the overlap.
+
+
+## The analysis result
+
+### Length of the RI
+
+```{r barplot.IRlen}
+# the summarised plot of the mean RI_len between the sig and non-sig
+# boxplot 
+RES %>%
+  dplyr::select(Locus, Significance, RI_len, Group) %>%
+  spread(key = Group, value = RI_len) %>%
+  ggboxplot(x = "Significance", y = c('RF14', 'RF89'), combine = T,
+            #add = "mean_se", 
+            #fill = 'gray',
+            #error.plot = "upper_errorbar",
+            ylab = 'Length of retained intron',
+            #ylim = c(0, 3500),
+            title = 'Len of RI boxplot') + 
+  #scale_y_continuous(expand = c(0, 0))  +
+  ggsave('../figs/Len of RI in both between sig and non sig_boxplot.jpg', width = 8, height = 8, dpi = 300)
+
+```
+
+
+### Compare the TPM
+
+#### Histogram
+
+```{r}
+# make a faceted histogram of the tpm counts between the sig and non sig
+# histogram
+RES %>%
+  dplyr::select(Locus, Significance, Group, RFExper, RFControl) %>%
+  spread(key = Group, value = RFExper) %>%
+  gghistogram(x = c('RF14','RF89', 'RFControl'), combine = T,
+              palette = 'lancet', 
+              color = 'white', 
+              fill = 'Significance', 
+              bins = 50,
+              title = 'Histogram of log10(mean TPM)',
+              xlab = 'log10(mean TPM)')  +
+  scale_x_log10() +
+  ggsave('../figs/Histogram of log10(mean TPM).jpg', width = 12, height = 8, dpi = 300)
+```
+
+#### boxplot with statistic test comparing the mean (t test)
+
+```{r}
+# boxplot
+RES %>%
+  dplyr::select(Locus, Significance, Group, RFExper, RFControl) %>%
+  spread(key = Group, value = RFExper) %>%
+  ggboxplot(x = "Significance", y = c("RF14", 'RF89','RFControl'), combine = T,
+            ylim = c(0.5, 10000),
+            color = "Significance", palette = 'lancet',
+            alpha = 0.3,
+            ylab = 'log10(mean TPM)',
+            xlab = 'Significance level'
+             ) + 
+  scale_y_log10() +
+  stat_compare_means(comparisons = list(c('TRUE', 'FALSE')), method = 't.test')
+
+
+
+
+```
+
+```{r} 
+# it would be interesting to see the TRUE in the 14, 89 and control how would they compare
+RES %>%
+  dplyr::select(Locus, Significance, Group, RFExper, RFControl) %>%
+  spread(key = Group, value = RFExper) %>%
+  filter(Significance) %>%
+  gather(key = Group, value = MeanTPM, RFControl:RF89) %>%
+  mutate(Group = factor(Group, levels = c('RFControl','RF14','RF89'))) %>%
+  ggboxplot(x = "Group", y = 'MeanTPM',
+            #ylim = c(0.5, 10000),
+            #add = "jitter",
+            color = "Group", palette = 'lancet',
+            title = 'mean TPM comparison in significant RI genes',
+            ylab = 'log10(mean TPM)'
+            #xlab = 'Significance level'
+             ) + 
+  scale_y_log10() +
+  stat_compare_means(comparisons = list(c('RF14', 'RFControl'), 
+                                        c('RF89', 'RFControl'),
+                                        c('RF14', 'RF89')), method = "t.test") +
+  ggsave('../figs/mean TPM comparison in significant RI genes.png', width = 6, height = 5, dpi = 300)
+
+# a histogram to see the distribution (which is actually higher or lower)
+
+p <- RES %>%
+  dplyr::select(Locus, Significance, Group, RFExper, RFControl) %>%
+  spread(key = Group, value = RFExper) %>%
+  filter(Significance) %>%
+  gather(key = Group, value = MeanTPM, RFControl:RF89) %>%
+  mutate(Group = factor(Group, levels = c('RFControl','RF14','RF89'))) %>%
+  gghistogram(x = 'MeanTPM', 
+              palette = 'lancet',
+              color = 'white', fill = 'Group', 
+              bins = 80,
+              add = "median",
+              title = 'Histogram of log10(mean TPM)(median shown)',
+              xlab = 'log10(mean TPM)')  +
+  scale_x_log10() 
+  
+
+facet(p, facet.by = "Group", nrow = 3)
+```
+
+### Compare the GC content of the RI
+
+```{r}
+# histogram
+
+RES %>%
+  dplyr::select(Locus, Significance, GC_per, Group) %>%
+  spread(key = Group, value = GC_per) %>%
+  gghistogram(x = c('RF14','RF89'),
+              combine = T,
+              palette = 'lancet',
+              color = 'white', fill = 'Significance', 
+              bins = 40,
+              add = "median",
+              title = 'Histogram of GC% (median shown)',
+              xlab = 'GC% ') 
+```
+
+```{r}
+# boxplot
+
+RES %>%
+  dplyr::select(Locus, Significance, GC_per, Group) %>%
+  spread(key = Group, value = GC_per) %>%
+  ggboxplot(x = "Significance", y =  c('RF14','RF89'), combine = T,
+            #ylim = c(0.5, 10000),
+            #add = "jitter",
+            color = "Significance", palette = 'lancet',
+            xlab = 'Significance',
+            title = 'GC% among sig or not sig locus',
+            ylab = 'GC%'
+             ) + 
+  stat_compare_means(comparisons = list(c('TRUE', 'FALSE')), method = 't.test')
+```
+
+### The locus of the RI 
+
+Compare the proportion of the middle point of RI at the whole gene length
+
+```{r}
+# plot the -log10(Padj) VS RI_prop (dot plot)
+# start from the ggplot
+Col <- c('#00468B', '#EC0000')
+
+RES %>%
+  dplyr::select(Locus, Significance, padj, RI_prop, Group ) %>%
+  mutate(log10P = -log10(padj))  %>%
+  filter(!is.na(RI_prop) & !is.infinite(log10P)) %>%
+  mutate(RI_prop = round(RI_prop, 2)) %>%
+  ggplot(aes(x =RI_prop, y = log10P, color = Significance, shape = Significance ))+
+  geom_point(alpha = 0.7, size = 2) + 
+  labs(x = 'Proportional locus of the RI',
+       y = '-log10(padj)' ,
+       title = 'log10(padj) VS Proportional locus of the RI') +
+  scale_fill_manual(values = Col) +
+  scale_color_manual(values = Col)  +
+  facet_wrap( ~ Group) + 
+  ggsave('../figs/log10(padj) VS Proportional locus of the RI(dot)_both.jpg', width = 10, height = 7, dpi = 300)
+
+```
+
+```{r}
+# color the histogram with the factor of the log10P
+locus_sig_level <- RES %>%
+  dplyr::select(Locus, Significance, padj, RI_prop, Group ) %>%
+  mutate(log10P = -log10(padj)) %>%
+  filter(!is.na(RI_prop) & !is.infinite(log10P)) %>%
+  mutate(neg_log10P = ifelse(is.infinite(log10P), 'Inf',
+                            ifelse(log10P > 2^6, '>64',
+                                   ifelse(log10P > 2^4, '>16',                                                                         ifelse(log10P > 2^2, '>4',                                                                           ifelse(log10P > 2^0, '>1', '<1')))))) %>%
+  mutate(neg_log10P = factor(neg_log10P, levels = c('<1', '>1', '>4', '>16', '>64')))
+
+
+# histogram
+library(RColorBrewer)
+col_palette <- brewer.pal(n = 5, name = "Dark2") 
+
+locus_sig_level %>%
+  mutate(RI_prop = round(RI_prop, 2)) %>%
+  ggplot(aes(x = RI_prop, fill = neg_log10P))+
+  geom_histogram( ) + 
+  labs(x = 'Proportional locus of the RI',
+       y = '-log10(padj)' ,
+       title = 'log10(padj) VS Proportional locus of the RI') +
+  scale_fill_manual(values = col_palette) +
+  scale_color_manual(values = col_palette)  +
+  facet_wrap(Group ~ Significance) +
+  ggsave('../figs/log10(padj) VS Proportional locus of the RI(histogram_color)_both.jpg', width = 10, height = 10, dpi = 300)
+
+```
+
+```{r}
+# boxplot
+
+locus_sig_level %>%
+  dplyr::select(Locus, Significance, RI_prop, Group) %>%
+    filter(!is.na(RI_prop)) %>%
+  spread(key = Group, value = RI_prop) %>%
+  ggboxplot(x = 'Significance', y = c('RF14','RF89'),combine = T,
+            color = "Significance", palette = 'lancet',
+            #add = 'jitter',
+            title ='Locus of the RI in proportion to the gene length') +
+  stat_compare_means(comparisons = list(c('FALSE', 'TRUE'))) 
+
+
+
+```
+
+
+### Strength of the splice sites
+
+```{r}
+RES %>%
+  dplyr::select(Locus, Significance, Splicesite_pair, Group ) %>%
+  ggplot(aes(Splicesite_pair)) +
+  geom_bar() +
+  geom_text(aes(label=..count..), stat='count',  vjust=-1) +
+  ylim(0,1700) +
+  facet_wrap(Group ~ Significance) +
+  labs(title = 'Barplot of the splice site type among sig and non-sig genes')
+  
+```
+
+* Score 5' splice site: Each sequence must be 9 bases long. 3 bases in exon and 6 bases in intron
+* Score 3' splice site: Each sequence must be 23 bases long. 20 bases in the intron and 3 base in the exon
+
+
+```{r score.plot}
+# boxplot
+
+# ss5
+
+RES %>%
+  dplyr::select(Locus, Significance, ss5_score , Group ) %>%
+  spread(key = Group, value = ss5_score) %>%
+  ggboxplot(x = 'Significance', y = c('RF14','RF89'),combine = T,
+            add = 'jitter', add.params = list(alpha = 0.15, fill = 'Significance'),
+            title = 'boxplot of the distribution of the ss5 MaxEnt score',
+            palette = 'lancet', color = 'Significance')   +
+  stat_compare_means(comparisons = list(c('TRUE', 'FALSE')))
+
+
+# ss3
+
+RES %>%
+  dplyr::select(Locus, Significance, ss3_score , Group ) %>%
+  spread(key = Group, value = ss3_score) %>%
+  ggboxplot(x = 'Significance', y = c('RF14','RF89'),combine = T,
+            add = 'jitter', add.params = list(alpha = 0.15, fill = 'Significance'),
+            title = 'boxplot of the distribution of the ss3 MaxEnt score',
+            palette = 'lancet', color = 'Significance')   +
+  stat_compare_means(comparisons = list(c('TRUE', 'FALSE')))
+
+
+```
+
+
+
+
