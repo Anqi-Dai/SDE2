@@ -1,0 +1,24 @@
+---
+title: "Retrieve the intron coord of all the transcripts of all the genes"
+author: "Anqi Dai"
+date: "4/1/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+```{r}
+Exons <- read_delim('../../../../../reference/v27/gencode.v27.annotation.EXON.gtf', delim = ' ') %>%
+
+  dplyr::select(chr = X1, start = X4, end = X5, X9) %>%
+  separate(X9, into = c('gene_id','transcript_id','gene_type','gene_name','transcript_type','transcript_name','exon_number','exon_id','level','transcript_support_level','tag','havana_gene','havana_transcript'), sep = '; ') %>%
+  dplyr::select(chr, start, end, gene_id,transcript_id, exon_number,exon_id) 
+
+ 
+
+
+```
+

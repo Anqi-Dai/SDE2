@@ -1,0 +1,53 @@
+---
+title: "the length distribution of the CE and RI events"
+author: "Anqi Dai"
+date: "4/11/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
+library(tidyverse)
+library(ggpubr)
+library(kableExtra)
+```
+
+```{r}
+# load the sig events for day3 and day5
+
+d3 <- read_csv('../output/all_tools_sig05_locus_info_day3_with_all_PSI_values.csv')
+
+d5 <- read_csv('../../../../13_fig1/output/all_tools_sig05_locus_info.csv')
+```
+
+```{r}
+# do an overlap of the day 3 and 5 and put them into different groups
+
+target_category <- 'RI'
+target_d3 <- d3 %>%
+  filter(type == target_category)
+target_d5 <- d5 %>%
+  filter(type == target_category)
+d3_only <- setdiff(target_d3$locus, target_d5$locus)
+d5_only <- setdiff(target_d5$locus, target_d3$locus)
+overlap <- intersect(target_d5$locus, target_d3$locus)
+
+res <- imap(list(d3_only = d3_only, d5_only = d5_only, overlap = overlap), ~ .x %>%
+    tibble() %>%
+    rename(locus = names(.)[1]) %>%
+    separate(locus, into = c('chr','coord'), sep = ':') %>%
+    separate(coord, into = c('start','end'),sep = '-', convert = T) %>%
+    mutate(len = end - start) %>%
+    mutate(group = .y)
+)  %>%
+  bind_rows %>%
+  mutate(group = factor(group, levels = c('d3_only','overlap','d5_only')))
+
+
+res %>%
+  ggboxplot(x = 'group', y = 'len') +
+  scale_y_log10() +
+  labs(y = 'log10(length)',
+       title = '')
+```
+
