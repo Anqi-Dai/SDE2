@@ -23,31 +23,31 @@ d5 <- read_csv('../../../../13_fig1/output/all_tools_sig05_locus_info.csv')
 ```{r}
 # do an overlap of the day 3 and 5 and put them into different groups
 
-target_category <- 'RI'
-target_d3 <- d3 %>%
-  filter(type == target_category)
-target_d5 <- d5 %>%
-  filter(type == target_category)
-d3_only <- setdiff(target_d3$locus, target_d5$locus)
-d5_only <- setdiff(target_d5$locus, target_d3$locus)
-overlap <- intersect(target_d5$locus, target_d3$locus)
-
-res <- imap(list(d3_only = d3_only, d5_only = d5_only, overlap = overlap), ~ .x %>%
-    tibble() %>%
-    rename(locus = names(.)[1]) %>%
-    separate(locus, into = c('chr','coord'), sep = ':') %>%
-    separate(coord, into = c('start','end'),sep = '-', convert = T) %>%
-    mutate(len = end - start) %>%
-    mutate(group = .y)
-)  %>%
-  bind_rows %>%
-  mutate(group = factor(group, levels = c('d3_only','overlap','d5_only')))
-
-
-res %>%
-  ggboxplot(x = 'group', y = 'len') +
-  scale_y_log10() +
-  labs(y = 'log10(length)',
-       title = '')
+map(c('RI','CE'), function(type){
+  target_category <- type
+  target_d3 <- d3 %>%
+    filter(type == target_category)
+  target_d5 <- d5 %>%
+    filter(type == target_category)
+  d3_only <- setdiff(target_d3$locus, target_d5$locus)
+  d5_only <- setdiff(target_d5$locus, target_d3$locus)
+  overlap <- intersect(target_d5$locus, target_d3$locus)
+  
+  imap(list(d3_only = d3_only, d5_only = d5_only, overlap = overlap), ~ .x %>%
+      tibble() %>%
+      rename(locus = names(.)[1]) %>%
+      separate(locus, into = c('chr','coord'), sep = ':') %>%
+      separate(coord, into = c('start','end'),sep = '-', convert = T) %>%
+      mutate(len = end - start) %>%
+      mutate(group = .y)
+  )  %>%
+    bind_rows %>%
+    mutate(group = factor(group, levels = c('d3_only','overlap','d5_only'))) %>%
+    ggboxplot(x = 'group', y = 'len') +
+    scale_y_log10() +
+    labs(y = 'log10(length)',
+         title = str_glue('boxplot of each group in {type}')) +
+    ggsave(str_glue('../figs/boxplot_length_d3_and_d5_{type}.jpg'), width = 7, height = 6,dpi = 300)
+})
 ```
 

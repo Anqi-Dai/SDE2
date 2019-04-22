@@ -1,0 +1,21 @@
+---
+title: "The five sets"
+author: "Anqi Dai"
+date: "4/22/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
+library(tidyverse)
+
+```
+
+```{r out.width=400}
+knitr::include_graphics('diagram.jpg')
+```
+
+```{r the first three}
+# only looking at the individual 
+```
+

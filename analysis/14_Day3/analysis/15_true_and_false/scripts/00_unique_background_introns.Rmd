@@ -1,0 +1,84 @@
+---
+title: "Retrieve unique backgroud introns"
+author: "Anqi Dai"
+date: "4/22/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(knitr)
+```
+
+```{r}
+#import pybedtools
+
+# use a BED file that ships with pybedtools...
+#b = pybedtools.BedTool('gencode.v27.annotation.bed')
+
+#introns = b.introns(gene='gene', exon='exon')
+
+#res = introns.saveas('introns_pos.bed')
+```
+
+```{r}
+# load the results from pybedtools that has the intron coordinates and the correponding transcript ID in a bed file
+introns <- read_tsv('../../../../../reference/v27/introns_pos.bed', col_names = F) %>%
+  rename(chr = X1, 
+         start = X2, 
+         end = X3,
+         transcript_ID = X4,
+         type = X5,
+         strand = X6)
+
+corrected_introns <- introns %>%
+  filter(start < end & type == 'intron')  %>%
+  mutate(locus = paste(chr,paste(start, end, sep = '-'), sep = ':' ) ) %>%
+  rename(transcript_id = transcript_ID)
+```
+
+```{r}
+# load the table of geneID and transcript ID correponding table generated in 16_get_intron_of_transcripts.Rmd
+geneID <- read_csv('../../../../../reference/v27/geneID_transcriptID_table.csv') %>%
+  mutate(gene_id = str_replace_all(gene_id, 'gene_id "',''),
+         gene_id = str_replace_all(gene_id, '"$',''),
+         transcript_id = str_replace_all(transcript_id, 'transcript_id "',''),
+         transcript_id = str_replace_all(transcript_id, '"$',''))
+
+# keep the distinct whole rows
+geneID <- geneID %>%
+  distinct(gene_id, transcript_id )
+```
+
+```{r}
+# link the gene iD, transcript ID and intron locus together
+join <- geneID %>%
+  left_join(corrected_introns %>%
+              dplyr::select(transcript_id, locus), by = 'transcript_id')
+```
+
+```{r}
+# keep the unique locus for each gene id
+ret <- join %>%
+  distinct(gene_id, locus) %>%
+  mutate(gene_id = str_replace_all(string = gene_id, pattern = '\\..*$', replacement = '')) %>%
+  distinct(gene_id, locus)
+```
+
+```{r}
+# only keeping the genes that are abundant in the genome (have expression)
+# keep the rows that have 0 zeros in the raw count matrix
+
+# detk-filter  -o raw_salmon_cts_day3_matrix_all_nonzero.csv 'nonzero(all) > 0.99' raw_salmon_cts_day3_matrix.csv
+
+abundant <- read_csv('../../11_salmon_quant/data/raw_salmon_cts_day3_matrix_all_nonzero.csv') %>%
+    mutate(Name = str_replace_all(string = Name, pattern = '\\..*$', replacement = '')) %>%
+  pull(Name)
+  
+```
+
+```{r}
+
+```
+
