@@ -79,6 +79,19 @@ abundant <- read_csv('../../11_salmon_quant/data/raw_salmon_cts_day3_matrix_all_
 ```
 
 ```{r}
+# use the abundant to subset the ret 
+RET <- ret %>%
+  filter(gene_id %in% abundant)
 
+
+```
+
+```{r}
+# generate the intron len(NA to be 0)
+len <- RET %>%
+  split(is.na(.$locus)) %>%
+  map_dfr(~ separate(data = ., col = locus, into = c('chr','coord'), sep = ':') %>%
+            separate(coord, into = c('start','end'), sep = '-', convert = T) %>%
+            mutate(intronLen = ifelse(is.na(.$end), 0, end - start)))
 ```
 
