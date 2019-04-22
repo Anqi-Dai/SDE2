@@ -1,14 +1,21 @@
 ---
 title: "Retrieve unique backgroud introns"
 author: "Anqi Dai"
-date: "4/22/2019"
-output: html_document
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    code_folding: hide
+
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(knitr)
+library(kableExtra)
 ```
 
 ```{r}
@@ -82,16 +89,27 @@ abundant <- read_csv('../../11_salmon_quant/data/raw_salmon_cts_day3_matrix_all_
 # use the abundant to subset the ret 
 RET <- ret %>%
   filter(gene_id %in% abundant)
-
-
 ```
 
 ```{r}
 # generate the intron len(NA to be 0)
 len <- RET %>%
   split(is.na(.$locus)) %>%
-  map_dfr(~ separate(data = ., col = locus, into = c('chr','coord'), sep = ':') %>%
+  map_dfr(~ separate(data = ., col = locus, into = c('chr','coord'), sep = ':', remove = F) %>%
             separate(coord, into = c('start','end'), sep = '-', convert = T) %>%
             mutate(intronLen = ifelse(is.na(.$end), 0, end - start)))
+```
+
+```{r}
+# write out the data
+len %>%
+  write_csv('../data/unique_introns_for_abundant_genes.csv')
+```
+
+```{r}
+len %>%
+  head() %>%
+  kable(caption = 'Table format for the unique introns for the abundant genes') %>%
+  kable_styling(full_width = F)
 ```
 

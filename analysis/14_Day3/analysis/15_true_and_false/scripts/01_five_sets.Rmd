@@ -5,6 +5,8 @@ date: "4/22/2019"
 output: html_document
 ---
 
+# Day 3
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
 library(tidyverse)
@@ -16,6 +18,40 @@ knitr::include_graphics('diagram.jpg')
 ```
 
 ```{r the first three}
-# only looking at the individual 
+# only looking at the individual PSI values and filter(the first three sets)
+data_path <- '../../05_IRfinder/data/rawIRfinderResult/'
+fns <- list.files(data_path, pattern = 'txt', full.names = T)
+
+res <- fns %>%
+  map(~ read_tsv(.,comment = '#',col_names = T)  %>%
+            mutate(locus = paste(Chr,paste(Start, End, sep = '-'), sep = ':' ) ) %>%
+            rename_all(funs(stringr::str_replace_all(., '-', '_') )) %>%
+            separate(names(.)[4], into = c('Symbol', 'GeneID', 'Category'), sep = '/') %>%
+            mutate(GeneID = str_replace_all(string = GeneID, pattern = '\\..*$', replacement = '')) %>%
+            dplyr::select(locus, GeneID, A_IRratio, B_IRratio) %>%
+        arrange(desc(B_IRratio))) 
+
+
+# check if the B_IRratio are the same(should be)
+look <- res[[1]] %>%
+  inner_join(res[[2]], by = 'locus') %>%
+  filter(B_IRratio.x != B_IRratio.y) %>%
+  nrow
+# ok they are the same
+```
+
+```{r}
+# get the first three sets locus
+set14 <- res[[1]] %>%
+  filter(A_IRratio > 0.1 & A_IRratio < 0.9) %>%
+  pull(locus)
+
+set89 <- res[[2]] %>%
+  filter(A_IRratio > 0.1 & A_IRratio < 0.9) %>%
+  pull(locus)
+
+setControl <- res[[2]] %>%
+  filter(B_IRratio > 0.1 & B_IRratio < 0.9) %>%
+  pull(locus)
 ```
 
