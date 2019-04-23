@@ -12,15 +12,22 @@ output:
 
 # Day 3
 
+## Plan 
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
 library(tidyverse)
 library(kableExtra)
+library(ggpubr)
 ```
 
 ```{r out.width=400}
 knitr::include_graphics('diagram.jpg')
 ```
+
+## The five sets
+
+##### The first three: filtering on PSI_KD or PSI_control between 0.1 and 0.9
 
 ```{r the first three}
 # only looking at the individual PSI values and filter(the first three sets)
@@ -62,8 +69,11 @@ setControl <- res[[2]] %>%
 list(set14 = set14, set89 = set89, setControl = setControl) %>%
   map_dfr(length) %>%
   kable() %>%
-  kable_styling(full_width = F)
+  kable_styling(full_width = F, position = "left")
 ```
+
+##### The latter two: filtering on padj < 0.05 AND PSI_KD or PSI_control between 0.1 and 0.9
+
 
 ```{r}
 # the other two sets
@@ -80,30 +90,87 @@ sig <- fns %>%
         filter(padj < 0.05) 
         )
 
+
+# add a filtering of the PSI on the sig too
+sig14 <- sig[[1]] %>%
+  filter(A_IRratio > 0.1 & A_IRratio < 0.9) %>%
+  pull(locus)
+
+sig89 <- sig[[2]] %>%
+  filter(A_IRratio > 0.1 & A_IRratio < 0.9) %>%
+  pull(locus)
+
+
 # how many of them left
-sig %>%
-  map_dfc(nrow) %>%
-  rename(sig14 = names(.)[1],
-         sig89 = names(.)[2]) %>%
-  kable() %>%
-  kable_styling(full_width = F)
-
-
+list(sig14 = sig14, sig89 = sig89) %>%
+  map_dfr(length) %>%
+  kable(caption = "Sig events with PSI filtering") %>%
+  kable_styling(full_width = F, position = "left")
 ```
+
 ```{r}
-# extract the sig locus only
-sig_locus <- sig %>%
-  map(~ pull(.data = ., locus)) 
-
 # get the intersection and union of the sig locus in the above 14 and 89
-set_overlap <- intersect(sig_locus[[1]], sig_locus[[2]])
+set_overlap <- intersect(sig14, sig89)
 
-set_union <- union(sig_locus[[1]], sig_locus[[2]])
+set_union <- union(sig14, sig89)
 
 # make the numbers in to a df
 list(set_overlap = set_overlap, set_union = set_union) %>%
   map_dfc(length)  %>%
   kable()  %>%
-  kable_styling(full_width = F)
+  kable_styling(full_width = F, position = "left")
 ```
 
+## Compared to background introns
+
+
+##### Keep the introns of the genes that have expression in all samples and the intron length should be greater than 30.
+
+How many are there?
+
+```{r}
+# load the background introns
+# filter out ones that have intronLen <= 30, since they are deduced from sequences, could simply be indels 
+bg <- read_csv('../data/unique_introns_for_abundant_genes.csv') %>%
+  filter(intronLen > 30)
+
+# a summary look at how many introns per gene
+p <- bg %>%
+  group_by(gene_id) %>%
+  summarise(cnt = n()) %>%
+  gghistogram(x = 'cnt', bins = 100,
+              title = 'Histogram of total number of intron locus per gene',
+              fill = 'gray')
+
+# how many locus in bg
+total_bg <- nrow(bg)
+total_bg
+```
+
+##### Compute the fraction compared to the background of 1. the original numbers in each set and 2. the number of locus that also exist in the background intron locus. 
+
+```{r}
+# get the overlap between the five sets and the bg 
+ret <- list(set14 = set14,
+     set89 = set89,
+     setControl = setControl,
+     set_overlap = set_overlap,
+     set_union = set_union) %>%
+  map(~ intersect(., bg$locus))
+
+# the numbers
+ret %>%
+  map_dfc(length) %>%
+  gather(key = Group, value = overlap_num ) %>%
+  mutate(overlap_num_Perc = paste(round(overlap_num/total_bg*100, 2), '%', sep = ''))  %>%
+  mutate(original_num = list(set14 = set14,
+                             set89 = set89,
+                             setControl = setControl,
+                             set_overlap = set_overlap,
+                             set_union = set_union) %>%
+                          map_int(length)) %>%
+  mutate(original_num_Perc = paste(round(original_num/total_bg*100, 2), '%', sep = ''))  %>%
+  kable(caption = 'Percentage of the IR events compared to the background ones') %>%
+  kable_styling(full_width = T, position = "left")
+
+```
