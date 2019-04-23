@@ -1,0 +1,65 @@
+---
+title: "Smallest intron"
+author: "Anqi Dai"
+date: "4/23/2019"
+output: html_document
+---
+
+**Are the significantly retained introns the smallest intron in each gene?**
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
+library(tidyverse)
+library(kableExtra)
+library(ggpubr)
+```
+
+
+```{r}
+# load the data of the sig RI events(also passed PSI filtering) summarised on gene level
+sig <- read_csv('../data/day3_sig_RI_locus_gene_level.csv',
+                col_types = cols(RI_len_all =col_character() ))
+
+# load the data for the background introns
+# the genes are the ones that have expression in all 9 samples
+# filter out ones that have intronLen <= 30, since they are deduced from sequences, could simply be indels 
+bg <- read_csv('../data/unique_introns_for_abundant_genes.csv') %>%
+  filter(intronLen > 30)
+```
+```{r}
+# select the shortest intron in each gene
+bg_short <- bg %>%
+  group_by(gene_id) %>%
+  summarise( shortest = min(intronLen))
+
+# join that with the sig table
+res  <- sig %>%
+  dplyr::select(ensembl_gene_id, RI_len_all) %>%
+  left_join(bg_short %>%
+              rename(ensembl_gene_id = gene_id), by = 'ensembl_gene_id') %>%
+  mutate(min_sig_len = str_replace_all(string = RI_len_all, pattern = '\\,.*$', replacement = ''), 
+         min_sig_len= as.numeric(min_sig_len) )  %>%
+  mutate(abs_len_diff = abs(min_sig_len - shortest))
+
+
+```
+
+
+```{r}
+res %>%
+  split(is.na(.$shortest)) %>%
+  map_dfc(nrow) %>%
+  rename(non_NA_rows = names(.)[1],
+         NA_rows = names(.)[2])
+
+# rows where shortes is NA(doesn't make into the bg list) will check later
+NA_rows <- res %>%
+  filter(is.na(shortest))
+
+
+# show the distribution of the non-NA-rows
+ res %>%
+  filter(!is.na(shortest))%>%
+   gghistogram(x = 'abs_len_diff', bins = 100) 
+```
+

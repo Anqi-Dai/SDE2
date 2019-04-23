@@ -70,6 +70,9 @@ unique_gene <- d3RI %>%
             cnt = n()) %>%
   arrange(desc(cnt))
 
+```
+
+```{r}
 # get the ensemble gene id for those sig RI locus
 library(biomaRt)
 
@@ -97,6 +100,9 @@ sig_RI <- unique_gene %>%
   left_join(symbol, by = 'external_gene_name') %>%
   left_join(short, by = 'ensembl_gene_id') %>%
   dplyr::select(external_gene_name, shortestIntron = intronLen, RI_len_all, cnt, ensembl_gene_id)
+
+
+write_csv(sig_RI, '../../15_true_and_false/data/day3_sig_RI_locus_gene_level.csv')
 ```
 
 ```{r}
