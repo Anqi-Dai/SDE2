@@ -31,11 +31,13 @@ knitr::include_graphics('diagram.jpg')
 
 ```{r the first three}
 # only looking at the individual PSI values and filter(the first three sets)
+# yes finally figured out how to align the IRfinder raw result with the GTF intron result. 
 data_path <- '../../05_IRfinder/data/rawIRfinderResult/'
 fns <- list.files(data_path, pattern = 'txt', full.names = T)
 
 res <- fns %>%
   map(~ read_tsv(.,comment = '#',col_names = T)  %>%
+        mutate(Start = Start + 1) %>%
         mutate(locus = paste(Chr,paste(Start, End, sep = '-'), sep = ':' ) ) %>%
         rename_all(funs(stringr::str_replace_all(., '-', '_') )) %>%
         separate(names(.)[4], into = c('Symbol', 'GeneID', 'Category'), sep = '/') %>%
@@ -72,7 +74,9 @@ list(set14 = set14, set89 = set89, setControl = setControl) %>%
   kable_styling(full_width = F, position = "left")
 ```
 
-##### The latter two: filtering on padj < 0.05 AND PSI_KD or PSI_control between 0.1 and 0.9
+##### The latter two: filtering on padj < 0.05
+
+No PSI filtering since we wanna keep those potentially interesting events. We are not limited to events that we can identify in the lab here only.
 
 
 ```{r}
@@ -80,6 +84,7 @@ list(set14 = set14, set89 = set89, setControl = setControl) %>%
 # get the sig events of 14 and 89
 sig <- fns %>%
   map(~ read_tsv(.,comment = '#',col_names = T)  %>%
+        mutate(Start = Start + 1) %>%
         mutate(locus = paste(Chr,paste(Start, End, sep = '-'), sep = ':' ) ) %>%
         rename_all(funs(stringr::str_replace_all(., '-', '_') )) %>%
         separate(names(.)[4], into = c('Symbol', 'GeneID', 'Category'), sep = '/') %>%
@@ -90,53 +95,46 @@ sig <- fns %>%
         filter(padj < 0.05) 
         )
 
-
-# add a filtering of the PSI on the sig too
-sig14 <- sig[[1]] %>%
-  filter(A_IRratio > 0.1 & A_IRratio < 0.9) %>%
-  pull(locus)
-
-sig89 <- sig[[2]] %>%
-  filter(A_IRratio > 0.1 & A_IRratio < 0.9) %>%
-  pull(locus)
-
-
 # how many of them left
-list(sig14 = sig14, sig89 = sig89) %>%
-  map_dfr(length) %>%
-  kable(caption = "Sig events with PSI filtering") %>%
-  kable_styling(full_width = F, position = "left")
+sig %>%
+  map_dfc(nrow) %>%
+  rename(sig14 = names(.)[1],
+         sig89 = names(.)[2]) %>%
+  kable() %>%
+  kable_styling(full_width = F, position = 'left')
 ```
 
 ```{r}
-# get the intersection and union of the sig locus in the above 14 and 89
-set_overlap <- intersect(sig14, sig89)
+# extract the sig locus only
+sig_locus <- sig %>%
+  map(~ pull(.data = ., locus)) 
 
-set_union <- union(sig14, sig89)
+# get the intersection and union of the sig locus in the above 14 and 89
+set_overlap <- intersect(sig_locus[[1]], sig_locus[[2]])
+set_union <- union(sig_locus[[1]], sig_locus[[2]])
 
 # make the numbers in to a df
 list(set_overlap = set_overlap, set_union = set_union) %>%
   map_dfc(length)  %>%
   kable()  %>%
-  kable_styling(full_width = F, position = "left")
+  kable_styling(full_width = F, position = 'left')
 ```
 
 ## Compared to background introns
 
-
-##### Keep the introns of the genes that have expression in all samples and the intron length should be greater than 30.
+##### Keep the introns of the genes that have expression in at least one of the samples and the intron length should be greater than 30.
 
 How many are there?
 
 ```{r}
 # load the background introns
 # filter out ones that have intronLen <= 30, since they are deduced from sequences, could simply be indels 
-bg <- read_csv('../data/unique_introns_for_abundant_genes.csv') %>%
+bg <- read_csv('../data/unique_introns_for_expressive_genes.csv') %>%
   filter(intronLen > 30)
 
 # a summary look at how many introns per gene
 p <- bg %>%
-  group_by(gene_id) %>%
+  group_by(ensembl_gene_id) %>%
   summarise(cnt = n()) %>%
   gghistogram(x = 'cnt', bins = 100,
               title = 'Histogram of total number of intron locus per gene',

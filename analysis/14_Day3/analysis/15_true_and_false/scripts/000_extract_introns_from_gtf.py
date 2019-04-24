@@ -35,7 +35,7 @@ for tid, exons in transcripts.items() :
     gid = gid_regex.search(exons[0][-1]).group(1)
     exons = sorted(exons,key=lambda x: int(x[3]))
     for e1, e2 in zip(exons,exons[1:]) : 
-        genes[gid].append((exons[0][0],int(e1[4]),int(e2[3]),exons[0][6],gid))
+        genes[gid].append((exons[0][0],int(e1[4]) + 1,int(e2[3]) - 1,exons[0][6],gid))
 
 all_introns = []
 for gid, introns in genes.items() : 
