@@ -74,14 +74,14 @@ ret <- join %>%
 ```
 
 ```{r}
-# only keeping the genes that are abundant in the genome (have expression)
-# keep the rows that have 0 zeros in the raw count matrix
+# selecting genes to be the background ones
+# only removing the rows that have all zeros
 
-# detk-filter  -o raw_salmon_cts_day3_matrix_all_nonzero.csv 'nonzero(all) > 0.99' raw_salmon_cts_day3_matrix.csv
+# detk-filter  -o raw_salmon_cts_day3_matrix_nonzero_all_gt0.csv 'nonzero(all) > 0' raw_salmon_cts_day3_matrix.csv
 
-abundant <- read_csv('../../11_salmon_quant/data/raw_salmon_cts_day3_matrix_all_nonzero.csv') %>%
+abundant <- read_csv('../../11_salmon_quant/data/raw_salmon_cts_day3_matrix_nonzero_all_gt0.csv') %>%
     mutate(Name = str_replace_all(string = Name, pattern = '\\..*$', replacement = '')) %>%
-  pull(Name)
+    pull(Name)
   
 ```
 

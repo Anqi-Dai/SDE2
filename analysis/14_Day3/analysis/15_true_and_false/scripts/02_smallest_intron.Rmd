@@ -8,7 +8,6 @@ output:
     toc_float: true
     toc_depth: 3
     code_folding: hide
-
 ---
 
 **Are the significantly retained introns the smallest intron in each gene?**
@@ -20,14 +19,62 @@ library(kableExtra)
 library(ggpubr)
 ```
 
-## Connect sig RI events with background ones
+## Create sig RI events
 
 ```{r}
-# load the data of the sig RI events(also passed PSI filtering) summarised on gene level
-sig <- read_csv('../data/day3_sig_RI_locus_gene_level.csv',
-                col_types = cols(RI_len_all = col_character(),
-                                 locus_all = col_character()))
+# load the sig RI locus in day 3 and check out the length of that RI
+# since I corrected the IRfinder result to be in line with other two tools by doing start = start + 1. I need to subtract 1 to get it back.
+# IRfinder : 0 based for start and end
+# GTF : 1 based for start and end
 
+# also here I don't have any filtering on PSI or delta PSI
+d3RI <- read_csv('../../13_fig1/output/all_tools_sig05_locus_info_day3_with_all_PSI_values.csv') %>%
+  dplyr::select(locus, type, external_gene_name) %>%
+  filter(type == 'RI') %>%
+  separate(locus, into = c('chr','coord'), sep = ':', remove = F) %>%
+  separate(coord, into = c('start','end'),sep = '-', convert = T) %>%
+  mutate(start = start - 1) %>%
+  mutate(RIlen = end - start)
+
+
+# collapse the df to see the genes that have more than one RI event
+unique_gene <- d3RI %>%
+  group_by(external_gene_name) %>%
+  arrange(RIlen, .by_group = TRUE) %>%
+  summarise(RI_len_all = paste0(RIlen, collapse = ","),
+            locus_all = paste0(locus, collapse = ","),
+            cnt = n()) %>%
+  arrange(desc(cnt))
+
+
+# get the ensemble gene id for those sig RI locus
+library(biomaRt)
+
+mart <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+
+# the ensembl_gene_id of the genes that you are interested in (unique)
+genes <- d3RI %>%
+  distinct(external_gene_name) %>%
+  pull(external_gene_name)
+
+# retrieve the feature information of the listed attributes
+symbol <- getBM(filters = "external_gene_name",
+                attributes = c('ensembl_gene_id','external_gene_name'),
+                values = genes, 
+                mart = mart)
+
+# the unique ensemble gene ids
+symbol <- symbol %>%
+  distinct(external_gene_name, .keep_all = T)
+  
+# link them all together now I have gene ID for the locus and len of the RI
+sig <- unique_gene %>%
+  left_join(symbol, by = 'external_gene_name') 
+```
+
+
+
+```{r}
 # load the data for the background introns
 # the genes are the ones that have expression in all 9 samples
 # filter out ones that have intronLen <= 30, since they are deduced from sequences, could simply be indels 
