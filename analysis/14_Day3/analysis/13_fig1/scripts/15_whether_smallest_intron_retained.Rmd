@@ -57,7 +57,7 @@ d3RI <- read_csv('../output/all_tools_sig05_locus_info_day3_with_all_PSI_values.
   filter(Psi_14 > 0.1 & Psi_89 > 0.1  & abs(deltaPSI) > 0.1) %>%
   dplyr::select(locus, type, external_gene_name) %>%
   filter(type == 'RI') %>%
-  separate(locus, into = c('chr','coord'), sep = ':') %>%
+  separate(locus, into = c('chr','coord'), sep = ':', remove = F) %>%
   separate(coord, into = c('start','end'),sep = '-', convert = T) %>%
   mutate(RIlen = end - start)
 
@@ -67,6 +67,7 @@ unique_gene <- d3RI %>%
   group_by(external_gene_name) %>%
   arrange(RIlen, .by_group = TRUE) %>%
   summarise(RI_len_all = paste0(RIlen, collapse = ","),
+            locus_all = paste0(locus, collapse = ","),
             cnt = n()) %>%
   arrange(desc(cnt))
 
@@ -97,9 +98,7 @@ symbol <- symbol %>%
 
 ```{r}
 sig_RI <- unique_gene %>%
-  left_join(symbol, by = 'external_gene_name') %>%
-  left_join(short, by = 'ensembl_gene_id') %>%
-  dplyr::select(external_gene_name, shortestIntron = intronLen, RI_len_all, cnt, ensembl_gene_id)
+  left_join(symbol, by = 'external_gene_name') 
 
 
 write_csv(sig_RI, '../../15_true_and_false/data/day3_sig_RI_locus_gene_level.csv')

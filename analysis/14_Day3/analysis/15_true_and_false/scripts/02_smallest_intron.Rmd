@@ -1,8 +1,14 @@
 ---
 title: "Smallest intron"
 author: "Anqi Dai"
-date: "4/23/2019"
-output: html_document
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    code_folding: hide
+
 ---
 
 **Are the significantly retained introns the smallest intron in each gene?**
@@ -14,11 +20,13 @@ library(kableExtra)
 library(ggpubr)
 ```
 
+## Connect sig RI events with background ones
 
 ```{r}
 # load the data of the sig RI events(also passed PSI filtering) summarised on gene level
 sig <- read_csv('../data/day3_sig_RI_locus_gene_level.csv',
-                col_types = cols(RI_len_all =col_character() ))
+                col_types = cols(RI_len_all = col_character(),
+                                 locus_all = col_character()))
 
 # load the data for the background introns
 # the genes are the ones that have expression in all 9 samples
@@ -26,6 +34,7 @@ sig <- read_csv('../data/day3_sig_RI_locus_gene_level.csv',
 bg <- read_csv('../data/unique_introns_for_abundant_genes.csv') %>%
   filter(intronLen > 30)
 ```
+
 ```{r}
 # select the shortest intron in each gene
 bg_short <- bg %>%
@@ -34,14 +43,20 @@ bg_short <- bg %>%
 
 # join that with the sig table
 res  <- sig %>%
-  dplyr::select(ensembl_gene_id, RI_len_all) %>%
+  dplyr::select(ensembl_gene_id, RI_len_all, locus_all) %>%
   left_join(bg_short %>%
               rename(ensembl_gene_id = gene_id), by = 'ensembl_gene_id') %>%
   mutate(min_sig_len = str_replace_all(string = RI_len_all, pattern = '\\,.*$', replacement = ''), 
          min_sig_len= as.numeric(min_sig_len) )  %>%
   mutate(abs_len_diff = abs(min_sig_len - shortest))
+```
 
 
+```{r}
+res %>%
+  head() %>%
+  kable(caption = 'A look at the joined table') %>%
+  kable_styling()
 ```
 
 
@@ -50,16 +65,83 @@ res %>%
   split(is.na(.$shortest)) %>%
   map_dfc(nrow) %>%
   rename(non_NA_rows = names(.)[1],
-         NA_rows = names(.)[2])
+         NA_rows = names(.)[2]) %>%
+  kable() %>%
+  kable_styling(full_width = F)
 
+# show the distribution of the non-NA-rows
+res %>%
+  filter(!is.na(shortest)) %>%
+  gghistogram(x = 'abs_len_diff', bins = 200,
+              color = 'red',
+              xlab = 'absolute length difference',
+              title = 'Distribution of absolute length difference\nbetween the shortest intron in the gene and the\nshortest retained intron identified by IRfinder') +
+  ggsave('../figs/Distribution of absolute length difference.jpg', width = 8, height = 6)
+```
+
+```{r out.width=600}
+# what is happening at the abs_len_diff > 6000?
+# add screenshots form IGV. they look real from the annotation file
+file_path <- list.files('../figs/IGV_screenshots _for_long_sig_RI/', full.names = T)
+knitr::include_graphics(file_path)
+```
+
+
+## Zoom in 
+
+```{r}
+# a zoom in to look at only the abs_len_diff < 500
+res %>%
+  filter(!is.na(shortest)) %>%
+  filter(abs_len_diff < 500) %>%
+  gghistogram(x = 'abs_len_diff', bins = 200,
+              color = 'red',
+              xlab = 'absolute length difference',
+              title = 'Same plot but absolute length difference less than 500') +
+  ggsave('../figs/Distribution of absolute length difference less than 500.jpg', width = 8, height = 6)
+```
+
+```{r}
+# a table look at the interval of width 20
+res %>%
+  filter(!is.na(shortest)) %>%
+  filter(abs_len_diff < 500) %>%
+  pull(abs_len_diff)  %>%
+  cut_interval(., length=20) %>%
+  table %>%
+  as_tibble %>%
+  rename(interval = names(.)[1],
+         cnt = names(.)[2]) %>%
+  kable(caption = "Tally of abs_len_diff in a range of intervals") %>%
+  kable_styling(full_width = F)
+
+```
+
+Most of the significantly retained introns are close to the smallest intron in that gene.
+
+## Sig but not abundant
+
+```{r}
 # rows where shortes is NA(doesn't make into the bg list) will check later
 NA_rows <- res %>%
   filter(is.na(shortest))
 
+# get the gene name of those genes
+NA_id <-  NA_rows %>%
+            filter(!is.na(ensembl_gene_id)) %>%
+            pull(ensembl_gene_id)
 
-# show the distribution of the non-NA-rows
- res %>%
-  filter(!is.na(shortest))%>%
-   gghistogram(x = 'abs_len_diff', bins = 100) 
+
+
+# do the genes make into the abundance cnt table?
+abundant <- read_csv('../../11_salmon_quant/data/raw_salmon_cts_day3_matrix_all_nonzero.csv') %>%
+    mutate(Name = str_replace_all(string = Name, pattern = '\\..*$', replacement = '')) %>%
+    pull(Name)
+
+sig %>%
+  filter(ensembl_gene_id %in% NA_id) %>%
+  pull(ensembl_gene_id) %>%
+  map_lgl(~ . %in% abundant)
+
 ```
-
+So some genes have significantly retained introns but do not have enough abundance.
