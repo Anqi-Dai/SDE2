@@ -36,7 +36,7 @@ sig05 <- read_csv('../output/all_tools_sig05_locus_info.csv')
 ```{r}
 # get the psi valus for the sig locus
 final <- sig05 %>%
-  dplyr::select(locus, tool, external_gene_name) %>%
+  dplyr::select(GeneID, locus, tool, external_gene_name) %>%
   left_join(all, by = 'locus')
 
 write_csv(final, '../output/all_tools_sig05_locus_info_day3_with_all_PSI_values.csv')

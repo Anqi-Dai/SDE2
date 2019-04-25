@@ -67,12 +67,10 @@ How many intron locus all together?
 ```{r}
 
 RET %>%
-  distinct(locus, .keep_all = T)  %>%
   nrow
   
 # write out the data
 RET %>%
-  distinct(locus, .keep_all = T)  %>%
   write_csv('../data/unique_introns_for_expressive_genes.csv')
 ```
 

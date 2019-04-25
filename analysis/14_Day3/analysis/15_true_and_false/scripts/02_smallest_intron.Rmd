@@ -23,13 +23,12 @@ library(ggpubr)
 
 ```{r}
 # load the sig RI locus in day 3 and check out the length of that RI
-# since I corrected the IRfinder result to be in line with other two tools by doing start = start + 1. I need to subtract 1 to get it back.
 # IRfinder : 0 based for start and end
 # GTF : 1 based for start and end
 
 # also here I don't have any filtering on PSI or delta PSI
 d3RI <- read_csv('../../13_fig1/output/all_tools_sig05_locus_info_day3_with_all_PSI_values.csv') %>%
-  dplyr::select(locus, type, external_gene_name) %>%
+  dplyr::select(GeneID, locus, type, external_gene_name) %>%
   filter(type == 'RI') %>%
   separate(locus, into = c('chr','coord'), sep = ':', remove = F) %>%
   separate(coord, into = c('start','end'),sep = '-', convert = T) %>%
@@ -37,38 +36,15 @@ d3RI <- read_csv('../../13_fig1/output/all_tools_sig05_locus_info_day3_with_all_
 
 
 # collapse the df to see the genes that have more than one RI event
-unique_gene <- d3RI %>%
-  group_by(external_gene_name) %>%
+sig <- d3RI %>%
+  group_by(GeneID) %>%
   arrange(RIlen, .by_group = TRUE) %>%
   summarise(RI_len_all = paste0(RIlen, collapse = ","),
             locus_all = paste0(locus, collapse = ","),
             cnt = n()) %>%
-  arrange(desc(cnt))
-
-
-# get the ensemble gene id for those sig RI locus
-library(biomaRt)
-
-mart <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
-
-# the ensembl_gene_id of the genes that you are interested in (unique)
-genes <- d3RI %>%
-  distinct(external_gene_name) %>%
-  pull(external_gene_name)
-
-# retrieve the feature information of the listed attributes
-symbol <- getBM(filters = "external_gene_name",
-                attributes = c('ensembl_gene_id','external_gene_name'),
-                values = genes, 
-                mart = mart)
-
-# the unique ensemble gene ids
-symbol <- symbol %>%
-  distinct(external_gene_name, .keep_all = T)
-  
-# link them all together now I have gene ID for the locus and len of the RI
-sig <- unique_gene %>%
-  left_join(symbol, by = 'external_gene_name') 
+  arrange(desc(cnt)) %>%
+  rename(ensembl_gene_id = GeneID) %>%
+  mutate(ensembl_gene_id = str_replace_all(string = ensembl_gene_id, pattern = '\\..*$', replacement = ''))
 ```
 
 ```{r}
@@ -83,7 +59,7 @@ bg <- read_csv('../data/unique_introns_for_expressive_genes.csv') %>%
 # select the shortest intron in each gene
 bg_short <- bg %>%
   group_by(ensembl_gene_id) %>%
-  summarise( shortest = min(intronLen))
+  summarise( shortest = min(intronLen)) 
 
 # join that with the sig table
 res  <- sig %>%
@@ -146,7 +122,7 @@ res %>%
 
 ```{r}
 # a table look at the interval of width 20
-res %>%
+interval20 <- res %>%
   filter(!is.na(shortest)) %>%
   filter(abs_len_diff < 500) %>%
   pull(abs_len_diff)  %>%
@@ -154,10 +130,7 @@ res %>%
   table %>%
   as_tibble %>%
   rename(interval = names(.)[1],
-         cnt = names(.)[2]) %>%
-  kable(caption = "Tally of abs_len_diff in a range of intervals") %>%
-  kable_styling(full_width = F)
-
+         cnt = names(.)[2])
 
 # group by the abs_len_diff and then do a bar plot
 res %>%
@@ -185,7 +158,21 @@ res %>%
 
 ```
 
-26% (219/820) introns are indeed the smallest intron in that gene.
+Of all the genes that have sig RI events, what percentage of them has a RI event that is the smallest intron in that gene? (One gene may have multiple RI events. If there exist one event that is the smallest intron in the gene, it will be counted. )
+
+```{r}
+res %>%
+  filter(abs_len_diff == 0) %>%
+  summarise(Num = nrow(.)) %>%
+  mutate(Total = nrow(res)) %>%
+  mutate(Percentage = paste(round(Num/Total*100, 2), '%', sep = '')) %>%
+  kable(caption = 'what percentage of geneshas a RI event that is the smallest intron in that gene?') %>%
+  kable_styling(full_width = F, position = 'left')
+  
+  
+```
+
+
 
 ## Sig but not abundant
 
@@ -194,23 +181,13 @@ res %>%
 NA_rows <- res %>%
   filter(is.na(shortest))
 
-# get the gene name of those genes
-NA_id <-  NA_rows %>%
-            filter(!is.na(ensembl_gene_id)) %>%
-            pull(ensembl_gene_id)
 
+NA_rows %>%
+  kable(caption = "Gene that doesn't exist in the background") %>%
+  kable_styling
 
-
-# do the genes make into the abundance cnt table?
-abundant <- read_csv('../../11_salmon_quant/data/raw_salmon_cts_day3_matrix_nonzero_all_gt0.csv') %>%
-    mutate(Name = str_replace_all(string = Name, pattern = '\\..*$', replacement = '')) %>%
-    pull(Name)
-
-sig %>%
-  filter(ensembl_gene_id %in% NA_id) %>%
-  pull(ensembl_gene_id) %>%
-  map_lgl(~ . %in% abundant)
-
-```
 
   
+```
+
+
