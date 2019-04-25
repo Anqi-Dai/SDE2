@@ -145,7 +145,7 @@ total_bg <- nrow(bg)
 total_bg
 ```
 
-##### Compute the fraction compared to the background of 1. the original numbers in each set and 2. the number of locus that also exist in the background intron locus. 
+##### The XXX_Perc column is computed as dividing the following two: 1. the original numbers in each set and 2. the number of locus that also exist in the background intron locus, by the total number specified below respectively.
 
 ```{r}
 # get the overlap between the five sets and the bg 

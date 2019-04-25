@@ -18,7 +18,7 @@ library(tidyverse)
 library(kableExtra)
 library(ggpubr)
 ```
-
+ 
 ## Create sig RI events
 
 ```{r}
@@ -33,7 +33,6 @@ d3RI <- read_csv('../../13_fig1/output/all_tools_sig05_locus_info_day3_with_all_
   filter(type == 'RI') %>%
   separate(locus, into = c('chr','coord'), sep = ':', remove = F) %>%
   separate(coord, into = c('start','end'),sep = '-', convert = T) %>%
-  mutate(start = start - 1) %>%
   mutate(RIlen = end - start)
 
 
@@ -72,27 +71,24 @@ sig <- unique_gene %>%
   left_join(symbol, by = 'external_gene_name') 
 ```
 
-
-
 ```{r}
 # load the data for the background introns
 # the genes are the ones that have expression in all 9 samples
 # filter out ones that have intronLen <= 30, since they are deduced from sequences, could simply be indels 
-bg <- read_csv('../data/unique_introns_for_abundant_genes.csv') %>%
+bg <- read_csv('../data/unique_introns_for_expressive_genes.csv') %>%
   filter(intronLen > 30)
 ```
 
 ```{r}
 # select the shortest intron in each gene
 bg_short <- bg %>%
-  group_by(gene_id) %>%
+  group_by(ensembl_gene_id) %>%
   summarise( shortest = min(intronLen))
 
 # join that with the sig table
 res  <- sig %>%
   dplyr::select(ensembl_gene_id, RI_len_all, locus_all) %>%
-  left_join(bg_short %>%
-              rename(ensembl_gene_id = gene_id), by = 'ensembl_gene_id') %>%
+  left_join(bg_short , by = 'ensembl_gene_id') %>%
   mutate(min_sig_len = str_replace_all(string = RI_len_all, pattern = '\\,.*$', replacement = ''), 
          min_sig_len= as.numeric(min_sig_len) )  %>%
   mutate(abs_len_diff = abs(min_sig_len - shortest))
@@ -162,9 +158,34 @@ res %>%
   kable(caption = "Tally of abs_len_diff in a range of intervals") %>%
   kable_styling(full_width = F)
 
+
+# group by the abs_len_diff and then do a bar plot
+res %>%
+  filter(!is.na(shortest)) %>%
+  group_by(abs_len_diff) %>%
+  summarise(cnt = n()) %>%
+  filter(abs_len_diff < 20) %>%
+  ggbarplot(x = 'abs_len_diff', y = 'cnt',
+            color = 'red',label = T,
+            title = 'Tally of absolute len difference when it is below 20',
+            xlab = 'absolute length difference')  +
+  ggsave('../figs/Tally of absolute len difference when it is below 20.jpg', width = 6, height = 5)
+
+res %>%
+  filter(!is.na(shortest)) %>%
+  group_by(abs_len_diff) %>%
+  summarise(cnt = n()) %>% 
+  mutate(thre20 = abs_len_diff < 20) %>% 
+  split(.$thre20) %>%
+  map_dfc( ~ sum(.$cnt)) %>%
+  rename(gt20 = names(.)[1],
+         lt20 = names(.)[2]) %>%
+  kable(caption = 'How many abs_len_diff < 20 and how many are > 20') %>%
+  kable_styling( position = 'left')
+
 ```
 
-Most of the significantly retained introns are close to the smallest intron in that gene.
+26% (219/820) introns are indeed the smallest intron in that gene.
 
 ## Sig but not abundant
 
@@ -181,7 +202,7 @@ NA_id <-  NA_rows %>%
 
 
 # do the genes make into the abundance cnt table?
-abundant <- read_csv('../../11_salmon_quant/data/raw_salmon_cts_day3_matrix_all_nonzero.csv') %>%
+abundant <- read_csv('../../11_salmon_quant/data/raw_salmon_cts_day3_matrix_nonzero_all_gt0.csv') %>%
     mutate(Name = str_replace_all(string = Name, pattern = '\\..*$', replacement = '')) %>%
     pull(Name)
 
@@ -191,4 +212,5 @@ sig %>%
   map_lgl(~ . %in% abundant)
 
 ```
-So some genes have significantly retained introns but do not have enough abundance.
+
+  
