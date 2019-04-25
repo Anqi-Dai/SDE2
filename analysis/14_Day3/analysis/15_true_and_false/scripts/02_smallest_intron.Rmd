@@ -10,7 +10,7 @@ output:
     code_folding: hide
 ---
 
-**Are the significantly retained introns the smallest intron in each gene?**
+# Are the significantly retained introns the smallest intron in each gene?
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
@@ -19,7 +19,9 @@ library(kableExtra)
 library(ggpubr)
 ```
  
-## Create sig RI events
+## sig RI genes VS background genes
+
+These are the sig RI *events* assembled from all three tools. No PSI filtering was added. 
 
 ```{r}
 # load the sig RI locus in day 3 and check out the length of that RI
@@ -28,6 +30,7 @@ library(ggpubr)
 
 # also here I don't have any filtering on PSI or delta PSI
 d3RI <- read_csv('../../13_fig1/output/all_tools_sig05_locus_info_day3_with_all_PSI_values.csv') %>%
+  filter(GeneID != 'ENSG00000259827') %>%
   dplyr::select(GeneID, locus, type, external_gene_name) %>%
   filter(type == 'RI') %>%
   separate(locus, into = c('chr','coord'), sep = ':', remove = F) %>%
@@ -78,25 +81,54 @@ res %>%
   kable_styling()
 ```
 
+Are all those genes exist in the background ones?
 
 ```{r}
-res %>%
-  split(is.na(.$shortest)) %>%
-  map_dfc(nrow) %>%
-  rename(non_NA_rows = names(.)[1],
-         NA_rows = names(.)[2]) %>%
-  kable() %>%
-  kable_styling(full_width = F)
+abundant <- read_csv('../../11_salmon_quant/data/raw_salmon_cts_day3_matrix_nonzero_all_gt0.csv') %>%
+  mutate(Name = str_replace_all(string = Name, pattern = '\\..*$', replacement = '')) 
 
-# show the distribution of the non-NA-rows
+library(VennDiagram)
+
+diff_list <- list(sig_RI_gene = res$ensembl_gene_id,
+                  background = abundant$Name )
+fill <- c("light blue", "pink")
+size  <- rep(0.5, 2)
+venn <- venn.diagram(x = diff_list, 
+      filename = NULL,
+      height = 2000,
+      width = 2000, fill = fill,
+      cat.default.pos = "text", 
+      cat.cex = size,
+      main = "Are all the sig genes in the background ones");
+png('../figs/sig in bg.png', width = 4, height = 4, units = 'in', res = 300)
+grid.draw(venn)
+dev.off()
+```
+```{r out.width=400}
+knitr::include_graphics('../figs/sig in bg.png')
+```
+
+Yes, all the *genes* that have any sig RI events exist in the background ones. Again, we are keeping all the genes that have at least one non-zero count in the count matrix, meaning any gene that shows any indication of expression will be in the background ones. 
+
+## Smallest intron in that gene VS smallest sig RI event in that gene
+
+The major metric here is the *abs_len_diff*, which is absolute value of (smallest intron length in that gene  minus  smallest significantly retained intron length in that gene).
+
+
+```{r}
+# show the distribution of the abs_len_diff
 res %>%
-  filter(!is.na(shortest)) %>%
   gghistogram(x = 'abs_len_diff', bins = 200,
               color = 'red',
               xlab = 'absolute length difference',
               title = 'Distribution of absolute length difference\nbetween the shortest intron in the gene and the\nshortest retained intron identified by IRfinder') +
   ggsave('../figs/Distribution of absolute length difference.jpg', width = 8, height = 6)
 ```
+
+
+### What about some sig RI event that are very long retained introns.
+
+A look in the IGV (loading the annotation file used in running those tools). The lines that have a pink line below it are the long introns that are retained. 
 
 ```{r out.width=600}
 # what is happening at the abs_len_diff > 6000?
@@ -106,11 +138,11 @@ knitr::include_graphics(file_path)
 ```
 
 
-## Zoom in 
 
 ```{r}
+### Zooming in 
 # a zoom in to look at only the abs_len_diff < 500
-res %>%
+p <- res %>%
   filter(!is.na(shortest)) %>%
   filter(abs_len_diff < 500) %>%
   gghistogram(x = 'abs_len_diff', bins = 200,
@@ -118,9 +150,8 @@ res %>%
               xlab = 'absolute length difference',
               title = 'Same plot but absolute length difference less than 500') +
   ggsave('../figs/Distribution of absolute length difference less than 500.jpg', width = 8, height = 6)
-```
 
-```{r}
+
 # a table look at the interval of width 20
 interval20 <- res %>%
   filter(!is.na(shortest)) %>%
@@ -131,6 +162,12 @@ interval20 <- res %>%
   as_tibble %>%
   rename(interval = names(.)[1],
          cnt = names(.)[2])
+```
+
+### Tallying of the abs_len_diff
+
+```{r}
+
 
 # group by the abs_len_diff and then do a bar plot
 res %>%
@@ -172,22 +209,6 @@ res %>%
   
 ```
 
-
-
-## Sig but not abundant
-
-```{r}
-# rows where shortes is NA(doesn't make into the bg list) will check later
-NA_rows <- res %>%
-  filter(is.na(shortest))
-
-
-NA_rows %>%
-  kable(caption = "Gene that doesn't exist in the background") %>%
-  kable_styling
-
-
-  
-```
+ 
 
 
