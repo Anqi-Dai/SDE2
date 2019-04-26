@@ -1,0 +1,62 @@
+---
+title: "KD comparison"
+author: "Anqi Dai"
+date: "4/26/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
+library(tidyverse)
+library(kableExtra)
+```
+
+#### Compare with other KD IRfinder results on the paper
+
+## Data on the paper
+
+```{r out.width=300}
+knitr::include_graphics('../figs/paper_KD_results.png')
+```
+
+```{r}
+# change the above data into a tibble
+dat <- tibble(
+  gene = c('TIA1','SRSF1','U2AF2','PCBP1','PCBP2','PTBP1','SRSF7','FUS'),
+  decreased = c(52, 214, 141, 53, 43, 90, 46, 221),
+  increased = c(1849, 2088, 3204, 2775, 1886, 2122, 1831, 227)
+)
+```
+
+```{r}
+# filter to have the nominal P value < 0.05 events to be significant 
+# then put them to be IR increased and decreased by comparing A_IRratio with B_IRratio
+data_path <- '../../05_IRfinder/data/rawIRfinderResult/'
+fns <- list.files(data_path, pattern = 'txt', full.names = T)
+
+sig <- fns %>%
+  map(~ read_tsv(.,comment = '#',col_names = T)  %>%
+        mutate(Start = Start + 1) %>%
+        mutate(locus = paste(Chr,paste(Start, End, sep = '-'), sep = ':' ) ) %>%
+        rename_all(funs(stringr::str_replace_all(., '-', '_') )) %>%
+        separate(names(.)[4], into = c('Symbol', 'GeneID', 'Category'), sep = '/') %>%
+        mutate(GeneID = str_replace_all(string = GeneID, pattern = '\\..*$', replacement = '')) %>%
+        filter(p_diff < 0.05) %>%
+        mutate(direction = ifelse(A_IRratio > B_IRratio, 'increased','decreased')) %>%
+        split(.$direction) %>%
+        map_dfc(~ nrow(.)) 
+      ) %>%
+  bind_rows %>%
+  mutate(group = str_match(fns, 'RF.._vs_ctrl'))
+        
+
+sig %>%
+  kable(caption = 'Num of increased and decreased IR events in each comparison') %>%
+  kable_styling(full_width = F, position = 'left')
+
+```
+
+```{r}
+
+```
+

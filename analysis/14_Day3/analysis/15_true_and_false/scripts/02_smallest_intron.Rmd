@@ -71,6 +71,8 @@ res  <- sig %>%
   mutate(min_sig_len = str_replace_all(string = RI_len_all, pattern = '\\,.*$', replacement = ''), 
          min_sig_len= as.numeric(min_sig_len) )  %>%
   mutate(abs_len_diff = abs(min_sig_len - shortest))
+
+
 ```
 
 
@@ -211,4 +213,10 @@ res %>%
 
  
 
+
+```{r}
+# write out the res table
+res %>%
+  write_csv('../data/sig RI genes VS background.csv')
+```
 
