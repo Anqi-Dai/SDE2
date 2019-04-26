@@ -1,8 +1,14 @@
 ---
 title: "KD comparison"
 author: "Anqi Dai"
-date: "4/26/2019"
-output: html_document
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    code_folding: hide
+
 ---
 
 ```{r setup, include=FALSE}
@@ -11,11 +17,11 @@ library(tidyverse)
 library(kableExtra)
 ```
 
-#### Compare with other KD IRfinder results on the paper
+# Compare with other KD IRfinder results on the paper
 
 ## Data on the paper
 
-```{r out.width=300}
+```{r out.width=200}
 knitr::include_graphics('../figs/paper_KD_results.png')
 ```
 
@@ -27,6 +33,9 @@ dat <- tibble(
   increased = c(1849, 2088, 3204, 2775, 1886, 2122, 1831, 227)
 )
 ```
+
+## Our data: nominal P value < 0.05 events and differentiate them to be increased and decreased
+
 
 ```{r}
 # filter to have the nominal P value < 0.05 events to be significant 
@@ -47,7 +56,7 @@ sig <- fns %>%
         map_dfc(~ nrow(.)) 
       ) %>%
   bind_rows %>%
-  mutate(group = str_match(fns, 'RF.._vs_ctrl'))
+  mutate(group = str_match(fns, 'RF..'))
         
 
 sig %>%
@@ -56,7 +65,72 @@ sig %>%
 
 ```
 
-```{r}
 
+## Get the individual of 14 and 89, also the union and intersect of the two
+
+```{r}
+# get the locus only so I can compute the intersect and union
+sig_locus <- fns %>%
+  map(~ read_tsv(.,comment = '#',col_names = T)  %>%
+        mutate(Start = Start + 1) %>%
+        mutate(locus = paste(Chr,paste(Start, End, sep = '-'), sep = ':' ) ) %>%
+        rename_all(funs(stringr::str_replace_all(., '-', '_') )) %>%
+        separate(names(.)[4], into = c('Symbol', 'GeneID', 'Category'), sep = '/') %>%
+        mutate(GeneID = str_replace_all(string = GeneID, pattern = '\\..*$', replacement = '')) %>%
+        filter(p_diff < 0.05) %>%
+        mutate(direction = ifelse(A_IRratio > B_IRratio, 'increased','decreased'))%>%
+        split(.$direction) 
+      )
+
+up14 <- sig_locus[[1]][['increased']]$locus
+down14 <- sig_locus[[1]][['decreased']]$locus
+
+up89 <- sig_locus[[2]][['increased']]$locus
+down89 <- sig_locus[[2]][['decreased']]$locus
+
+# get the intersect and union of those
+RF14 <- list(up14 = up14, down14 = down14)
+RF89 <- list(up89 = up89, down89 = down89)
+
+overlap <- map2(RF14, RF89, intersect)  %>%
+  map_dfc(length) %>%
+  rename(increased = names(.)[1],
+         decreased = names(.)[2])
+
+Union <- map2(RF14, RF89, union) %>%
+  map_dfc(length) %>%
+  rename(increased = names(.)[1],
+         decreased = names(.)[2])
+
+# bind them together
+two <- bind_rows(overlap, Union) %>%
+  mutate(group = c('intersect', 'union'))
+
+our <- bind_rows(sig, two) %>%
+  dplyr::select(gene = group, decreased, increased) %>%
+  mutate(gene = str_glue('SDE2 {gene}'))
+
+our %>%
+  kable() %>%
+  kable_styling(full_width = F, position = 'left')
+```
+
+
+## Combine our data with the paper data, and divide by the total number of possible RI events to get a percentage.
+
+```{r}
+# the total number of possible IR events is 
+total <- read_csv('../data/unique_introns_for_expressive_genes.csv') %>%
+  filter(intronLen > 30) %>%
+  nrow
+
+# combine with the paper's dataset
+final <- bind_rows(dat, our) %>%
+  mutate(decreased_in_perc = paste(round(decreased/total, 3), '%', sep = ''),
+         increased_in_perc = paste(round(increased/total, 3), '%', sep = ''))
+
+final %>%
+  kable(caption = 'Combined data in number and fraction') %>%
+  kable_styling(full_width = F, position = 'left')
 ```
 
