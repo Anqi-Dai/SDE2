@@ -136,6 +136,13 @@ final %>%
 ```
 
 ```{r}
+# write out final so that I could plot in other scripts
+final %>%
+  write_csv('../output/paper and our KD events compare.csv')
+```
+
+
+```{r}
 # make the above "increased" in percent a bar plot just to show the difference 
 # remove the union row, change the siRNA's name, add a factor to tell our data and paper data apart
 final %>%
@@ -153,12 +160,10 @@ final %>%
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
       axis.text=element_text(size=8),
       axis.title.x=element_blank(),
-      legend.position = "none") 
+      legend.position = "none") +
   ggsave('../figs/KD_comparison_bar.jpg', width = 7, height = 5, dpi = 300)
 
   
 ```
-```{r}
-mypal = ggsci::pal_npg("jco", alpha = 1)(9)
-```
+
 
