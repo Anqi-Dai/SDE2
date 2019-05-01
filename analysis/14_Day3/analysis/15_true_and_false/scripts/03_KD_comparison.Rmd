@@ -146,14 +146,13 @@ final %>%
 # make the above "increased" in percent a bar plot just to show the difference 
 # remove the union row, change the siRNA's name, add a factor to tell our data and paper data apart
 final %>%
-  filter(! str_detect(gene, 'union')) %>%
   mutate(gene = str_replace(gene, 'RF', 'Si'))  %>%
   mutate(group = if_else(str_detect(gene, 'SDE2'), 'our', 'paper')) %>%
   ggbarplot(x = 'gene', y ='increased',
             color = 'group', fill = 'group',
             ylab = 'Number of events',
             title = 'Comparison of increased IR events after gene KD')  +
-  ylim(0, 5000) +
+  ylim(0, 6800) +
   geom_text(aes(label = increased_in_perc), vjust = -1, size = 3 ) +
   scale_color_manual(values = c('#EEBF2B', '#1175C0'))  +
   scale_fill_manual(values = c('#EEBF2B', '#1175C0'))  +
