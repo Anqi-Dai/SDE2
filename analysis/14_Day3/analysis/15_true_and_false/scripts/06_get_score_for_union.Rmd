@@ -10,9 +10,130 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(ggpubr)
 library(kableExtra)
+library(GenomicRanges)
+library(BSgenome)
+library(BSgenome.Hsapiens.NCBI.GRCh38)
+library(seqinr)
 ```
 
 ```{r}
-dat <- read_csv('../data/01_union_sig_and_intersect_non_sig_locus.csv')
+dat <- read_csv('../data/01_union_sig_and_intersect_non_sig_locus.csv') 
 ```
+
+# Get the position
+
+The locus of the RI at the genes (Compare the proportion of the middle point of RI at the whole gene length)(The closer to 1, the closer to 3' end).
+
+```{r}
+# get the whole gene coord info
+library(biomaRt)
+
+mart <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+
+# the ensembl_gene_id of the genes that you are interested in 
+genes <- dat %>%
+  distinct(GeneID)  %>%
+  pull(GeneID)
+
+# retrieve the feature information of the listed attributes
+symbol <- getBM(filters = "ensembl_gene_id",
+                attributes = c('ensembl_gene_id','start_position','end_position'),
+                values = genes, 
+                mart = mart)
+```
+```{r}
+# join the gene info to out table
+# and get the position of the RI
+res <- dat %>%
+  dplyr::select(ensembl_gene_id = GeneID, locus:Significance) %>%
+  left_join(symbol, by = 'ensembl_gene_id')  %>%
+  mutate(midRI = floor((start+end)/2),
+         geneLen = end_position - start_position,
+         RI_prop = (midRI - start_position)/geneLen)
+
+```
+
+## Get the GC content
+
+```{r}
+genome <- BSgenome.Hsapiens.NCBI.GRCh38
+seqlevelsStyle(genome) = "UCSC"
+grange = makeGRangesFromDataFrame(res, seqnames.field=c("chr"), start.field="start",
+                                  end.field=c("end"), strand.field="Direction")
+seq = BSgenome::getSeq(genome, grange)
+
+res <- res %>%
+  mutate(Seq = as.character(seq))  %>%
+  mutate(GC = stringr::str_count(Seq, "G") + stringr::str_count(Seq, "C")) %>%
+  mutate(GC_per = GC / stringr::str_length(Seq) * 100)
+```
+
+## Get the SS score 
+
+```{r}
+# * Score 5' splice site: Each sequence must be 9 bases long. 3 bases in exon and 6 bases in intron
+# * Score 3' splice site: Each sequence must be 23 bases long. 20 bases in the intron and 3 base in the exon
+
+res <-  res %>%
+  mutate(ss5_start = start - 3,
+         ss5_end = start + 5,
+         ss3_start = end - 20,
+         ss3_end = end + 2 )
+
+grange5 <-  makeGRangesFromDataFrame(res, 
+                                     seqnames.field=c("chr"),  
+                                     start.field="ss5_start", 
+                                     end.field=c("ss5_end"), 
+                                     strand.field="Direction")
+
+
+grange3 <-  makeGRangesFromDataFrame(res, 
+                                     seqnames.field=c("chr"),  
+                                     start.field="ss3_start", 
+                                     end.field=c("ss3_end"), 
+                                     strand.field="Direction")
+
+res <- res %>%
+  mutate(ss5_seq = as.character(BSgenome::getSeq(genome, grange5)),
+         ss3_seq = as.character(BSgenome::getSeq(genome, grange3)),
+         id = paste(chr,paste(start, end, sep = '-'), sep = ':' ) )
+
+
+# write out to fasta file
+write.fasta(sequences = as.list(res$ss5_seq), 
+            names = res$id,
+            file.out =  '../data/ss5.seq.fasta')
+
+
+write.fasta(sequences = as.list(res$ss3_seq), 
+            names = res$id,
+            file.out =  '../data/ss3.seq.fasta')
+```
+
+
+```{r}
+# get the score from the website
+maxent_res <- lapply(file.path('../output', list.files('../output/', pattern = 'txt$')), function(fn) {
+  res = read_delim(fn,comment = '>',delim = '\t',
+                   col_names = F) %>%
+    mutate(score = as.numeric(stringr::str_replace_all(string = X2, pattern = 'MAXENT: ', replacement = '')))
+})
+
+res$ss5_score <- maxent_res[[2]]$score
+res$ss3_score <- maxent_res[[1]]$score
+```
+
+## Get the RI len
+
+```{r}
+res <- res %>%
+  mutate(RI_len = abs(end - start))
+```
+
+```{r}
+# output the table
+res %>%
+  write_csv('../data/02_union_sig_and_intersect_non_sig_all_other_info.csv')
+```
+
 

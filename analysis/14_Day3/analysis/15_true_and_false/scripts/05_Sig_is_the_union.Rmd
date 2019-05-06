@@ -10,7 +10,7 @@ Day 3
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(ggpubr)
-library(kableExtra)
+library(kableExtra) 
 ```
 
 ```{r}
@@ -82,10 +82,11 @@ kd_union <- fns %>%
       )) %>%
   bind_rows %>%
   distinct(locus, .keep_all = T) %>%
-  dplyr::select(GeneID, locus)  %>%
+  dplyr::select(GeneID, locus, Direction)  %>%
   filter(locus %in% out$locus) %>%
   separate(locus, into = c('chr','coord'), sep = ':', remove = F) %>%
-  separate(coord, into = c('start','end'), sep = '-', convert = T)
+  separate(coord, into = c('start','end'), sep = '-', convert = T) %>%
+  mutate(Significance = if_else(locus %in% sig_locus, 'Sig', 'Non-sig'))
 
 
 
