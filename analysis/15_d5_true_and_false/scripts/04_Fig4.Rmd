@@ -45,7 +45,7 @@ compare_plot <- compare %>%
             color = 'group', fill = 'group',
             ylab = 'Number of events', 
             title = 'Comparison of increased IR events after gene KD')  +
-  ylim(0, 6800) +
+  ylim(0, 7900) +
   geom_text(aes(label = increased_in_perc), vjust = -1, size = 3 ) +
   scale_color_manual(values = c('#EEBF2B', '#1175C0'))  +
   scale_fill_manual(values = c('#EEBF2B', '#1175C0'))  +
@@ -143,12 +143,12 @@ len <- all %>%
 ```{r}
 # the gsea of the significant genes
 res %>%
-  filter(Significance == 'Significant') %>%
+  filter(Significance == 'Sig') %>%
   distinct(GeneID)  %>%
-  write_csv('../data/unique_gene_id_for_significant_day3.csv', col_names = F)
+  write_csv('../data/unique_gene_id_for_significant_day5.csv', col_names = F)
 
 # plot the -log10(q) value from Metascape results (top 10)
-gsea <- read_csv('../output/Metascape/day3_sig_gene/all/Enrichment_GO/GO_AllLists.csv') %>%
+gsea <- read_csv('../output/Metascape/day5_sig_gene/all/Enrichment_GO/GO_AllLists.csv') %>%
   top_n(n = -10, wt = `Log(q-value)`) %>%
   mutate(neg_log_q = abs(`Log(q-value)`)) %>%
   mutate(Description = str_replace(Description, ' \\(..+$','')) 

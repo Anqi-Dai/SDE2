@@ -1,0 +1,96 @@
+---
+title: "Sig the union"
+author: "Anqi Dai"
+date: "5/6/2019"
+output: html_document
+---
+Day 3
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggpubr)
+library(kableExtra)
+```
+
+```{r}
+# get the sig and non sig separatly for two comparisons.
+data_path <- '../../05_IRfinder/data/rawIRfinderResult/'
+fns <- list.files(data_path, pattern = 'txt', full.names = T)
+
+sig <- fns %>%
+  map(~ read_tsv(.,comment = '#',col_names = T)  %>%
+        mutate(Start = Start + 1) %>%
+        mutate(locus = paste(Chr,paste(Start, End, sep = '-'), sep = ':' ) ) %>%
+        rename_all(funs(stringr::str_replace_all(., '-', '_') )) %>%
+        separate(names(.)[4], into = c('Symbol', 'GeneID', 'Category'), sep = '/') %>%
+        mutate(GeneID = str_replace_all(string = GeneID, pattern = '\\..*$', replacement = ''),
+               padj = p.adjust(p_diff, method = 'BH')) %>%
+        filter(! Category == 'known-exon') %>%
+        filter(A_IRok != 'MinorIsoform' &  B_IRok != 'MinorIsoform' ) %>%
+        filter(padj < 0.05) 
+      )
+
+
+non_Sig <- fns %>%
+  map(~ read_tsv(.,comment = '#',col_names = T)  %>%
+        mutate(Start = Start + 1) %>%
+        mutate(locus = paste(Chr,paste(Start, End, sep = '-'), sep = ':' ) ) %>%
+        rename_all(funs(stringr::str_replace_all(., '-', '_') )) %>%
+        separate(names(.)[4], into = c('Symbol', 'GeneID', 'Category'), sep = '/') %>%
+        mutate(GeneID = str_replace_all(string = GeneID, pattern = '\\..*$', replacement = ''),
+               padj = p.adjust(p_diff, method = 'BH')) %>%
+        filter(! Category == 'known-exon') %>%
+        filter(A_IRok != 'MinorIsoform' &  B_IRok != 'MinorIsoform' ) %>%
+        filter(padj >= 0.05) 
+      )
+```
+
+
+```{r}
+# now the sig locus is the union
+# and the nonSig is still the intersection
+sig_locus <- union(sig[[1]]$locus, sig[[2]]$locus)
+
+non_Sig_locus <- intersect(non_Sig[[1]]$locus, non_Sig[[2]]$locus)
+
+tibble(sig_locus = length(sig_locus),
+       non_Sig_locus = length(non_Sig_locus)) %>%
+  kable() %>%
+  kable_styling(full_width = F, position = 'left')
+```
+
+```{r}
+# get these locus into a table with the chr start and end and output 
+# since I need to get the score and gc content for them
+# I need the GeneID info to link to the whole gene length
+out <- bind_rows(
+  tibble(locus = sig_locus, 
+         Significance = 'Sig'),
+  tibble(locus = non_Sig_locus, 
+         Significance = 'Non-sig')
+) 
+
+
+kd_union <- fns %>%
+  map(~ read_tsv(.,comment = '#',col_names = T)  %>%
+        mutate(Start = Start + 1) %>%
+        mutate(locus = paste(Chr,paste(Start, End, sep = '-'), sep = ':' ) ) %>%
+        rename_all(funs(stringr::str_replace_all(., '-', '_') )) %>%
+        separate(names(.)[4], into = c('Symbol', 'GeneID', 'Category'), sep = '/') %>%
+        mutate(GeneID = str_replace_all(string = GeneID, pattern = '\\..*$', replacement = '')
+      )) %>%
+  bind_rows %>%
+  distinct(locus, .keep_all = T) %>%
+  dplyr::select(GeneID, locus)  %>%
+  filter(locus %in% out$locus) %>%
+  separate(locus, into = c('chr','coord'), sep = ':', remove = F) %>%
+  separate(coord, into = c('start','end'), sep = '-', convert = T)
+
+
+
+
+kd_union %>%
+  write_csv('../data/01_union_sig_and_intersect_non_sig_locus.csv')
+```
+

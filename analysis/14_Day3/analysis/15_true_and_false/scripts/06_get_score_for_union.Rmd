@@ -1,0 +1,18 @@
+---
+title: "Get score for union"
+author: "Anqi Dai"
+date: "5/6/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggpubr)
+library(kableExtra)
+```
+
+```{r}
+dat <- read_csv('../data/01_union_sig_and_intersect_non_sig_locus.csv')
+```
+
