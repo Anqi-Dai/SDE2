@@ -1,14 +1,13 @@
 ---
 title: "IRfinder result analysis: 14 VS control and 89 VS control"
-mainfont: Arial
-author: Angel
+author: "Anqi Dai"
+date: "`r Sys.Date()`"
 output:
   html_document:
-    df_print: paged
     toc: true
-    theme: united
+    toc_float: true
+    toc_depth: 3
     code_folding: hide
-    tufte::tufte_html: default
 ---
 
 ```{r setup, include=FALSE, message=FALSE}
@@ -45,18 +44,6 @@ RES <- read_csv('../data/IRfinder.res.filtered.14n89.analysis2.csv')
 
 ```{r barplot.IRlen}
 # the summarised plot of the mean RI_len between the sig and non-sig
-RES %>%
-  dplyr::select(Locus, Significance, RI_len, Group) %>%
-  spread(key = Group, value = RI_len) %>%
-  ggbarplot(x = "Significance", y = c('RF14', 'RF89'), combine = T,
-            add = "mean_se", 
-            fill = 'gray',
-            error.plot = "upper_errorbar",
-            ylab = 'Length of retained intron',
-            ylim = c(0, 3500),
-            title = 'Len of RI') + 
-  scale_y_continuous(expand = c(0, 0))  +
-  ggsave('../figs/Len of RI in both between sig and non sig.jpg', width = 8, height = 8, dpi = 300)
 
 # boxplot 
 RES %>%
@@ -114,20 +101,7 @@ RES %>%
   stat_compare_means(comparisons = list(c('TRUE', 'FALSE')), method = 't.test')
 
 
-# clearly there is something with the RF89 column 
 
-RES %>%
-  dplyr::select(Locus, Significance, Group, RFExper, RFControl) %>%
-  #spread(key = Group, value = RFExper) %>%
-  filter(Significance == TRUE) %>%
-  mutate(Group = factor(Group)) %>%
-  gghistogram(x = 'RFExper', 
-              palette = c('red', 'blue'),
-              color = 'white', fill = 'Group', 
-              bins = 30,
-              title = 'Histogram of log10(mean TPM)',
-              xlab = 'log10(mean TPM)')  +
-  scale_x_log10() 
 
 ```
 
