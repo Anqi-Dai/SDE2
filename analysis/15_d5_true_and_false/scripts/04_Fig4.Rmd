@@ -27,7 +27,7 @@ res <- read_csv('../../05_IRfinder/data/IRfinder.res.filtered.14n89.analysis2.cs
 # SiSDE2-1 (Si14 only)
 
 ```{r}
-table(res$Significance)
+table(res$Significance) 
 ```
 
 ## SDE2 IR events VS IRfinder events

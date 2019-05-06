@@ -63,6 +63,7 @@ fil %>%
 ```
 ```{r}
 fil %>%
+  arrange(desc(abs(deltaPSI)))%>%
   kable(caption = 'Table of the sig locus that Psi_14 > 0.1 & Psi_89 > 0.1  & abs(deltaPSI) > 0.1') %>%
   kable_styling()
 ```
