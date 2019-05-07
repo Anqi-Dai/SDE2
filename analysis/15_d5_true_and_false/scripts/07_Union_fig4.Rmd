@@ -1,0 +1,168 @@
+---
+title: "Fig4 for union"
+author: "Anqi Dai"
+date: "5/6/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggpubr)
+library(scales)
+```
+
+```{r}
+# load the result table
+res <- read_csv('../data/02_union_sig_and_intersect_non_sig_all_other_info.csv') 
+```
+
+# SiSDE2-1 (Si14 only)
+
+```{r}
+table(res$Significance) 
+```
+
+## SDE2 IR events VS IRfinder events
+
+```{r}
+# make the 14 89 named si-1 and si-2
+compare <- read_csv('../output/paper and our KD events compare.csv') %>%
+  mutate(gene = str_replace(gene, 'RF14', 'si-1'),
+         gene = str_replace(gene, 'RF89', 'si-2'))
+
+compare_plot <- compare %>%
+  mutate(gene = str_replace(gene, 'RF', 'Si'))  %>%
+  mutate(group = if_else(str_detect(gene, 'SDE2'), 'our', 'paper')) %>%
+  ggbarplot(x = 'gene', y ='increased',
+            color = 'group', fill = 'group',
+            ylab = 'Number of events', 
+            title = 'Comparison of increased IR events after gene KD')  +
+  ylim(0, 7900) +
+  geom_text(aes(label = increased_in_perc), vjust = -1, size = 3 ) +
+  scale_color_manual(values = c('#EEBF2B', '#1175C0'))  +
+  scale_fill_manual(values = c('#EEBF2B', '#1175C0'))  +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+      axis.text=element_text(size=8),
+      axis.title.x=element_blank(),
+      legend.position = "none")
+```
+
+
+## Position
+
+```{r}
+pos <- res %>%
+  gghistogram(x = 'RI_prop',
+              palette = 'lancet',
+              color = 'white', fill = 'Significance', 
+              bins = 40,
+              add = "median",
+              title = 'Histogram of RI position (median shown)',
+              xlab = 'RI position')
+```
+
+## GC content
+
+```{r}
+gc <- res %>%
+    gghistogram(x = 'GC_per',
+              palette = 'lancet',
+              color = 'white', fill = 'Significance', 
+              bins = 40,
+              add = "median",
+              title = 'Histogram of GC% (median shown)',
+              xlab = 'GC% ') 
+  
+```
+
+## Splice site strength
+
+```{r}
+strength <- res %>%
+  dplyr::select(locus, Significance, ss5_score, ss3_score) %>%
+  ggboxplot(x = 'Significance', y = c('ss5_score','ss3_score'),combine = T,
+            ylab = 'Score', xlab = '',
+            add = 'jitter', 
+            add.params = list(alpha = 0.15, fill = 'Significance'),
+            title = 'Distribution of the ss5 and ss3 MaxEnt score',
+            palette = 'lancet', color = 'Significance')   +
+  stat_compare_means(comparisons = list(c('Sig', 'Non-sig')), label = "p.signif") +
+  ylim(-60, 25)
+```
+
+## Length
+
+```{r}
+# add a third box which is all the background introns other than the first two
+# load the background introns
+bg <- read_csv('../data/unique_introns_for_expressive_genes.csv') %>%
+  filter(intronLen > 30)
+
+# res should be corrected start = start + 1
+IRfinder <- res %>%
+    dplyr::select(ensembl_gene_id, locus, Significance, RI_len)
+
+
+all <- bind_rows(
+  bg %>%
+    filter(!locus %in% IRfinder$locus) %>%
+    mutate(Significance = 'background') %>%
+    dplyr::select(Significance, RI_len = intronLen) ,
+  IRfinder %>%
+    dplyr::select(Significance, RI_len)
+) %>%
+  mutate(Significance = factor(Significance, levels = c('Non-sig','Sig','background')))
+
+
+len <- all %>%
+  ggboxplot(x = "Significance", y = 'RI_len',  color = 'Significance',
+            ylab = 'Length of retained intron', xlab = '',
+            palette = 'lancet',
+            title = 'Len of RI boxplot') +
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+              labels = trans_format("log10", math_format(10^.x)))  +
+  scale_color_manual(values = c('#00468B', '#EC0000', '#374E54'))  +
+  stat_compare_means(comparisons = list(c('Sig', 'Non-sig'),
+                                        c('Sig','background'),
+                                        c('Non-sig','background')),
+                     label = "p.signif") 
+```
+ 
+## GSEA 
+
+```{r}
+# the gsea of the significant genes
+res %>%
+  filter(Significance == 'Sig') %>%
+  distinct(ensembl_gene_id)  %>%
+  write_csv('../data/unique_gene_id_for_significant_day5.csv', col_names = F)
+
+# plot the -log10(q) value from Metascape results (top 10)
+# gsea <- read_csv('../output/Metascape/day5_sig_gene_union/all/Enrichment_GO/GO_AllLists.csv') %>%
+#   top_n(n = -10, wt = `Log(q-value)`) %>%
+#   mutate(neg_log_q = abs(`Log(q-value)`)) %>%
+#   mutate(Description = str_replace(Description, ' \\(..+$','')) 
+# 
+# gsea_plot <- gsea %>%
+#   ggbarplot(x = 'Description', y = 'neg_log_q',
+#             xlab = '', ylab = '-log10(q)',
+#             title = 'GSEA of the genes with significant RI', color = 'white',
+#             fill = 'neg_log_q') +
+#   coord_flip() +
+#   theme(axis.text.y = element_text(size = 7),
+#         legend.position="none")
+gsea_plot <- ''
+```
+
+## Assemble
+
+```{r out.width=800}
+ggarrange(compare_plot, pos, gc, strength, len, gsea_plot, 
+          ncol = 2, nrow = 3, 
+          align = c("v"),
+          labels = 'auto', label.x = 0, hjust = -3) +
+  ggsave('../figs/Assembled_fig4_union.jpg', width = 8, height = 12, dpi = 300)
+```
+
+
