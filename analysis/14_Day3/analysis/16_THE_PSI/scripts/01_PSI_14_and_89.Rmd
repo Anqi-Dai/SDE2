@@ -1,0 +1,84 @@
+---
+title: "PSI14 and 89"
+author: "Anqi Dai"
+date: "5/8/2019"
+output: html_document
+---
+
+Day 3.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggpubr)
+library(kableExtra)
+```
+
+Get the significant results in each tool.
+
+# Whippet intersection
+
+```{r}
+# data path for whippet
+data_path <- '../../03_ASprofile/data/whippetResult'
+fns <- list.files(data_path, pattern = 'output.diff', full.names = T)
+
+# read the data and select the columns
+whippet_sig <- fns %>%
+  map(~ read_tsv(.,col_names = T)  %>%
+        mutate(absDeltaPsi = abs(DeltaPsi)) %>%
+        filter(absDeltaPsi > 0.1 & Probability > 0.9 & Psi_A > 0.1) %>%
+        dplyr::select(ensembl_gene_id = Gene, 
+                      locus = Coord, 
+                      type = Type,
+                      Psi_A, 
+                      Psi_B) %>%
+        mutate(ensembl_gene_id = str_replace_all( ensembl_gene_id, '\\..*$', ''))
+   )
+
+# find the intersection by inner join
+whippet_ol  <- whippet_sig[[1]] %>%
+  rename(Psi_14 = Psi_A) %>%
+  inner_join(whippet_sig[[2]] %>%
+               dplyr::select(Psi_89 = Psi_A, locus), by = 'locus')
+        
+```
+
+# IRfinder intersection
+
+```{r}
+data_path <- '../../05_IRfinder/data/rawIRfinderResult/'
+fns <- list.files(data_path, pattern = 'txt', full.names = T)
+
+IRfinder_sig <- fns %>%
+  map(~ read_tsv(.,comment = '#',col_names = T)  %>%
+        mutate(Start = Start + 1) %>%
+        mutate(locus = paste(Chr,paste(Start, End, sep = '-'), sep = ':' ) ) %>%
+        rename_all(funs(stringr::str_replace_all(., '-', '_') )) %>%
+        separate(names(.)[4], into = c('Symbol', 'GeneID', 'Category'), sep = '/') %>%
+        mutate(ensembl_gene_id = str_replace_all(string = GeneID, pattern = '\\..*$', replacement = ''),
+               padj = p.adjust(p_diff, method = 'BH')) %>%
+        filter(! Category == 'known-exon') %>%
+        filter(A_IRok != 'MinorIsoform' &  B_IRok != 'MinorIsoform' ) %>%
+        filter(padj < 0.05)  %>%
+        mutate(type = "RI") %>%
+        dplyr::select(ensembl_gene_id, 
+                      locus,
+                      type,
+                      Psi_A = A_IRratio, 
+                      Psi_B = B_IRratio )
+      )
+
+
+IRfinder_ol <- IRfinder_sig[[1]] %>%
+  rename(Psi_14 = Psi_A) %>%
+  inner_join(IRfinder_sig[[2]] %>%
+               dplyr::select(Psi_89 = Psi_A, locus), by = 'locus')
+```
+
+# rMATS intersection
+
+```{r}
+
+```
+
