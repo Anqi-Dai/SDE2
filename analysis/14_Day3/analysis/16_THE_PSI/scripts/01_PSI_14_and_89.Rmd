@@ -190,3 +190,84 @@ rMATS_ol <- rMATS_sig[[1]] %>%
                dplyr::select(Psi_89 = Psi_A, locus), by = 'locus')
 ```
 
+# Combine three
+
+```{r}
+all_sig <- bind_rows(
+  IRfinder_ol,
+  whippet_ol,
+  rMATS_ol
+) %>%
+  distinct(locus, .keep_all = TRUE) 
+```
+
+```{r}
+# calculate the mean of 14 and 89 as the PSI_KD and
+# PSI_KD - PSI_B = deltaPSI
+ret <- all_sig %>%
+  rowwise() %>%
+  mutate(PSI_KD = mean(c(Psi_14, Psi_89), na.rm = T)) %>%
+  rename(PSI_WT = Psi_B) %>%
+  mutate(deltaPSI = PSI_KD - PSI_WT) %>%
+  arrange(desc(abs(deltaPSI)))
+```
+
+```{r}
+# add the gene name column to the table
+library(biomaRt)
+
+mart <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+
+# the ensembl_gene_id of the genes that you are interested in 
+genes <- ret %>%
+  distinct(ensembl_gene_id) %>%
+  pull(ensembl_gene_id)
+
+# retrieve the feature information of the listed attributes
+symbol <- getBM(filters = "ensembl_gene_id",
+                attributes = c('ensembl_gene_id','external_gene_name'),
+                values = genes, 
+                mart = mart)
+```
+
+```{r}
+# join the gene name to the ret table
+ret <- ret %>%
+  left_join(symbol, by = 'ensembl_gene_id')
+
+nrow(ret)
+```
+
+
+```{r}
+# write out the above table . this is the result of sig events not filtered by PSI or deltaPSI
+ret %>%
+  write_csv('../output/day3_sig_events_all_tools_not_filtered_by_PSI.csv')
+```
+
+
+## Filtered by PSI
+
+sig locus that Psi_14 > 0.1 & Psi_89 > 0.1 & abs(deltaPSI) > 0.1
+
+```{r}
+fil_ret <- ret %>%
+  filter(Psi_14 > 0.1 & Psi_89 > 0.1  & abs(deltaPSI) > 0.1) 
+
+nrow(fil_ret)
+```
+
+```{r}
+# kable output
+fil_ret %>%
+  kable(caption = '(finalized)Table of the sig locus that Psi_14 > 0.1 & Psi_89 > 0.1  & abs(deltaPSI) > 0.1') %>%
+  kable_styling()
+```
+
+
+```{r}
+# output the fil ret table
+fil_ret %>%
+  write_csv('../output/day3_sig_events_all_tools_YES_filtered_by_PSI.csv')
+```
+
