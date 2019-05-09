@@ -1,0 +1,89 @@
+---
+title: "The seq logo for the MaxEnt splice site"
+author: "Anqi Dai"
+date: "5/9/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
+library(tidyverse)
+library(kableExtra)
+library(ggpubr)
+library(ggseqlogo) 
+```
+
+For day 3.
+
+```{r}
+# load the day 3 SS score files (union sig)
+data_path <- '../output/'
+fns <- list.files(data_path, 'txt', full.names = T)
+
+ss5 <- read_delim(fns[2],comment = '>',delim = '\t',col_names = F) %>%
+  dplyr::select(seq = X1,
+                score = X2) %>%
+  mutate(score = str_replace(score, 'MAXENT: ',''),
+         score = as.numeric(score)) 
+  
+
+nrow(ss5)
+
+ss5 %>%
+  gghistogram(x = 'score')
+```
+
+```{r}
+# do a seq logo of the top and bottom 1000
+N <- 1000
+
+ss5_both_ends <- bind_rows(
+  ss5 %>%
+    arrange(desc(score)) %>%
+    top_n(N) %>%
+    mutate(group = 'top'),
+  ss5 %>%
+    arrange(desc(score)) %>%
+    top_n(-N) %>%
+    mutate(group = 'bottom')
+)
+```
+
+```{r}
+# do a seq logo
+ss5_both_ends %>%
+  split(.$group) %>%
+  map(~ ggplot() + 
+        geom_logo( .$seq ) + 
+        theme_logo() + 
+        labs(title = str_glue('{.$group} logo'))+
+        theme_classic() +
+        theme(
+              text = element_text(size=25),
+              axis.text.x = element_text( hjust = 1, size = 15))+
+        ggsave(str_glue('../figs/ss5 {.$group} logo.pdf'),device = 'pdf', width = 18, height = 10, dpi = 300))
+
+```
+
+
+Now it is clear why there are bimodal distribution --- why there are very negative scores. instead of the conversative GT at SS5, some seqs have AG.
+
+```{r}
+# load the full table that I have all the information
+res <- read_csv('../data/02_union_sig_and_intersect_non_sig_all_other_info.csv') %>%
+  dplyr::select(locus = id, Direction, ss5_start, ss5_end)
+
+flattened_ss5 <- suppressWarnings(read_delim(fns[2], delim = '\t', col_names = F)) %>%
+  filter(str_detect(X1, '>')) %>%
+  transmute(locus = str_replace(X1, '>','')) %>%
+  bind_cols(ss5) %>%
+  full_join(res , by = 'locus')
+
+
+flattened_ss5 %>%
+  filter(Direction == '-') %>%
+  dplyr::select(-Direction) 
+  
+    
+```
+

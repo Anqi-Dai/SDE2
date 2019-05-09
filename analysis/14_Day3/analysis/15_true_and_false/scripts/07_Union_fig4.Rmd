@@ -88,7 +88,8 @@ strength <- res %>%
             title = 'Distribution of the ss5 and ss3 MaxEnt score',
             palette = 'lancet', color = 'Significance')   +
   stat_compare_means(comparisons = list(c('Sig', 'Non-sig')), label = "p.signif") +
-  ylim(-60, 25)
+  ylim(-60, 25) +
+  scale_color_manual(values = c( '#EC0000','#00468B'))
 ```
 
 ## Length
@@ -107,12 +108,12 @@ IRfinder <- res %>%
 all <- bind_rows(
   bg %>%
     filter(!locus %in% IRfinder$locus) %>%
-    mutate(Significance = 'background') %>%
+    mutate(Significance = 'Non-AS') %>%
     dplyr::select(Significance, RI_len = intronLen) ,
   IRfinder %>%
     dplyr::select(Significance, RI_len)
 ) %>%
-  mutate(Significance = factor(Significance, levels = c('Non-sig','Sig','background')))
+  mutate(Significance = factor(Significance, levels = c('Sig','Non-sig','Non-AS')))
 
 
 len <- all %>%
@@ -122,10 +123,10 @@ len <- all %>%
             title = 'Len of RI boxplot') +
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
               labels = trans_format("log10", math_format(10^.x)))  +
-  scale_color_manual(values = c('#00468B', '#EC0000', '#374E54'))  +
+  scale_color_manual(values = c( '#EC0000','#00468B', '#374E54'))  +
   stat_compare_means(comparisons = list(c('Sig', 'Non-sig'),
-                                        c('Sig','background'),
-                                        c('Non-sig','background')),
+                                        c('Sig','Non-AS'),
+                                        c('Non-sig','Non-AS')),
                      label = "p.signif") 
 ```
  
@@ -155,7 +156,7 @@ gsea_plot <- gsea %>%
 
 ```
 
-## Assemble
+## Assemble 
 
 ```{r out.width=800}
 ggarrange(compare_plot, pos, gc, strength, len, gsea_plot, 
