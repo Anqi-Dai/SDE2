@@ -1,14 +1,19 @@
 ---
 title: "PSI14 and 89"
 author: "Anqi Dai"
-date: "5/8/2019"
-output: html_document
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    code_folding: hide
 ---
 
 Day 3.
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
 library(tidyverse)
 library(ggpubr)
 library(kableExtra)
@@ -28,11 +33,13 @@ whippet_sig <- fns %>%
   map(~ read_tsv(.,col_names = T)  %>%
         mutate(absDeltaPsi = abs(DeltaPsi)) %>%
         filter(absDeltaPsi > 0.1 & Probability > 0.9 & Psi_A > 0.1) %>%
+        mutate(tool = 'Whippet') %>%
         dplyr::select(ensembl_gene_id = Gene, 
                       locus = Coord, 
                       type = Type,
                       Psi_A, 
-                      Psi_B) %>%
+                      Psi_B,
+                      tool) %>%
         mutate(ensembl_gene_id = str_replace_all( ensembl_gene_id, '\\..*$', ''))
    )
 
@@ -61,12 +68,14 @@ IRfinder_sig <- fns %>%
         filter(! Category == 'known-exon') %>%
         filter(A_IRok != 'MinorIsoform' &  B_IRok != 'MinorIsoform' ) %>%
         filter(padj < 0.05)  %>%
-        mutate(type = "RI") %>%
+        mutate(type = "RI",
+               tool = 'IRfinder') %>%
         dplyr::select(ensembl_gene_id, 
                       locus,
                       type,
                       Psi_A = A_IRratio, 
-                      Psi_B = B_IRratio ))
+                      Psi_B = B_IRratio,
+                      tool))
 
 IRfinder_ol <- IRfinder_sig[[1]] %>%
   rename(Psi_14 = Psi_A) %>%
@@ -102,7 +111,7 @@ read_rMATS_all_types <- function(Name) {
     rowwise() %>%
     mutate(Psi_A = mean(c(Psi_A1, Psi_A2, Psi_A3), na.rm = T),
            Psi_B = mean(c(Psi_B1, Psi_B2, Psi_B3), na.rm = T))  %>%
-    dplyr::select(ensembl_gene_id = GeneID, locus, type, Psi_A,  Psi_B) %>%
+    dplyr::select(ensembl_gene_id = GeneID, locus, type, Psi_A,  Psi_B, tool) %>%
     mutate(ensembl_gene_id = str_replace_all( ensembl_gene_id, '\\..*$', ''))
 
   
@@ -118,7 +127,7 @@ read_rMATS_all_types <- function(Name) {
     rowwise() %>%
     mutate(Psi_A = mean(c(Psi_A1, Psi_A2, Psi_A3), na.rm = T),
            Psi_B = mean(c(Psi_B1, Psi_B2, Psi_B3), na.rm = T))  %>%
-    dplyr::select(ensembl_gene_id = GeneID, locus, type, Psi_A,  Psi_B) %>%
+    dplyr::select(ensembl_gene_id = GeneID, locus, type, Psi_A,  Psi_B, tool) %>%
     mutate(ensembl_gene_id = str_replace_all( ensembl_gene_id, '\\..*$', ''))
     
   #  RI 
@@ -133,7 +142,7 @@ read_rMATS_all_types <- function(Name) {
     mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':'),
            tool = 'rMATS',
            type = 'RI') %>%
-    dplyr::select(ensembl_gene_id = GeneID, locus, type, Psi_A,  Psi_B) %>%
+    dplyr::select(ensembl_gene_id = GeneID, locus, type, Psi_A,  Psi_B, tool) %>%
     mutate(ensembl_gene_id = str_replace_all( ensembl_gene_id, '\\..*$', ''))
 
   
@@ -150,7 +159,7 @@ read_rMATS_all_types <- function(Name) {
     rowwise() %>%
     mutate(Psi_A = mean(c(Psi_A1, Psi_A2, Psi_A3), na.rm = T),
            Psi_B = mean(c(Psi_B1, Psi_B2, Psi_B3), na.rm = T))  %>%
-    dplyr::select(ensembl_gene_id = GeneID, locus, type, Psi_A,  Psi_B) %>%
+    dplyr::select(ensembl_gene_id = GeneID, locus, type, Psi_A,  Psi_B, tool) %>%
     mutate(ensembl_gene_id = str_replace_all( ensembl_gene_id, '\\..*$', ''))
   
   #  MXE
@@ -165,7 +174,7 @@ read_rMATS_all_types <- function(Name) {
     rowwise() %>%
     mutate(Psi_A = mean(c(Psi_A1, Psi_A2, Psi_A3), na.rm = T),
            Psi_B = mean(c(Psi_B1, Psi_B2, Psi_B3), na.rm = T))  %>%
-    dplyr::select(ensembl_gene_id = GeneID, locus, type, Psi_A,  Psi_B) %>%
+    dplyr::select(ensembl_gene_id = GeneID, locus, type, Psi_A,  Psi_B, tool) %>%
     mutate(ensembl_gene_id = str_replace_all( ensembl_gene_id, '\\..*$', ''))
 
   
@@ -186,9 +195,21 @@ rMATS_sig <- c('RF14','RF89') %>%
 # join to find the intersection
 rMATS_ol <- rMATS_sig[[1]] %>%
   rename(Psi_14 = Psi_A) %>%
-  inner_join(rMATS_sig[[2]] %>%
+  inner_join(rMATS_sig[[2]] %>% 
                dplyr::select(Psi_89 = Psi_A, locus), by = 'locus')
 ```
+
+```{r}
+# how many of them each
+tibble(
+  IRfinder_ol = nrow(IRfinder_ol),
+  whippet_ol = nrow(whippet_ol),
+  rMATS_ol = nrow(rMATS_ol)
+) %>%
+  kable(caption = 'Number of overlapped sig events between 14 and 89 in each tool') %>%
+  kable_styling(full_width = F, position = 'left')
+```
+
 
 # Combine three
 
@@ -252,7 +273,18 @@ sig locus that Psi_14 > 0.1 & Psi_89 > 0.1 & abs(deltaPSI) > 0.1
 
 ```{r}
 fil_ret <- ret %>%
-  filter(Psi_14 > 0.1 & Psi_89 > 0.1  & abs(deltaPSI) > 0.1) 
+  filter(Psi_14 > 0.1 & Psi_89 > 0.1  & abs(deltaPSI) > 0.1) %>%
+  dplyr::select(ensembl_gene_id, gene_name = external_gene_name,
+                locus,
+                type,
+                Psi_14,
+                Psi_89,
+                PSI_KD,
+                PSI_WT,
+                deltaPSI,
+                tool)
+
+
 
 nrow(fil_ret)
 ```
@@ -267,7 +299,7 @@ fil_ret %>%
 
 ```{r}
 # output the fil ret table
-fil_ret %>%
+fil_ret %>% 
   write_csv('../output/day3_sig_events_all_tools_YES_filtered_by_PSI.csv')
 ```
 
