@@ -292,7 +292,10 @@ nrow(fil_ret)
 ```{r}
 # kable output
 fil_ret %>%
-  kable(caption = '(finalized)Table of the sig locus that Psi_14 > 0.1 & Psi_89 > 0.1  & abs(deltaPSI) > 0.1') %>%
+  mutate(locus = cell_spec(locus, "html", color = ifelse(tool == 'rMATS', "red", "black"))) %>%
+  kable(caption = '(finalized)Table of the sig locus that Psi_14 > 0.1 & Psi_89 > 0.1  & abs(deltaPSI) > 0.1',
+        format = "html", 
+        escape = F) %>%
   kable_styling()
 ```
 
