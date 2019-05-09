@@ -21,6 +21,11 @@ library(kableExtra)
 
 Get the significant results in each tool.
 
+How to get the intersection in each tool:
+
++ Get the significant results in 14 and 89 respectively
++ Take the intersection 
+
 # Whippet intersection
 
 ```{r}
@@ -213,6 +218,11 @@ tibble(
 
 # Combine three
 
++ Combine all the significant results from three tools together, and remove duplicated locus.
++ PSI_KD is the mean of Psi_14 and Psi_89.
++ PSI_KD - PSI_WT = deltaPSI
++ The table is sorted in the descending order of abs(deltaPSI)
+
 ```{r}
 all_sig <- bind_rows(
   IRfinder_ol,
@@ -295,6 +305,7 @@ fil_ret %>%
   mutate(locus = cell_spec(locus, "html", color = ifelse(tool == 'rMATS', "red", "black"))) %>%
   kable(caption = '(finalized)Table of the sig locus that Psi_14 > 0.1 & Psi_89 > 0.1  & abs(deltaPSI) > 0.1',
         format = "html", 
+        
         escape = F) %>%
   kable_styling()
 ```
