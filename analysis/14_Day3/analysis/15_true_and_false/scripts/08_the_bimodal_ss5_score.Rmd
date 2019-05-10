@@ -1,8 +1,14 @@
 ---
 title: "The seq logo for the MaxEnt splice site"
 author: "Anqi Dai"
-date: "5/9/2019"
-output: html_document
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    code_folding: hide
+
 ---
 
 ```{r setup, include=FALSE}
@@ -82,7 +88,9 @@ flattened_ss5 <- suppressWarnings(read_delim(fns[2], delim = '\t', col_names = F
 
 flattened_ss5 %>%
   filter(Direction == '-') %>%
-  dplyr::select(-Direction) 
+  dplyr::select(-Direction)  %>%
+  kable() %>%
+  kable_styling(full_width = F)
   
     
 ```

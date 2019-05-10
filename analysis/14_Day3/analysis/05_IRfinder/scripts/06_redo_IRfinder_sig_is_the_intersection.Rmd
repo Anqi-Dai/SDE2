@@ -1,0 +1,103 @@
+---
+title: 'Redo the whole IRfinder thing: sig is the intersection'
+author: "Anqi Dai"
+date: "5/10/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
+```
+
+Day 3
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggpubr)
+library(kableExtra) 
+```
+
+The start and end coord need to be flipped for the negative strand!!!!!
+
+
+```{r}
+# get the sig and non sig separatly for two comparisons.
+# FLIP THE START AND END COORD FOR THE EVENT ON THE NEGATIVE STRAND!
+data_path <- '../../05_IRfinder/data/rawIRfinderResult/'
+fns <- list.files(data_path, pattern = 'txt', full.names = T)
+
+sig <- fns %>%
+  map(~ read_tsv(.,comment = '#',col_names = T)  %>%
+        mutate(Start = Start + 1) %>%
+        mutate(locus = paste(Chr,paste(Start, End, sep = '-'), sep = ':' ) ) %>%
+        rename_all(funs(stringr::str_replace_all(., '-', '_') )) %>%
+        separate(names(.)[4], into = c('Symbol', 'GeneID', 'Category'), sep = '/') %>%
+        mutate(GeneID = str_replace_all(string = GeneID, pattern = '\\..*$', replacement = ''),
+               padj = p.adjust(p_diff, method = 'BH')) %>%
+        filter(! Category == 'known-exon') %>%
+        filter(A_IRok != 'MinorIsoform' &  B_IRok != 'MinorIsoform' ) %>%
+        filter(padj < 0.05) 
+      )
+
+
+non_Sig <- fns %>%
+  map(~ read_tsv(.,comment = '#',col_names = T)  %>%
+        mutate(Start = Start + 1) %>%
+        mutate(locus = paste(Chr,paste(Start, End, sep = '-'), sep = ':' ) ) %>%
+        rename_all(funs(stringr::str_replace_all(., '-', '_') )) %>%
+        separate(names(.)[4], into = c('Symbol', 'GeneID', 'Category'), sep = '/') %>%
+        mutate(GeneID = str_replace_all(string = GeneID, pattern = '\\..*$', replacement = ''),
+               padj = p.adjust(p_diff, method = 'BH')) %>%
+        filter(! Category == 'known-exon') %>%
+        filter(A_IRok != 'MinorIsoform' &  B_IRok != 'MinorIsoform' ) %>%
+        filter(padj >= 0.05) 
+      )
+```
+
+
+```{r}
+# now the sig locus is the intersection
+# and the nonSig is still the intersection
+sig_locus <- intersect(sig[[1]]$locus, sig[[2]]$locus)
+
+non_Sig_locus <- intersect(non_Sig[[1]]$locus, non_Sig[[2]]$locus)
+
+tibble(sig_locus = length(sig_locus),
+       non_Sig_locus = length(non_Sig_locus)) %>%
+  kable() %>%
+  kable_styling(full_width = F, position = 'left')
+```
+
+```{r}
+# get these locus into a table with the chr start and end and output 
+# since I need to get the score and gc content for them
+# I need the GeneID info to link to the whole gene length
+out <- bind_rows(
+  tibble(locus = sig_locus, 
+         Significance = 'Sig'),
+  tibble(locus = non_Sig_locus, 
+         Significance = 'Non-sig')
+) 
+
+
+kd_ol <- fns %>%
+  map(~ read_tsv(.,comment = '#',col_names = T)  %>%
+        mutate(Start = Start + 1) %>%
+        mutate(locus = paste(Chr,paste(Start, End, sep = '-'), sep = ':' ) ) %>%
+        rename_all(funs(stringr::str_replace_all(., '-', '_') )) %>%
+        separate(names(.)[4], into = c('Symbol', 'GeneID', 'Category'), sep = '/') %>%
+        mutate(GeneID = str_replace_all(string = GeneID, pattern = '\\..*$', replacement = '')
+      )) %>%
+  bind_rows %>%
+  distinct(locus, .keep_all = T) %>%
+  dplyr::select(GeneID, locus, Direction)  %>%
+  filter(locus %in% out$locus) %>%
+  separate(locus, into = c('chr','coord'), sep = ':', remove = F) %>%
+  separate(coord, into = c('start','end'), sep = '-', convert = T) %>%
+  mutate(Significance = if_else(locus %in% sig_locus, 'Sig', 'Non-sig'))
+
+
+kd_ol %>%
+  write_csv('../data/01_intersect_sig_and_intersect_non_sig_locus.csv')
+```
