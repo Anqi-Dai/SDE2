@@ -22,8 +22,8 @@ library(ggseqlogo)
 For day 3.
 
 ```{r}
-# load the day 3 SS score files (union sig)
-data_path <- '../output/'
+# load the day 3 SS score files (intersect sig)
+data_path <- '../../05_IRfinder/output/'
 fns <- list.files(data_path, 'txt', full.names = T)
 
 ss5 <- read_delim(fns[2],comment = '>',delim = '\t',col_names = F) %>%
@@ -41,7 +41,7 @@ ss5 %>%
 
 ```{r}
 # do a seq logo of the top and bottom 1000
-N <- 1000
+N <- 50
 
 ss5_both_ends <- bind_rows(
   ss5 %>%
@@ -67,7 +67,7 @@ ss5_both_ends %>%
         theme(
               text = element_text(size=25),
               axis.text.x = element_text( hjust = 1, size = 15))+
-        ggsave(str_glue('../figs/ss5 {.$group} logo.pdf'),device = 'pdf', width = 18, height = 10, dpi = 300))
+        ggsave(str_glue('../figs/ss5 intersect {.$group} logo.pdf'),device = 'pdf', width = 18, height = 10, dpi = 300))
 
 ```
 

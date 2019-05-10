@@ -69,42 +69,47 @@ res <- res %>%
   mutate(GC_per = GC / stringr::str_length(Seq) * 100)
 ```
 
-```{r}
-# HERE I AM DOING THAT FLIP COORDS STEP
-res <- bind_rows(res %>%
-  filter(Direction == '-') %>%
-  mutate(tmp = end,
-         end = start,
-         start = tmp),
-       res %>%
-        filter(Direction == '+')) %>%
-  mutate(locus = paste(chr,paste(start, end, sep = '-'), sep = ':' ) )
-```
+
 
 
 ## Get the SS score 
+
+A sketch of how the coordinates should be retrieved.
+
+```{r out.width=400}
+knitr::include_graphics('../figs/sketch for splice sites.jpg')
+```
+
 
 ```{r}
 # * Score 5' splice site: Each sequence must be 9 bases long. 3 bases in exon and 6 bases in intron
 # * Score 3' splice site: Each sequence must be 23 bases long. 20 bases in the intron and 3 base in the exon
 
-res <-  res %>%
-  mutate(ss5_start = start - 3,
-         ss5_end = start + 5,
-         ss3_start = end - 20,
-         ss3_end = end + 2 )
+res <-  bind_rows(
+  res %>%
+    filter(Direction == '+') %>%
+    mutate(ss5_start = start - 3,
+           ss5_end = start + 5,
+           ss3_start = end - 20,
+           ss3_end = end + 2 ),
+  res %>%
+    filter(Direction == '-') %>%
+     mutate(ss5_start = end - 6,
+           ss5_end = end + 2,
+           ss3_start = start - 3,
+           ss3_end = start + 19 ))
 
 grange5 <-  makeGRangesFromDataFrame(res, 
-                                     seqnames.field=c("chr"),  
+                                     seqnames.field="chr",  
                                      start.field="ss5_start", 
-                                     end.field=c("ss5_end"), 
+                                     end.field="ss5_end", 
                                      strand.field="Direction")
 
 
 grange3 <-  makeGRangesFromDataFrame(res, 
-                                     seqnames.field=c("chr"),  
+                                     seqnames.field="chr",  
                                      start.field="ss3_start", 
-                                     end.field=c("ss3_end"), 
+                                     end.field="ss3_end", 
                                      strand.field="Direction")
 
 res <- res %>%

@@ -19,9 +19,7 @@ library(scales)
 
 ```{r}
 # load the result table
-res <- read_csv('../../05_IRfinder/data/IRfinder.res.filtered.14n89.analysis2.csv') %>%
-  filter(Group == 'RF14') %>%
-  mutate(Significance = factor(if_else(Significance == 'TRUE', 'Sig', 'Non-sig')))
+res <- read_csv('../../05_IRfinder/data/02_intersect_sig_and_intersect_non_sig_all_other_info.csv')
 ```
 
 # SiSDE2-1 (Si14 only)
@@ -87,7 +85,7 @@ gc <- res %>%
 
 ```{r}
 strength <- res %>%
-  dplyr::select(Locus, Significance, ss5_score, ss3_score) %>%
+  dplyr::select(locus, Significance, ss5_score, ss3_score) %>%
   ggboxplot(x = 'Significance', y = c('ss5_score','ss3_score'),combine = T,
             ylab = 'Score', xlab = '',
             add = 'jitter', 
