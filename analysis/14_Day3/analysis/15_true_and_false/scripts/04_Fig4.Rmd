@@ -22,6 +22,8 @@ library(scales)
 res <- read_csv('../../05_IRfinder/data/02_intersect_sig_and_intersect_non_sig_all_other_info.csv')
 ```
 
+
+
 # SiSDE2-1 (Si14 only)
 
 ```{r}
@@ -93,7 +95,7 @@ strength <- res %>%
             title = 'Distribution of the ss5 and ss3\nMaxEnt score',
             palette = 'lancet', color = 'Significance')   +
   stat_compare_means(comparisons = list(c('Sig', 'Non-sig')), label = "p.signif") +
-  ylim(-50, 23)
+  ylim(-30, 23)
 ```
 
 ## Length
@@ -104,18 +106,16 @@ strength <- res %>%
 bg <- read_csv('../data/unique_introns_for_expressive_genes.csv') %>%
   filter(intronLen > 30)
 
-# res should be corrected start = start + 1
+# 
 IRfinder <- res %>%
-    mutate(Locus = paste(Chr,paste(Start, End, sep = '-'), sep = ':' )) %>%
-    dplyr::select(GeneID,Locus, Significance, RI_len)
+    dplyr::select(ensembl_gene_id, locus, Significance, RI_len)
 
 
 all <- bind_rows(
   bg %>%
-    filter(!locus %in% IRfinder$Locus) %>%
+    filter(!locus %in% IRfinder$locus) %>%
     mutate(Significance = 'Non-AS') %>%
-    rename(RI_len = intronLen) %>%
-    dplyr::select(Significance, RI_len),
+    dplyr::select(Significance, RI_len = intronLen),
   IRfinder %>%
     dplyr::select(Significance, RI_len)
 ) %>%

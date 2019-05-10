@@ -90,12 +90,12 @@ res <-  bind_rows(
     filter(Direction == '+') %>%
     mutate(ss5_start = start - 3,
            ss5_end = start + 5,
-           ss3_start = end - 20,
-           ss3_end = end + 2 ),
+           ss3_start = end - 19,
+           ss3_end = end + 3 ),
   res %>%
     filter(Direction == '-') %>%
-     mutate(ss5_start = end - 6,
-           ss5_end = end + 2,
+     mutate(ss5_start = end - 5,
+           ss5_end = end + 3,
            ss3_start = start - 3,
            ss3_end = start + 19 ))
 
