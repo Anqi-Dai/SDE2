@@ -37,6 +37,23 @@ nrow(ss5)
 
 ss5 %>%
   gghistogram(x = 'score')
+
+
+res <- read_csv('../../05_IRfinder/data/02_intersect_sig_and_intersect_non_sig_all_other_info.csv') 
+
+
+res %>%
+  ggplot() + 
+  geom_logo(ss5_seq ) + 
+  theme_logo() 
+
+
+res %>%
+  split(.$Significance) %>%
+  map(~ ggplot() + 
+        geom_logo( .$ss5_seq ) + 
+        theme_logo() + 
+        labs(title = str_glue('{.$Significance} logo')))
 ```
 
 ```{r}
