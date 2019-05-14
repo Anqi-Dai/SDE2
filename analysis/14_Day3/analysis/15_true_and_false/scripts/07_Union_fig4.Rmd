@@ -163,7 +163,7 @@ ggarrange(compare_plot, pos, gc, strength, len, gsea_plot,
           ncol = 2, nrow = 3, 
           align = c("v"),
           labels = 'auto', label.x = 0, hjust = -3) +
-  ggsave('../figs/Assembled_fig4_union.jpg', width = 8, height = 12, dpi = 300)
+  ggsave('../figs/d3_Assembled_fig4_union.jpg', width = 8, height = 12, dpi = 300)
 ```
 
 

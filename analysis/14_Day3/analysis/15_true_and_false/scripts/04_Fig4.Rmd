@@ -95,7 +95,8 @@ strength <- res %>%
             title = 'Distribution of the ss5 and ss3\nMaxEnt score',
             palette = 'lancet', color = 'Significance')   +
   stat_compare_means(comparisons = list(c('Sig', 'Non-sig')), label = "p.signif") +
-  ylim(-30, 23)
+  ylim(-30, 23) +
+  scale_color_manual(values = c( '#EC0000','#00468B'))
 ```
 
 ## Length
@@ -172,6 +173,6 @@ ggarrange(compare_plot, pos, gc, strength, len, gsea_plot,
           ncol = 2, nrow = 3, 
           align = c("v"),
           labels = 'auto', label.x = 0, hjust = -3) +
-  ggsave('../figs/Assembled_fig4.jpg', width = 8, height = 12, dpi = 300)
+  ggsave('../figs/d3_Assembled_fig4_intersection.jpg', width = 8, height = 12, dpi = 300)
 ```
 

@@ -123,7 +123,7 @@ len <- all %>%
             title = 'Len of RI boxplot') +
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
               labels = trans_format("log10", math_format(10^.x)))  +
-  scale_color_manual(values = c('#00468B', '#EC0000', '#374E54'))  +
+  scale_color_manual(values = c('#EC0000', '#00468B', '#374E54'))  +
   stat_compare_means(comparisons = list(c('Sig', 'Non-sig'),
                                         c('Sig','Non-AS'),
                                         c('Non-sig','Non-AS')),
@@ -166,7 +166,7 @@ ggarrange(compare_plot, pos, gc, strength, len, gsea_plot,
           ncol = 2, nrow = 3, 
           align = c("v"),
           labels = 'auto', label.x = 0, hjust = -3) +
-  ggsave('../figs/Assembled_fig4_union.jpg', width = 8, height = 12, dpi = 300)
+  ggsave('../figs/d5_Assembled_fig4_union.jpg', width = 8, height = 12, dpi = 300)
 ```
 
 

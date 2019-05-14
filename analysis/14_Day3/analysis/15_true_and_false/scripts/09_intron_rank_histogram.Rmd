@@ -1,8 +1,13 @@
 ---
 title: "Histogram of intron rank"
 author: "Anqi Dai"
-date: "5/13/2019"
-output: html_document
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    code_folding: hide
 ---
 
 ```{r setup, include=FALSE}
@@ -75,7 +80,7 @@ rank_RI %>%
   group_by(rankIntron) %>%
   summarise(cnt = n()) %>%
   ggbarplot(x = 'rankIntron', y = 'cnt', xlab = 'rank of the longest retained intron',
-            title = 'bar plot of the rank of the longest retained intron') +
+            title = 'Bar plot of the rank of the longest retained intron') +
   ggsave('../figs/bar plot of the rank of the longest retained intron.jpg', width = 10, height = 6, dpi = 300)
 ```
 
