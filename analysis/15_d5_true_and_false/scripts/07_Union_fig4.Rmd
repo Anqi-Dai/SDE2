@@ -88,7 +88,7 @@ strength <- res %>%
             title = 'Distribution of the ss5 and ss3 MaxEnt score',
             palette = 'lancet', color = 'Significance')   +
   stat_compare_means(comparisons = list(c('Sig', 'Non-sig')), label = "p.signif") +
-  ylim(-60, 25) +
+  ylim(-30, 25) +
   scale_color_manual(values = c( '#EC0000','#00468B')) 
 ```
 
@@ -133,7 +133,7 @@ len <- all %>%
 ## GSEA 
 
 ```{r}
-# the gsea of the significant genes
+# the gsea of the significant genes 
 res %>%
   filter(Significance == 'Sig') %>%
   distinct(ensembl_gene_id)  %>%

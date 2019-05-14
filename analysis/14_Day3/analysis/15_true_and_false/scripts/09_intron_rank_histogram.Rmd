@@ -1,0 +1,23 @@
+---
+title: "Histogram of intron rank"
+author: "Anqi Dai"
+date: "5/13/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(kableExtra)
+library(ggpubr)
+```
+
+
++ Get all of the intron in a gene
++ Get the largest RI in that gene
++ Get the rank of the 2 in 1
+
+```{r}
+
+```
+

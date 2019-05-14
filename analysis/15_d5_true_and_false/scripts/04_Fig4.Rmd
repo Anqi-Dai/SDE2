@@ -19,9 +19,7 @@ library(scales)
 
 ```{r}
 # load the result table
-res <- read_csv('../../05_IRfinder/data/IRfinder.res.filtered.14n89.analysis2.csv') %>%
-  filter(Group == 'RF14') %>%
-  mutate(Significance = factor(if_else(Significance == 'TRUE', 'Sig', 'Non-sig')))
+res <- read_csv('../../05_IRfinder/data/02_intersect_sig_and_intersect_non_sig_all_other_info.csv') 
 ```
 
 # SiSDE2-1 (Si14 only)
@@ -87,7 +85,7 @@ gc <- res %>%
 
 ```{r}
 strength <- res %>%
-  dplyr::select(Locus, Significance, ss5_score, ss3_score) %>%
+  dplyr::select(locus, Significance, ss5_score, ss3_score) %>%
   ggboxplot(x = 'Significance', y = c('ss5_score','ss3_score'),combine = T,
             ylab = 'Score', xlab = '',
             add = 'jitter', 
@@ -95,7 +93,7 @@ strength <- res %>%
             title = 'Distribution of the ss5 and ss3 MaxEnt score',
             palette = 'lancet', color = 'Significance')   +
   stat_compare_means(comparisons = list(c('Sig', 'Non-sig')), label = "p.signif") +
-  ylim(-50, 23)
+  ylim(-22, 23)
 ```
 
 ## Length
@@ -108,16 +106,14 @@ bg <- read_csv('../data/unique_introns_for_expressive_genes.csv') %>%
 
 # res should be corrected start = start + 1
 IRfinder <- res %>%
-    mutate(Locus = paste(Chr,paste(Start, End, sep = '-'), sep = ':' )) %>%
-    dplyr::select(GeneID,Locus, Significance, RI_len)
+    dplyr::select(ensembl_gene_id, locus, Significance, RI_len)
 
 
 all <- bind_rows(
   bg %>%
-    filter(!locus %in% IRfinder$Locus) %>%
+    filter(!locus %in% IRfinder$locus) %>%
     mutate(Significance = 'Non-AS') %>%
-    rename(RI_len = intronLen) %>%
-    dplyr::select(Significance, RI_len),
+    dplyr::select(Significance, RI_len = intronLen) ,
   IRfinder %>%
     dplyr::select(Significance, RI_len)
 ) %>%
@@ -131,7 +127,7 @@ len <- all %>%
             title = 'Len of RI boxplot') +
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
               labels = trans_format("log10", math_format(10^.x)))  +
-  scale_color_manual(values = c('#EC0000','#00468B', '#374E54'))  +
+  scale_color_manual(values = c( '#EC0000','#00468B', '#374E54'))  +
   stat_compare_means(comparisons = list(c('Sig', 'Non-sig'),
                                         c('Sig','Non-AS'),
                                         c('Non-sig','Non-AS')),
@@ -144,8 +140,8 @@ len <- all %>%
 # the gsea of the significant genes
 res %>%
   filter(Significance == 'Sig') %>%
-  distinct(GeneID)  %>%
-  write_csv('../data/unique_gene_id_for_significant_day5.csv', col_names = F)
+  distinct(ensembl_gene_id)  %>%
+  write_csv('../data/unique_gene_id_for_significant_day5_intersection.csv', col_names = F)
 
 # plot the -log10(q) value from Metascape results (top 10)
 gsea <- read_csv('../output/Metascape/day5_sig_gene/all/Enrichment_GO/GO_AllLists.csv') %>%

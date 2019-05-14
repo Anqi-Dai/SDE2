@@ -76,11 +76,19 @@ res <- res %>%
 # * Score 5' splice site: Each sequence must be 9 bases long. 3 bases in exon and 6 bases in intron
 # * Score 3' splice site: Each sequence must be 23 bases long. 20 bases in the intron and 3 base in the exon
 
-res <-  res %>%
-  mutate(ss5_start = start - 3,
-         ss5_end = start + 5,
-         ss3_start = end - 20,
-         ss3_end = end + 2 )
+res <-  bind_rows(
+  res %>%
+    filter(Direction == '+') %>%
+    mutate(ss5_start = start - 3,
+           ss5_end = start + 5,
+           ss3_start = end - 19,
+           ss3_end = end + 3 ),
+  res %>%
+    filter(Direction == '-') %>%
+     mutate(ss5_start = end - 5,
+           ss5_end = end + 3,
+           ss3_start = start - 3,
+           ss3_end = start + 19 ))
 
 grange5 <-  makeGRangesFromDataFrame(res, 
                                      seqnames.field=c("chr"),  

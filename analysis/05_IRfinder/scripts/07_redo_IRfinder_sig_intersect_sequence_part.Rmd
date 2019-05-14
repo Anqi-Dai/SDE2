@@ -1,7 +1,7 @@
 ---
-title: "Get score for union"
+title: "redo the sig is the intersect the sequence part"
 author: "Anqi Dai"
-date: "5/6/2019"
+date: "5/10/2019"
 output: html_document
 ---
 
@@ -17,7 +17,7 @@ library(seqinr)
 ```
 
 ```{r}
-dat <- read_csv('../data/01_union_sig_and_intersect_non_sig_locus.csv') 
+dat <- read_csv('../data/01_intersect_sig_and_intersect_non_sig_locus.csv') 
 ```
 
 # Get the position
@@ -41,6 +41,7 @@ symbol <- getBM(filters = "ensembl_gene_id",
                 values = genes, 
                 mart = mart)
 ```
+
 ```{r}
 # join the gene info to out table
 # and get the position of the RI
@@ -52,7 +53,7 @@ res <- dat %>%
          RI_prop = (midRI - start_position)/geneLen)
 
 ```
-
+ 
 ## Get the GC content
 
 ```{r}
@@ -68,7 +69,17 @@ res <- res %>%
   mutate(GC_per = GC / stringr::str_length(Seq) * 100)
 ```
 
+
+
+
 ## Get the SS score 
+
+A sketch of how the coordinates should be retrieved.
+
+```{r out.width=400}
+knitr::include_graphics('../figs/sketch for splice sites.jpg')
+```
+
 
 ```{r}
 # * Score 5' splice site: Each sequence must be 9 bases long. 3 bases in exon and 6 bases in intron
@@ -89,16 +100,16 @@ res <-  bind_rows(
            ss3_end = start + 19 ))
 
 grange5 <-  makeGRangesFromDataFrame(res, 
-                                     seqnames.field=c("chr"),  
+                                     seqnames.field="chr",  
                                      start.field="ss5_start", 
-                                     end.field=c("ss5_end"), 
+                                     end.field="ss5_end", 
                                      strand.field="Direction")
 
 
 grange3 <-  makeGRangesFromDataFrame(res, 
-                                     seqnames.field=c("chr"),  
+                                     seqnames.field="chr",  
                                      start.field="ss3_start", 
-                                     end.field=c("ss3_end"), 
+                                     end.field="ss3_end", 
                                      strand.field="Direction")
 
 res <- res %>%
@@ -136,12 +147,14 @@ res$ss3_score <- maxent_res[[1]]$score
 ```{r}
 res <- res %>%
   mutate(RI_len = abs(end - start))
+
+
 ```
 
 ```{r}
 # output the table
 res %>%
-  write_csv('../data/02_union_sig_and_intersect_non_sig_all_other_info.csv')
-```
+  write_csv('../data/02_intersect_sig_and_intersect_non_sig_all_other_info.csv')
+````
 
 

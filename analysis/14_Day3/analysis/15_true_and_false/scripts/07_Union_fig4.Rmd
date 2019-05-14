@@ -88,7 +88,7 @@ strength <- res %>%
             title = 'Distribution of the ss5 and ss3 MaxEnt score',
             palette = 'lancet', color = 'Significance')   +
   stat_compare_means(comparisons = list(c('Sig', 'Non-sig')), label = "p.signif") +
-  ylim(-60, 25) +
+  ylim(-28, 20) +
   scale_color_manual(values = c( '#EC0000','#00468B'))
 ```
 
