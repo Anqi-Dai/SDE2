@@ -6,18 +6,76 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE,message = F, warning = F)
 library(tidyverse)
 library(kableExtra)
 library(ggpubr)
 ```
 
+Steps:
 
 + Get all of the intron in a gene
 + Get the largest RI in that gene
 + Get the rank of the 2 in 1
 
-```{r}
 
+```{r}
+# get the sig events (the intersection)
+sig <- read_csv('../../05_IRfinder/data/01_intersect_sig_and_intersect_non_sig_locus.csv') %>%
+  filter(Significance == 'Sig')
+
+sig_gene <- sig %>%
+  distinct(GeneID) %>%
+  pull(GeneID)
+
+
+# get the largest sig RI len in that gene
+largest_RI <- sig %>%
+  mutate(len = end - start) %>%
+  group_by(GeneID) %>%
+  summarise(largest = max(len))
+```
+
+
+```{r}
+# get all of the introns of the genes that have sig RI events, and sort within each gene the intronLen in an ascending order
+bg <- read_csv('../data/unique_introns_for_expressive_genes.csv') %>%
+  filter(intronLen > 30) %>%
+  filter(ensembl_gene_id %in% sig_gene) %>%
+  group_by(ensembl_gene_id) %>%
+  arrange(intronLen, .by_group =T)
+
+# join them together first
+
+ret <- bg %>%
+  split(.$ensembl_gene_id) %>%
+  map_df(~ mutate(.data = ., rankIntron = rank(intronLen, ties.method = 'first') )) %>%
+  left_join(largest_RI %>%
+              dplyr::rename(ensembl_gene_id = GeneID), by = 'ensembl_gene_id')
+
+# get the final table
+rank_RI <- ret %>%
+  filter(intronLen == largest) %>%
+  distinct(ensembl_gene_id, .keep_all = T)
+
+```
+
+```{r}
+# plot to be a histogram
+rank_RI %>%
+  gghistogram(x = 'rankIntron', 
+              bins = 100, fill = '#00468B', 
+              xlab = 'rank of the longest retained intron',
+              title = 'Histogram of the rank of the longest retained intron') 
+```
+
+```{r}
+# a bar plot
+rank_RI %>%
+  group_by(rankIntron) %>%
+  summarise(cnt = n()) %>%
+  ggbarplot(x = 'rankIntron', y = 'cnt', xlab = 'rank of the longest retained intron',
+            title = 'bar plot of the rank of the longest retained intron') +
+  ggsave('../figs/bar plot of the rank of the longest retained intron.jpg', width = 10, height = 6, dpi = 300)
 ```
 
