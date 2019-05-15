@@ -123,8 +123,8 @@ res %>%
   gghistogram(x = 'abs_len_diff', bins = 200,
               color = 'red',
               xlab = 'absolute length difference',
-              title = 'Distribution of absolute length difference\nbetween the shortest intron in the gene and the\nshortest retained intron identified by IRfinder') +
-  ggsave('../figs/Distribution of absolute length difference.jpg', width = 8, height = 6)
+              title = 'Histogram of absolute length difference\nbetween the shortest intron in the gene and the\nshortest retained intron identified by IRfinder') +
+  ggsave('../figs/Histogram of absolute length difference.jpg', width = 8, height = 6)
 ```
 
 
@@ -171,17 +171,68 @@ interval20 <- res %>%
 ```{r}
 
 
-# group by the abs_len_diff and then do a bar plot
+# group by the abs_len_diff and then do a bar plot (abs_len_diff < 20)
 res %>%
   filter(!is.na(shortest)) %>%
   group_by(abs_len_diff) %>%
   summarise(cnt = n()) %>%
   filter(abs_len_diff < 20) %>%
   ggbarplot(x = 'abs_len_diff', y = 'cnt',
-            color = 'red',label = T,
-            title = 'Tally of absolute len difference when it is below 20',
+            color = 'red', fill = 'red', label = T,
+            title = 'Tally of absolute len difference (< 20)',
             xlab = 'absolute length difference')  +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.text=element_text(size=10)) +
   ggsave('../figs/Tally of absolute len difference when it is below 20.jpg', width = 6, height = 5)
+
+# group by the abs_len_diff and then do a bar plot (all the different abs_len_diff)
+res %>%
+  filter(!is.na(shortest)) %>%
+  group_by(abs_len_diff) %>%
+  summarise(cnt = n()) %>%
+  ggbarplot(x = 'abs_len_diff', y = 'cnt',
+            color = 'red',fill = 'red',
+            title = 'Tally of absolute len difference',
+            xlab = 'absolute length difference')  +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.text=element_text(size=5)) +
+  ggsave('../figs/Tally of absolute len difference.jpg', width = 36, height = 5)
+
+# it's too ridiculously wide, thinking of how to split that to 2 equal parts 
+tally_table <- res %>%
+  filter(!is.na(shortest)) %>%
+  group_by(abs_len_diff) %>%
+  summarise(cnt = n()) %>%
+  mutate(Csum = cumsum(cnt),
+         half_sum = floor(sum(.$cnt)/2),
+         half = if_else(Csum < half_sum, 'first','second'))
+
+
+# draw again with the wide bars split into 2
+tally_table %>%
+  ggbarplot(x = 'abs_len_diff', y = 'cnt',
+            color = 'red',label = T,
+            title = 'Tally of absolute len difference',
+            xlab = 'absolute length difference')  +
+  facet_grid(half ~ ., scales="free_x") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1),
+        axis.text=element_text(size=5)) +
+  ggsave('../figs/Tally of absolute len difference split.jpg', width = 18, height = 5)
+
+
+
+# have a peek of the tally_table
+tally_table %>%
+  dplyr::select(abs_len_diff, cnt) %>%
+  head(n = 10) %>%
+  kable() %>%
+  kable_styling(full_width = F)
+```
+
+Of all the genes that have sig RI events, what percentage of them has a RI event that is the smallest intron in that gene? (One gene may have multiple RI events. If there exist one event that is the smallest intron in the gene, it will be counted. )
+
+```{r}
+
 
 res %>%
   filter(!is.na(shortest)) %>%
@@ -195,11 +246,8 @@ res %>%
   kable(caption = 'How many abs_len_diff < 20 and how many are > 20') %>%
   kable_styling( position = 'left')
 
-```
 
-Of all the genes that have sig RI events, what percentage of them has a RI event that is the smallest intron in that gene? (One gene may have multiple RI events. If there exist one event that is the smallest intron in the gene, it will be counted. )
 
-```{r}
 res %>%
   filter(abs_len_diff == 0) %>%
   summarise(Num = nrow(.)) %>%
