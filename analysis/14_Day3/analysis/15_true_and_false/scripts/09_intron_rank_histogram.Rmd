@@ -58,20 +58,33 @@ ret <- bg %>%
   left_join(largest_RI %>%
               dplyr::rename(ensembl_gene_id = GeneID), by = 'ensembl_gene_id')
 
-# get the final table
+# it's suggested to divide the raw rank by the total number of introns in that gene, so that we know if it's the smallest intron in many introns or the only intron.
+total <- ret %>%
+  group_by(ensembl_gene_id) %>%
+  summarise(total = max(rankIntron))
+
+# get the rank of the largest RI event
 rank_RI <- ret %>%
   filter(intronLen == largest) %>%
   distinct(ensembl_gene_id, .keep_all = T)
 
+# join with the total number of intron table
+final <- rank_RI %>%
+  full_join(total, by = 'ensembl_gene_id') %>%
+  mutate(ratio = round(rankIntron/total, 2))
+  
 ```
 
 ```{r}
-# plot to be a histogram
-rank_RI %>%
-  gghistogram(x = 'rankIntron', 
-              bins = 100, fill = '#00468B', 
-              xlab = 'rank of the longest retained intron',
-              title = 'Histogram of the rank of the longest retained intron') 
+# plot the histogram of the ratio
+bin_num <- 20
+
+final %>%
+  gghistogram(x = 'ratio', 
+              bins = bin_num, fill = '#00468B', color = 'white',
+              xlab = 'Ratio: rank of the longest retained intron/total num of intron in that gene',
+              title = str_glue('Histogram of the ratio bin number {bin_num}')) +
+  ggsave(str_glue('../figs/Histogram of the ratio bin number {bin_num}.jpg'), width = 8, height = 5, dpi = 300)
 ```
 
 ```{r}

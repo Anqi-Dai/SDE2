@@ -169,7 +169,7 @@ gsea_plot <- gsea %>%
 ## Assemble
  
 ```{r out.width=800}
-ggarrange(compare_plot, pos, gc, strength, len, gsea_plot, 
+g <- ggarrange(compare_plot, pos, gc, strength, len, gsea_plot, 
           ncol = 2, nrow = 3, 
           align = c("v"),
           labels = 'auto', label.x = 0, hjust = -3) +
