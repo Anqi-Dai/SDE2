@@ -1,0 +1,62 @@
+---
+title: "Draw the FDR005 pie chart"
+author: "Anqi Dai"
+date: "5/15/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
+library(tidyverse)
+library(RColorBrewer)
+```
+
+```{r}
+# load the data 
+final <- read_csv('../../16_THE_PSI/output/day3_sig_events_all_tools_not_filtered_by_PSI.csv')
+```
+
+
+```{r}
+# get the data in table right
+hex <- c(brewer.pal(n = 8, name = "Dark2"), '#00468B')
+
+colorPal <- data_frame(
+  type = c('AL','AD','TS','MXE','RI','AF','CE','AA','TE'), 
+  color = hex) 
+
+res <- final %>%
+          group_by(type) %>%
+          summarise(count = n())%>%
+          mutate(perc = paste0(round((count / sum(count)) * 100), '%') ) 
+  
+res <- colorPal %>%
+  left_join(res, by = 'type') %>%
+          mutate(lbl = paste(type, perc , sep = ' '))
+
+# actually draw the pie chart
+png('../figs/FDR005 Splicing type pie chart in SIG events.png',pointsize = 8, res = 300, width = 4, height = 4, units = 'in')
+pie(res$count,labels = res$lbl, col= res$color, main = 'FDR005 Splicing type pie chart in SIG events')
+dev.off()
+```
+
+```{r}
+# the bar chart with the specific numbers
+final %>%
+  group_by(type) %>%
+  summarise(cts = n()) %>%
+  arrange(desc(cts)) %>% 
+  ggbarplot(x ='type', y = 'cts', 
+            palette = 'lancet',label = TRUE,
+            title = 'AS type of the FDR < 0.05 locus',
+            color = '#00468B', fill = '#00468B') +
+  ggsave('../figs/AS type of the FDR < 0.05 locus.jpg', dpi = 300, width = 10, height = 6)
+```
+
+```{r}
+# how many unique genes
+final %>%
+  distinct(ensembl_gene_id) %>%
+  nrow
+```
+
