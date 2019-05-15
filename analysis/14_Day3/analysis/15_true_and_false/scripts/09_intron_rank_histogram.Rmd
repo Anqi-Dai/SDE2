@@ -93,6 +93,7 @@ rank_RI %>%
   group_by(rankIntron) %>%
   summarise(cnt = n()) %>%
   ggbarplot(x = 'rankIntron', y = 'cnt', xlab = 'rank of the longest retained intron',
+            fill = '#00468B', color = 'white',
             title = 'Bar plot of the rank of the longest retained intron') +
   ggsave('../figs/bar plot of the rank of the longest retained intron.jpg', width = 10, height = 6, dpi = 300)
 ```

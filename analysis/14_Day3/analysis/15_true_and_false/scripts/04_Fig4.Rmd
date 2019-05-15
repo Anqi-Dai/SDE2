@@ -124,7 +124,19 @@ all <- bind_rows(
 
 
 # wanna add a label of how many events in each type of Significance
-tally <- table(all$Significance)
+tally <- table(all$Significance) %>%
+  data.frame %>%
+  rename(Significance = names(.)[1])
+
+all <- all %>%
+  split(.$Significance) %>%
+  map_df(~  mutate(.data = ., Num = nrow(.)))
+
+# annotation_height to be the min of the Non-AS
+annotation_height <- all %>%
+  filter(Significance == 'Non-AS') %>%
+  summarise(mini = min(RI_len))%>%
+  unlist
 
 len <- all %>%
   ggboxplot(x = "Significance", y = 'RI_len',  color = 'Significance',
@@ -137,7 +149,8 @@ len <- all %>%
   stat_compare_means(comparisons = list(c('Sig', 'Non-sig'),
                                         c('Sig','Non-AS'),
                                         c('Non-sig','Non-AS')),
-                     label = "p.signif") 
+                     label = "p.signif") +
+  geom_text(data = tally, aes(x = Significance, y = annotation_height, label = Freq))
 ```
  
 ## GSEA 
@@ -164,7 +177,7 @@ gsea_plot <- gsea %>%
   theme(axis.text.y = element_text(size = 7),
         legend.position="none")
 
-```
+```  
 
 ## Assemble
  
@@ -174,5 +187,29 @@ g <- ggarrange(compare_plot, pos, gc, strength, len, gsea_plot,
           align = c("v"),
           labels = 'auto', label.x = 0, hjust = -3) +
   ggsave('../figs/d3_Assembled_fig4_intersection.jpg', width = 8, height = 12, dpi = 300)
+```
+
+# Side note
+
+```{r}
+# get two numbers from Non-AS box, differentiate them to be long and short
+# short being shorter than the 75 percentile of the sig ones len
+# let me see if I can do that in a single pipe
+ret <- all %>%
+  split(.$Significance) %>%
+  map_df(~ mutate(.data = ., qt75 = quantile(RI_len, 0.75)))
+
+sig75 <- ret %>%
+  filter(Significance == 'Sig') %>%
+  distinct(qt75) %>%
+  unlist
+  
+ret %>%
+  filter(Significance == 'Non-AS')  %>%
+  mutate(category = if_else(RI_len < sig75, 'short','long')) %>%
+  group_by(category) %>%
+  summarise(num = n()) %>%
+  kable(caption = 'Short(< 75% of the sig ones) and long introns in Non-AS') %>%
+  kable_styling(full_width = F)
 ```
 
