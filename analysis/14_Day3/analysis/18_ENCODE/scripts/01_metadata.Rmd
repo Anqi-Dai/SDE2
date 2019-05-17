@@ -1,0 +1,28 @@
+---
+title: "The metadata of the ENCODE samples"
+author: "Anqi Dai"
+date: "5/17/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
+library(tidyverse)
+library(kableExtra)
+```
+
+```{r}
+# load the metadata file
+meta <- list.files('../data/', 'metadata', full.names = T) %>%
+  map_dfr(~ read_tsv(.)) %>%
+  rename_all(funs(stringr::str_replace_all(., ' |\\(|\\)', '_') )) %>%
+  dplyr::select(accession = File_accession, 
+                target = Experiment_target, 
+                bioreplicate = Biological_replicate_s_, 
+                paired_with = Paired_with) %>%
+  mutate(target = str_replace(target, '-human',''))
+
+meta %>%
+  write_csv('../data/fastq_meta_32.csv')
+```
+
