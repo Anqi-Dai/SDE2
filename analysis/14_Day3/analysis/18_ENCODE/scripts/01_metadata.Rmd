@@ -39,13 +39,24 @@ bam <- read_tsv('../data/bam_meta.tsv') %>%
   mutate(target = str_replace(target, '-human','')) %>%
   filter(type == 'alignments')
 
-need_names <- bam %>%
+target <- bam %>%
   pull(accession)
 ```
 
 ```{r}
+
+completed_target <- read_delim('../data/bam_download.txt', delim = ' ', col_names = F) %>%
+  dplyr::select(size = X4,
+                fn = X8) %>%
+  transmute(size = as.numeric(str_replace(size , 'G','')),
+            accession = str_replace(fn, '.bam','')) %>%
+  filter(size > 4) %>%
+  pull(accession) %>%
+  intersect(target)
+
+
 # Files that yet to be downloaded ....on scc
-completed <- read_delim('../data/bam_download.txt', delim = ' ', col_names = F)
+to_do <- setdiff(target, completed_target)
 ```
 
 
