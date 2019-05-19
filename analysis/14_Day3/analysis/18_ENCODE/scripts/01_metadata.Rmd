@@ -26,3 +26,28 @@ meta %>%
   write_csv('../data/fastq_meta_32.csv')
 ```
 
+```{r}
+# load the meta data for bam files. These are all the bam files that need to be downloaded.     
+# I DON'T NEED TRANSCRIPTOM ALIGNMENTS!!!
+bam <- read_tsv('../data/bam_meta.tsv') %>%
+  rename_all(funs(stringr::str_replace_all(., ' |\\(|\\)', '_') )) %>%
+  dplyr::select(accession = File_accession, 
+                type = Output_type,
+                target = Experiment_target, 
+                bioreplicate = Biological_replicate_s_, 
+                derived_from = Derived_from) %>%
+  mutate(target = str_replace(target, '-human','')) %>%
+  filter(type == 'alignments')
+
+need_names <- bam %>%
+  pull(accession)
+```
+
+```{r}
+# Files that yet to be downloaded ....on scc
+completed <- read_delim('../data/bam_download.txt', delim = ' ', col_names = F)
+```
+
+
+
+
