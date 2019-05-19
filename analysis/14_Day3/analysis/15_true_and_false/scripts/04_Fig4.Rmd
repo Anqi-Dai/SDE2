@@ -158,8 +158,8 @@ len <- all %>%
 ```{r}
 # the gsea of the significant genes
 res %>%
-  filter(Significance == 'Significant') %>%
-  distinct(GeneID)  %>%
+  filter(Significance == 'Sig') %>%
+  distinct(ensembl_gene_id)  %>%
   write_csv('../data/unique_gene_id_for_significant_day3.csv', col_names = F)
 
 # plot the -log10(q) value from Metascape results (top 10)
