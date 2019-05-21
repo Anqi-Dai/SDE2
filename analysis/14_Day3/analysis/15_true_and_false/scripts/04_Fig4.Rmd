@@ -213,3 +213,13 @@ ret %>%
   kable_styling(full_width = F)
 ```
 
+```{r}
+# genes in the top 10 pathways in the GSEA
+top10 <-  read_csv('../output/Metascape/day3_sig_gene/all/Enrichment_GO/GO_AllLists.csv') %>%
+  top_n(n = -10, wt = `Log(q-value)`) 
+
+
+top10 %>%
+  write_csv('../output/top10_enriched_pathways_day3_sig_genes.csv')
+```
+
