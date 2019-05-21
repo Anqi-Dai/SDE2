@@ -12,52 +12,17 @@ library(kableExtra)
 ```
 
 ```{r}
-# load the metadata file
-meta <- list.files('../data/', 'metadata', full.names = T) %>%
-  map_dfr(~ read_tsv(.)) %>%
-  rename_all(funs(stringr::str_replace_all(., ' |\\(|\\)', '_') )) %>%
-  dplyr::select(accession = File_accession, 
-                target = Experiment_target, 
-                bioreplicate = Biological_replicate_s_, 
-                paired_with = Paired_with) %>%
-  mutate(target = str_replace(target, '-human',''))
-
-meta %>%
-  write_csv('../data/fastq_meta_32.csv')
+# load the metadata file for fastq
+meta <- read_tsv('../data/metadata.tsv') %>%
+        rename_all(funs(stringr::str_replace_all(., ' |\\(|\\)', '_') )) %>%
+        dplyr::select(accession = File_accession, 
+                      target = Experiment_target, 
+                      bioreplicate = Biological_replicate_s_, 
+                      paired_end = Paired_end) %>%
+        mutate(target = str_replace(target, '-human',''))
 ```
 
-```{r}
-# load the meta data for bam files. These are all the bam files that need to be downloaded.     
-# I DON'T NEED TRANSCRIPTOM ALIGNMENTS!!!
-bam <- read_tsv('../data/bam_meta.tsv') %>%
-  rename_all(funs(stringr::str_replace_all(., ' |\\(|\\)', '_') )) %>%
-  dplyr::select(accession = File_accession, 
-                type = Output_type,
-                target = Experiment_target, 
-                bioreplicate = Biological_replicate_s_, 
-                derived_from = Derived_from) %>%
-  mutate(target = str_replace(target, '-human','')) %>%
-  filter(type == 'alignments')
 
-target <- bam %>%
-  pull(accession)
-```
-
-```{r}
-
-completed_target <- read_delim('../data/bam_download.txt', delim = ' ', col_names = F) %>%
-  dplyr::select(size = X4,
-                fn = X8) %>%
-  transmute(size = as.numeric(str_replace(size , 'G','')),
-            accession = str_replace(fn, '.bam','')) %>%
-  filter(size > 4) %>%
-  pull(accession) %>%
-  intersect(target)
-
-
-# Files that yet to be downloaded ....on scc
-to_do <- setdiff(target, completed_target)
-```
 
 
 
