@@ -18,7 +18,7 @@ sample_names = file.keys()
 
 rule all:
     input:
-        expand('{path}/{sample}_genome_ave_coverage.txt', path = sample_dir, sample = sample_names)
+        expand('{path}/{sample}_Aligned.sortedByCoord.out.bam.bai', path = sample_dir, sample = sample_names)
 
 
 
@@ -78,3 +78,12 @@ rule star_aln:
                 --twopassMode Basic  '
 
 
+# index the bam files
+
+rule index_bam:
+    input:
+        '{path}/{sample}_Aligned.sortedByCoord.out.bam'
+    output:
+        '{path}/{sample}_Aligned.sortedByCoord.out.bam.bai'
+    shell:
+        'samtools index {input}'
