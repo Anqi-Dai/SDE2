@@ -1,0 +1,130 @@
+{
+    "FUS-rep1": {
+        "R1": [
+            "samples/FUS-rep1_R1.fastq.gz"
+        ],
+        "R2": [
+            "samples/FUS-rep1_R2.fastq.gz"
+        ]
+    },
+    "FUS-rep2": {
+        "R1": [
+            "samples/FUS-rep2_R1.fastq.gz"
+        ],
+        "R2": [
+            "samples/FUS-rep2_R2.fastq.gz"
+        ]
+    },
+    "PCBP1-rep1": {
+        "R1": [
+            "samples/PCBP1-rep1_R1.fastq.gz"
+        ],
+        "R2": [
+            "samples/PCBP1-rep1_R2.fastq.gz"
+        ]
+    },
+    "PCBP1-rep2": {
+        "R1": [
+            "samples/PCBP1-rep2_R1.fastq.gz"
+        ],
+        "R2": [
+            "samples/PCBP1-rep2_R2.fastq.gz"
+        ]
+    },
+    "PCBP2-rep1": {
+        "R1": [
+            "samples/PCBP2-rep1_R1.fastq.gz"
+        ],
+        "R2": [
+            "samples/PCBP2-rep1_R2.fastq.gz"
+        ]
+    },
+    "PCBP2-rep2": {
+        "R1": [
+            "samples/PCBP2-rep2_R1.fastq.gz"
+        ],
+        "R2": [
+            "samples/PCBP2-rep2_R2.fastq.gz"
+        ]
+    },
+    "PTBP1-rep1": {
+        "R1": [
+            "samples/PTBP1-rep1_R1.fastq.gz"
+        ],
+        "R2": [
+            "samples/PTBP1-rep1_R2.fastq.gz"
+        ]
+    },
+    "PTBP1-rep2": {
+        "R1": [
+            "samples/PTBP1-rep2_R1.fastq.gz"
+        ],
+        "R2": [
+            "samples/PTBP1-rep2_R2.fastq.gz"
+        ]
+    },
+    "SRSF1-rep1": {
+        "R1": [
+            "samples/SRSF1-rep1_R1.fastq.gz"
+        ],
+        "R2": [
+            "samples/SRSF1-rep1_R2.fastq.gz"
+        ]
+    },
+    "SRSF1-rep2": {
+        "R1": [
+            "samples/SRSF1-rep2_R1.fastq.gz"
+        ],
+        "R2": [
+            "samples/SRSF1-rep2_R2.fastq.gz"
+        ]
+    },
+    "SRSF7-rep1": {
+        "R1": [
+            "samples/SRSF7-rep1_R1.fastq.gz"
+        ],
+        "R2": [
+            "samples/SRSF7-rep1_R2.fastq.gz"
+        ]
+    },
+    "SRSF7-rep2": {
+        "R1": [
+            "samples/SRSF7-rep2_R1.fastq.gz"
+        ],
+        "R2": [
+            "samples/SRSF7-rep2_R2.fastq.gz"
+        ]
+    },
+    "TIA1-rep1": {
+        "R1": [
+            "samples/TIA1-rep1_R1.fastq.gz"
+        ],
+        "R2": [
+            "samples/TIA1-rep1_R2.fastq.gz"
+        ]
+    },
+    "TIA1-rep2": {
+        "R1": [
+            "samples/TIA1-rep2_R1.fastq.gz"
+        ],
+        "R2": [
+            "samples/TIA1-rep2_R2.fastq.gz"
+        ]
+    },
+    "U2AF2-rep1": {
+        "R1": [
+            "samples/U2AF2-rep1_R1.fastq.gz"
+        ],
+        "R2": [
+            "samples/U2AF2-rep1_R2.fastq.gz"
+        ]
+    },
+    "U2AF2-rep2": {
+        "R1": [
+            "samples/U2AF2-rep2_R1.fastq.gz"
+        ],
+        "R2": [
+            "samples/U2AF2-rep2_R2.fastq.gz"
+        ]
+    }
+}
