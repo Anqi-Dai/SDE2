@@ -1,10 +1,6 @@
 '''
 This snakefile will do the following:
 Use IFfinder to identify the differentially retend introns when comparing KD vs control
-
-* Build reference for IRfinder
-* Map the reads to the reference and produce the bam file
-* Concat the unsorted bam file
 * Analyze using analysisWithLowReplicates.pl  
 '''
 
@@ -23,13 +19,6 @@ IRfinder_path = '/usr4/bs831/adai/bubhub-home/SDE2/analysis/05_IRfinder/IRfinder
 Ref_dir = '/usr4/bs831/adai/bubhub-home/SDE2/analysis/05_IRfinder/REF/Human-hg38'
 
 # -----------------------------------------------------------
-
-rule output:
-    input:
-        expand('{sample_dir}/IRfinder_result/Pooled_{each}/IRFinder-IR-dir.txt',
-                sample_dir = sample_dir,
-                each = config['all'])
-
 
 rule pooling_IR:
     input:
@@ -50,22 +39,29 @@ rule pooling_IR:
 
 # Calling the comparison script to get the differential IR results
 
-rule compare_IR_14vsctrl:
+rule compare_KD_vs_ctrl:
     input:
-        pooled_14='{sample_dir}/IRfinder_result/Pooled_14/IRFinder-IR-dir.txt',
+        pooled_KD='{sample_dir}/IRfinder_result/Pooled_{gene}/IRFinder-IR-dir.txt',
         pooled_ctrl='{sample_dir}/IRfinder_result/Pooled_ctrl/IRFinder-IR-dir.txt',
-        RF14_1='{sample_dir}/IRfinder_result/RF-3-14-1/IRFinder-IR-dir.txt',
-        RF14_2='{sample_dir}/IRfinder_result/RF-3-14-2/IRFinder-IR-dir.txt',
-        RF14_3='{sample_dir}/IRfinder_result/RF-3-14-3/IRFinder-IR-dir.txt',
-        c1='{sample_dir}/IRfinder_result/RF-3-M-1/IRFinder-IR-dir.txt',
-        c2='{sample_dir}/IRfinder_result/RF-3-M-2/IRFinder-IR-dir.txt',
-        c3='{sample_dir}/IRfinder_result/RF-3-M-3/IRFinder-IR-dir.txt'
+        KD_1='{sample_dir}/IRfinder_result/{gene}-rep1/IRFinder-IR-dir.txt',
+        KD_2='{sample_dir}/IRfinder_result/{gene}-rep2/IRFinder-IR-dir.txt',
+        c11='{sample_dir}/IRfinder_result/ctrl-rep11/IRFinder-IR-dir.txt',
+        c12='{sample_dir}/IRfinder_result/ctrl-rep12/IRFinder-IR-dir.txt',
+        c2='{sample_dir}/IRfinder_result/ctrl-rep2/IRFinder-IR-dir.txt'
     output:
-        '{sample_dir}/IRfinder_result/RF14_vs_ctrl.txt'
+        '{sample_dir}/IRfinder_result/{gene}_vs_ctrl.txt'
     shell:
         '''
-        ../../../05_IRfinder/IRfinder_software/IRFinder-1.2.5/bin/analysisWithLowReplicates.pl  \
-            -A {input.pooled_14} {input.RF14_1} {input.RF14_2} {input.RF14_3}  \
-            -B {input.pooled_ctrl} {input.c1} {input.c2}  {input.c3} > {output}
+        /usr4/bs831/adai/bubhub-home/SDE2/analysis/05_IRfinder/IRfinder_software/IRFinder-1.2.5/bin/analysisWithLowReplicates.pl  \
+            -A {input.pooled_KD} {input.KD_1} {input.KD_2}  \
+            -B {input.pooled_ctrl} {input.c11} {input.c12}  {input.c2} > {output}
         '''
+
+rule output:
+    input:
+        expand('{sample_dir}/IRfinder_result/{gene}_vs_ctrl.txt',
+                sample_dir = sample_dir,
+                gene = config['genes'])
+
+
 
