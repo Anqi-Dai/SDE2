@@ -52,16 +52,21 @@ rule Align_reads:
 # Concat the replicates together
 # wow I can use the config file to actually do a for loop which is making the code too much easier to write and cleaner.
 
+rule output:
+        input:
+            expand('{sample_dir}/IRfinder_result/{gene}_concat_rep_unsorted.bam', sample_dir = sample_dir,  gene = config['genes'])
+
+def gather_KD_bio_replicates(wildcards):
+    return expand('{sample_dir}/IRfinder_result/{gene}-rep{replicated_num}/Unsorted.bam',
+                    sample_dir= wildcards.sample_dir,
+                    gene = wildcards.gene,
+                    replicated_num = [1,2])
+
 rule concat_replicates:
     input:
-        expand('{sample_dir}/IRfinder_result/{gene}-rep{replicated_num}/Unsorted.bam',
-                sample_dir = sample_dir,
-                gene = config['genes'],
-                replicated_num = [1,2]  )
+        gather_KD_bio_replicates
     output:
-        expand('{sample_dir}/IRfinder_result/{gene}_concat_rep_unsorted.bam', 
-                sample_dir = sample_dir,
-                gene = config['genes']    )
+        '{sample_dir}/IRfinder_result/{gene}_concat_rep_unsorted.bam'  
     threads:
         4
     shell:
