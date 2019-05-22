@@ -1,26 +1,31 @@
 ---
-title: "Encode kd VS control"
+title: "Encode KD experiments VS SDE2 KD experiment"
 author: "Anqi Dai"
-date: "5/22/2019"
-output: html_document
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    code_folding: hide
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
 library(tidyverse)
 library(kableExtra)
 library(ggpubr)
+library(RVenn)
 ```
 
-## load the data
+## Load the data from analyzing the ENCODE data
 
 ```{r}
 encode_data_path <- '../data/encode_IRfinder_raw_data'
 encode_fns <- list.files(encode_data_path, 'txt', full.names = T)
-
 ```
 
-## Get the sig events
+## Get the sig events of ENCODE data
 
 ```{r}
 # the whole sig df
@@ -36,15 +41,32 @@ en_sig <- encode_fns %>%
         filter(A_IRok != 'MinorIsoform' &  B_IRok != 'MinorIsoform' ) %>%
         filter(padj < 0.05))
 
-
 # how many sig events are there under FDR < 0.05
-en_sig %>% 
+encode_sig_df <- en_sig %>% 
+  set_names(encode_fns) %>% 
   map_dfc(~ nrow(.)) %>%
   gather(key = 'KD_gene', 
          value = 'num_sig') %>%
-  mutate(KD_gene = str_replace(encode_fns, '../data/encode_IRfinder_raw_data/',''),
-            KD_gene = str_replace(KD_gene, '_vs_ctrl.txt',''))
-  
+  mutate(KD_gene = str_replace(KD_gene, '../data/encode_IRfinder_raw_data/',''),
+         KD_gene = str_replace(KD_gene, '_vs_ctrl.txt',''))
+```
+
+```{r}
+# what are those 8 genes are
+library(biomaRt)
+
+mart <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+
+# the ensembl_gene_id of the genes that you are interested in 
+genes <- encode_sig_df$KD_gene
+
+# retrieve the feature information of the listed attributes
+symbol <- getBM(filters = "external_gene_name",
+                attributes = c('external_gene_name','description'),
+                values = genes, 
+                mart = mart)
+
+
 ```
 
 
@@ -54,12 +76,130 @@ en_sig_locus <- en_sig %>%
   map(~ pull(.data = ., locus))
 ```
 
-## Compare with our own sig events
+
+## Our own sig events of SDE2
 
 ```{r}
 # our SDE2 data
 
+data_path <- '../../05_IRfinder/data/rawIRfinderResult/'
+fns <- list.files(data_path, pattern = 'txt', full.names = T)
 
+SDE2_sig_all <- fns %>%
+  map(~ read_tsv(.,comment = '#',col_names = T)  %>%
+        mutate(Start = Start + 1) %>%
+        mutate(locus = paste(Chr,paste(Start, End, sep = '-'), sep = ':' ) ) %>%
+        rename_all(funs(stringr::str_replace_all(., '-', '_') )) %>%
+        separate(names(.)[4], into = c('Symbol', 'GeneID', 'Category'), sep = '/') %>%
+        mutate(ensembl_gene_id = str_replace_all(string = GeneID, pattern = '\\..*$', replacement = ''),
+               padj = p.adjust(p_diff, method = 'BH')) %>%
+        filter(! Category == 'known-exon') %>%
+        filter(A_IRok != 'MinorIsoform' &  B_IRok != 'MinorIsoform' ) %>%
+        filter(padj < 0.05))
+
+
+# an SDE2_sig_all in df form to have the gene name
+# the df that has all the SDE2 sig locus essential info like gene name
+SDE2_sig_info <- SDE2_sig_all %>% 
+  map_dfr(~ dplyr::select(.data = ., locus, ensembl_gene_id, external_gene_name = Symbol)) %>%
+  distinct(locus, .keep_all = T)
+
+SDE2_sig_locus <- SDE2_sig_all %>%
+  map(~ pull(.data = ., locus))
+
+
+# intersect and union of the SDE2 KD
+SDE2_intersect <- intersect(SDE2_sig_locus[[1]],
+                            SDE2_sig_locus[[2]])
+
+
+SDE2_union <- union(SDE2_sig_locus[[1]],
+                    SDE2_sig_locus[[2]])
+```
+
+```{r}
+# a reminder of how many events these are
+SDE2_num_summary <- list(SDE2_intersect = SDE2_intersect,
+     SDE2_union = SDE2_union) %>% 
+  imap_dfc(~ length(.)) 
+```
+ 
+## Compare the two
+
+Specifically, the sig in SDE2 is the intersection of 14 and 89.
+
+```{r}
+# compare each of the encode KD with SDE2 intersect
+ret_intersect <- en_sig_locus %>% 
+  set_names(encode_sig_df$KD_gene) %>% 
+  map(~ intersect(.,SDE2_intersect)) 
+```
+
+```{r}
+# some set operation to see the relationship among those KD events
+intersect_set <- construct(ret_intersect)
 
 ```
+
+
+```{r}
+# a df of the specific intersect locus between encode data and our data
+# and with the gene info and name
+ret_intersect_info_df <- ret_intersect %>% 
+  map(~ tibble(locus = .) %>% 
+        left_join(SDE2_sig_info, by = 'locus'))  %>% 
+  bind_rows(.id = 'column_label')
+  
+
+ret_intersect_info_df %>% 
+  write_csv('../output/locus_info_for_each_encode_KD_gene_intersect_with_14&89_overlap.csv')
+```
+
+**A table will be sent together with this file with name "locus_info_for_each_encode_KD_gene_intersect_with_14&89_overlap.csv", including info summarized in the bottom table of this page and also have gene name.**
+
+
+```{r}
+# these are the events exist in all encode KD experiments and both our 14 and 89
+all_existing <- overlap(intersect_set)
+
+SDE2_sig_info %>% 
+  filter(locus %in%  all_existing) %>% 
+  kable(caption = 'Info for the locus that exist in all encode KD experiments and both our 14 and 89') %>% 
+  kable_styling(full_width = F, position = 'left')
+
+
+ggvenn(intersect_set, slice = c(1, 2, 3 )) +
+  labs(title = 'An example Venn diagram showing the relationship\nof sig locus in different ENCODE KD experiments')
+# ggvenn(intersect_set, slice = c(4, 5, 6 ))
+# ggvenn(intersect_set, slice = c(2, 7, 8 ))
+```
+
+```{r}
+# the stats summary
+intersect_stats <- ret_intersect %>% 
+  imap_dfc(~ length(.)) %>% 
+  gather(key = 'KD_gene',
+         value = 'num') %>% 
+  full_join(symbol %>% 
+              rename(KD_gene = external_gene_name), by = 'KD_gene') %>% 
+  full_join(encode_sig_df, by  = 'KD_gene') %>% 
+  mutate(SDE2_intersect_num = length(SDE2_intersect))%>% 
+  dplyr::select(KD_gene, 
+                num_sig,
+                SDE2_intersect_num,
+                overlap_num = num,
+                description) 
+
+intersect_stats %>% 
+  kable(caption = "Summary of the encode gene KD sig IR events' overlap with the SDE2 14 & 89 intersected sig events") %>% 
+  kable_styling()
+
+```
+
+#### An explaination of the above table:
+
++ num_sig: the number of sig events (FDR < 0.05) of each encode KD experiment calculated in the same way that I did my SDE2 calculations
++ SDE2_intersect_num: the number of sig events that exist in both 14 and 89
++ overlap_num: the number of overlapped locus between the previous two columns
++ description: the description of the KD gene
 
