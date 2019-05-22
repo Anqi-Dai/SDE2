@@ -15,8 +15,7 @@ library(kableExtra)
 # load the metadata file for fastq
 meta <- read_tsv('../data/metadata.tsv') 
 
-
-# to generate the whole mv command so that I can run in bash script later
+# to generate the whole mv command so that I can run in bash script later`
 # the new file name has to be in a certain way so that later parsing the sample name will be easy
 output <- meta %>%
   rename_all(funs(stringr::str_replace_all(., ' |\\(|\\)', '_') )) %>%
@@ -34,13 +33,29 @@ output <- meta %>%
 output %>%
   dplyr::select(new_command) %>% 
   write.table('../data/renaming_encode_fastq_files.txt', quote = F, col.names = F, row.names = F)
-  
-
-
 ```
 
+```{r}
+# ahhhh the control samples also from the ENCODE
+ctrl <- read_tsv('../data/control_meta.tsv') 
 
-
+ctrl_output <- ctrl %>%
+  rename_all(funs(stringr::str_replace_all(., ' |\\(|\\)', '_') )) %>%
+  dplyr::select(accession = File_accession, 
+                bioreplicate = Biological_replicate_s_, 
+                paired_end = Paired_end,
+                paired_with = Paired_with) %>% 
+  mutate(group = 'ctrl',
+         suppliment = c('1','1','','','2','2'),
+         replicate = str_glue('{bioreplicate}{suppliment}'),
+         new_fn = str_glue('{group}-rep{replicate}_R{paired_end}.fastq.gz'),
+         old_fn = str_glue('{accession}.fastq.gz'),
+         command = str_glue('mv {old_fn} {new_fn}')) 
+  
+ctrl_output %>%
+  dplyr::select(command) %>% 
+  write.table('../data/renaming_encode_control_fastq_files.txt', quote = F, col.names = F, row.names = F)
+```
 
 
 

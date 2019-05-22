@@ -1,0 +1,65 @@
+---
+title: "Encode kd VS control"
+author: "Anqi Dai"
+date: "5/22/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(kableExtra)
+library(ggpubr)
+```
+
+## load the data
+
+```{r}
+encode_data_path <- '../data/encode_IRfinder_raw_data'
+encode_fns <- list.files(encode_data_path, 'txt', full.names = T)
+
+```
+
+## Get the sig events
+
+```{r}
+# the whole sig df
+en_sig <- encode_fns %>% 
+  map(~ read_tsv(.,comment = '#',col_names = T)  %>%
+        mutate(Start = Start + 1) %>%
+        mutate(locus = paste(Chr,paste(Start, End, sep = '-'), sep = ':' ) ) %>%
+        rename_all(funs(stringr::str_replace_all(., '-', '_') )) %>%
+        separate(names(.)[4], into = c('Symbol', 'GeneID', 'Category'), sep = '/') %>%
+        mutate(ensembl_gene_id = str_replace_all(string = GeneID, pattern = '\\..*$', replacement = ''),
+               padj = p.adjust(p_diff, method = 'BH')) %>%
+        filter(! Category == 'known-exon') %>%
+        filter(A_IRok != 'MinorIsoform' &  B_IRok != 'MinorIsoform' ) %>%
+        filter(padj < 0.05))
+
+
+# how many sig events are there under FDR < 0.05
+en_sig %>% 
+  map_dfc(~ nrow(.)) %>%
+  gather(key = 'KD_gene', 
+         value = 'num_sig') %>%
+  mutate(KD_gene = str_replace(encode_fns, '../data/encode_IRfinder_raw_data/',''),
+            KD_gene = str_replace(KD_gene, '_vs_ctrl.txt',''))
+  
+```
+
+
+```{r}
+# pull the locus column
+en_sig_locus <- en_sig %>%
+  map(~ pull(.data = ., locus))
+```
+
+## Compare with our own sig events
+
+```{r}
+# our SDE2 data
+
+
+
+```
+
