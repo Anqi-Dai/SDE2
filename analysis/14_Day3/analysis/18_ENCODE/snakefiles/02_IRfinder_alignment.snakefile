@@ -73,3 +73,26 @@ rule concat_replicates:
         '''
         samtools cat  {input} -o {output}
         '''
+
+# concat the control samples together
+
+def gather_control_replicates(wildcards):
+    return expand('{sample_dir}/IRfinder_result/ctrl-rep{replicated_num}/Unsorted.bam',
+                    sample_dir= wildcards.sample_dir,
+                    replicated_num = [11,12,2 ])
+
+
+rule concat_control:
+    input:
+        gather_control_replicates
+    output:
+        '{sample_dir}/IRfinder_result/ctrl_concat_rep_unsorted.bam'
+    threads:
+        4
+    shell:
+        '''
+        samtools cat  {input} -o {output}
+        '''
+
+rule output2:
+    input: sample_dir + '/IRfinder_result/ctrl_concat_rep_unsorted.bam'
