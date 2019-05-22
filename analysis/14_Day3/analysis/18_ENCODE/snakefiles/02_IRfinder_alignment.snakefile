@@ -17,6 +17,7 @@ sample_names = json.load(open('../samples.json')).keys()
 IRfinder_path = '/usr4/bs831/adai/bubhub-home/SDE2/analysis/05_IRfinder/IRfinder_software/IRFinder-1.2.5/bin/IRFinder'
 Ref_dir = '/usr4/bs831/adai/bubhub-home/SDE2/analysis/05_IRfinder/REF/Human-hg38'
 
+configfile : 'IRfinder_config.yml' 
 # -----------------------------------------------------------
 
 rule all:
@@ -49,31 +50,21 @@ rule Align_reads:
 
 
 # Concat the replicates together
+# wow I can use the config file to actually do a for loop which is making the code too much easier to write and cleaner.
 
-def get_RF14_3replicates_unsorted_bam(wildcards):
-    return glob('{}/IRfinder_result/RF-3-14*/Unsorted.bam'.format(wildcards.sample_dir))
-
-def get_RF89_3replicates_unsorted_bam(wildcards):
-    return glob('{}/IRfinder_result/RF-3-89*/Unsorted.bam'.format(wildcards.sample_dir))
-
-def get_control_3replicates_unsorted_bam(wildcards):
-    return glob('{}/IRfinder_result/RF-3-M*/Unsorted.bam'.format(wildcards.sample_dir))
-
-rule concate_them:
+rule concat_replicates:
     input:
-        RF14=get_RF14_3replicates_unsorted_bam,
-        RF89=get_RF89_3replicates_unsorted_bam,
-        RFctrl=get_control_3replicates_unsorted_bam
+        expand('{sample_dir}/IRfinder_result/{gene}-rep{replicated_num}/Unsorted.bam',
+                sample_dir = sample_dir,
+                gene = config['genes'],
+                replicated_num = [1,2]  )
     output:
-        out14='{sample_dir}/IRfinder_result/RF14_concat3_unsorted.bam',
-        out89='{sample_dir}/IRfinder_result/RF89_concat3_unsorted.bam',
-        outctrl='{sample_dir}/IRfinder_result/RFctrl_concat3_unsorted.bam'
+        expand('{sample_dir}/IRfinder_result/{gene}_concat_rep_unsorted.bam', 
+                sample_dir = sample_dir,
+                gene = config['genes']    )
     threads:
         4
     shell:
         '''
-        samtools cat {input.RF14} -o {output.out14};
-        samtools cat {input.RF89} -o {output.out89} ;
-        samtools cat {input.RFctrl} -o {output.outctrl}
+        samtools cat  {input} -o {output}
         '''
-
