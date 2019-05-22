@@ -1,130 +1,218 @@
 {
     "FUS-rep1": {
         "R1": [
-            "samples/FUS-rep1_R1.fastq.gz"
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/FUS-rep1_R1.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/FUS-rep1_R1_paired.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/FUS-rep1_R1_unpaired.fastq.gz"
         ],
         "R2": [
-            "samples/FUS-rep1_R2.fastq.gz"
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/FUS-rep1_R2.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/FUS-rep1_R2_paired.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/FUS-rep1_R2_unpaired.fastq.gz"
         ]
     },
     "FUS-rep2": {
         "R1": [
-            "samples/FUS-rep2_R1.fastq.gz"
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/FUS-rep2_R1.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/FUS-rep2_R1_paired.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/FUS-rep2_R1_unpaired.fastq.gz"
         ],
         "R2": [
-            "samples/FUS-rep2_R2.fastq.gz"
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/FUS-rep2_R2.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/FUS-rep2_R2_paired.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/FUS-rep2_R2_unpaired.fastq.gz"
         ]
     },
     "PCBP1-rep1": {
         "R1": [
-            "samples/PCBP1-rep1_R1.fastq.gz"
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/PCBP1-rep1_R1.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/PCBP1-rep1_R1_paired.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/PCBP1-rep1_R1_unpaired.fastq.gz"
         ],
         "R2": [
-            "samples/PCBP1-rep1_R2.fastq.gz"
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/PCBP1-rep1_R2.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/PCBP1-rep1_R2_paired.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/PCBP1-rep1_R2_unpaired.fastq.gz"
         ]
     },
     "PCBP1-rep2": {
         "R1": [
-            "samples/PCBP1-rep2_R1.fastq.gz"
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/PCBP1-rep2_R1.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/PCBP1-rep2_R1_paired.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/PCBP1-rep2_R1_unpaired.fastq.gz"
         ],
         "R2": [
-            "samples/PCBP1-rep2_R2.fastq.gz"
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/PCBP1-rep2_R2.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/PCBP1-rep2_R2_paired.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/PCBP1-rep2_R2_unpaired.fastq.gz"
         ]
     },
     "PCBP2-rep1": {
         "R1": [
-            "samples/PCBP2-rep1_R1.fastq.gz"
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/PCBP2-rep1_R1.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/PCBP2-rep1_R1_paired.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/PCBP2-rep1_R1_unpaired.fastq.gz"
         ],
         "R2": [
-            "samples/PCBP2-rep1_R2.fastq.gz"
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/PCBP2-rep1_R2.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/PCBP2-rep1_R2_paired.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/PCBP2-rep1_R2_unpaired.fastq.gz"
         ]
     },
     "PCBP2-rep2": {
         "R1": [
-            "samples/PCBP2-rep2_R1.fastq.gz"
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/PCBP2-rep2_R1.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/PCBP2-rep2_R1_paired.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/PCBP2-rep2_R1_unpaired.fastq.gz"
         ],
         "R2": [
-            "samples/PCBP2-rep2_R2.fastq.gz"
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/PCBP2-rep2_R2.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/PCBP2-rep2_R2_paired.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/PCBP2-rep2_R2_unpaired.fastq.gz"
         ]
     },
     "PTBP1-rep1": {
         "R1": [
-            "samples/PTBP1-rep1_R1.fastq.gz"
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/PTBP1-rep1_R1.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/PTBP1-rep1_R1_paired.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/PTBP1-rep1_R1_unpaired.fastq.gz"
         ],
         "R2": [
-            "samples/PTBP1-rep1_R2.fastq.gz"
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/PTBP1-rep1_R2.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/PTBP1-rep1_R2_paired.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/PTBP1-rep1_R2_unpaired.fastq.gz"
         ]
     },
     "PTBP1-rep2": {
         "R1": [
-            "samples/PTBP1-rep2_R1.fastq.gz"
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/PTBP1-rep2_R1.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/PTBP1-rep2_R1_paired.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/PTBP1-rep2_R1_unpaired.fastq.gz"
         ],
         "R2": [
-            "samples/PTBP1-rep2_R2.fastq.gz"
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/PTBP1-rep2_R2.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/PTBP1-rep2_R2_paired.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/PTBP1-rep2_R2_unpaired.fastq.gz"
         ]
     },
     "SRSF1-rep1": {
         "R1": [
-            "samples/SRSF1-rep1_R1.fastq.gz"
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/SRSF1-rep1_R1.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/SRSF1-rep1_R1_paired.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/SRSF1-rep1_R1_unpaired.fastq.gz"
         ],
         "R2": [
-            "samples/SRSF1-rep1_R2.fastq.gz"
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/SRSF1-rep1_R2.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/SRSF1-rep1_R2_paired.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/SRSF1-rep1_R2_unpaired.fastq.gz"
         ]
     },
     "SRSF1-rep2": {
         "R1": [
-            "samples/SRSF1-rep2_R1.fastq.gz"
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/SRSF1-rep2_R1.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/SRSF1-rep2_R1_paired.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/SRSF1-rep2_R1_unpaired.fastq.gz"
         ],
         "R2": [
-            "samples/SRSF1-rep2_R2.fastq.gz"
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/SRSF1-rep2_R2.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/SRSF1-rep2_R2_paired.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/SRSF1-rep2_R2_unpaired.fastq.gz"
         ]
     },
     "SRSF7-rep1": {
         "R1": [
-            "samples/SRSF7-rep1_R1.fastq.gz"
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/SRSF7-rep1_R1.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/SRSF7-rep1_R1_paired.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/SRSF7-rep1_R1_unpaired.fastq.gz"
         ],
         "R2": [
-            "samples/SRSF7-rep1_R2.fastq.gz"
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/SRSF7-rep1_R2.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/SRSF7-rep1_R2_paired.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/SRSF7-rep1_R2_unpaired.fastq.gz"
         ]
     },
     "SRSF7-rep2": {
         "R1": [
-            "samples/SRSF7-rep2_R1.fastq.gz"
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/SRSF7-rep2_R1.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/SRSF7-rep2_R1_paired.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/SRSF7-rep2_R1_unpaired.fastq.gz"
         ],
         "R2": [
-            "samples/SRSF7-rep2_R2.fastq.gz"
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/SRSF7-rep2_R2.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/SRSF7-rep2_R2_paired.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/SRSF7-rep2_R2_unpaired.fastq.gz"
         ]
     },
     "TIA1-rep1": {
         "R1": [
-            "samples/TIA1-rep1_R1.fastq.gz"
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/TIA1-rep1_R1.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/TIA1-rep1_R1_paired.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/TIA1-rep1_R1_unpaired.fastq.gz"
         ],
         "R2": [
-            "samples/TIA1-rep1_R2.fastq.gz"
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/TIA1-rep1_R2.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/TIA1-rep1_R2_paired.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/TIA1-rep1_R2_unpaired.fastq.gz"
         ]
     },
     "TIA1-rep2": {
         "R1": [
-            "samples/TIA1-rep2_R1.fastq.gz"
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/TIA1-rep2_R1.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/TIA1-rep2_R1_paired.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/TIA1-rep2_R1_unpaired.fastq.gz"
         ],
         "R2": [
-            "samples/TIA1-rep2_R2.fastq.gz"
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/TIA1-rep2_R2.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/TIA1-rep2_R2_paired.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/TIA1-rep2_R2_unpaired.fastq.gz"
         ]
     },
     "U2AF2-rep1": {
         "R1": [
-            "samples/U2AF2-rep1_R1.fastq.gz"
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/U2AF2-rep1_R1.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/U2AF2-rep1_R1_paired.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/U2AF2-rep1_R1_unpaired.fastq.gz"
         ],
         "R2": [
-            "samples/U2AF2-rep1_R2.fastq.gz"
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/U2AF2-rep1_R2.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/U2AF2-rep1_R2_paired.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/U2AF2-rep1_R2_unpaired.fastq.gz"
         ]
     },
     "U2AF2-rep2": {
         "R1": [
-            "samples/U2AF2-rep2_R1.fastq.gz"
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/U2AF2-rep2_R1.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/U2AF2-rep2_R1_paired.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/U2AF2-rep2_R1_unpaired.fastq.gz"
         ],
         "R2": [
-            "samples/U2AF2-rep2_R2.fastq.gz"
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/U2AF2-rep2_R2.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/U2AF2-rep2_R2_paired.fastq.gz",
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/U2AF2-rep2_R2_unpaired.fastq.gz"
+        ]
+    },
+    "ctrl-rep11": {
+        "R1": [
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/ctrl-rep11_R1.fastq.gz"
+        ],
+        "R2": [
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/ctrl-rep11_R2.fastq.gz"
+        ]
+    },
+    "ctrl-rep12": {
+        "R1": [
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/ctrl-rep12_R1.fastq.gz"
+        ],
+        "R2": [
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/ctrl-rep12_R2.fastq.gz"
+        ]
+    },
+    "ctrl-rep2": {
+        "R1": [
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/ctrl-rep2_R1.fastq.gz"
+        ],
+        "R2": [
+            "/usr4/bs831/adai/adai/ENCODE_KD_samples/ctrl-rep2_R2.fastq.gz"
         ]
     }
 }

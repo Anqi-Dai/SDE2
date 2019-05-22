@@ -5,7 +5,6 @@ Trimming the fastq files of the ENCODE data (8 gene kd experiments)
 
 import glob
 import json
-import os
 
 # Globals ---------------------------------------------------------------------
 

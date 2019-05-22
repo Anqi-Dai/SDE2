@@ -7,7 +7,7 @@ of the ENCODE gene Knockdown samples.
 import json
 from glob import glob
 
-fastqs = glob('samples/*.fastq.gz')
+fastqs = glob('/usr4/bs831/adai/adai/ENCODE_KD_samples/*.fastq.gz')
 FILES = {}
 
 # Change this line to extract a sample name from each filename.
