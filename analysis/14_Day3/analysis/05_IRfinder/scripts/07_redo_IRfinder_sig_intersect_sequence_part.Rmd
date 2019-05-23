@@ -147,8 +147,6 @@ res$ss3_score <- maxent_res[[1]]$score
 ```{r}
 res <- res %>%
   mutate(RI_len = abs(end - start))
-
-
 ```
 
 ```{r}

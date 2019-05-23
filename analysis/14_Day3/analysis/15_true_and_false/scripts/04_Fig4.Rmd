@@ -55,7 +55,6 @@ compare_plot <- compare %>%
       legend.position = "none")
 ```
 
-
 ## Position
 
 ```{r}
@@ -100,7 +99,7 @@ strength <- res %>%
 ```
 
 ## Length
-
+ 
 ```{r}
 # add a third box which is all the background introns other than the first two
 # load the background introns
@@ -126,7 +125,7 @@ all <- bind_rows(
 # wanna add a label of how many events in each type of Significance
 tally <- table(all$Significance) %>%
   data.frame %>%
-  rename(Significance = names(.)[1])
+  dplyr::rename(Significance = names(.)[1])
 
 all <- all %>%
   split(.$Significance) %>%
