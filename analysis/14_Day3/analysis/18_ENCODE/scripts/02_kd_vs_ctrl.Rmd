@@ -51,7 +51,7 @@ encode_sig_df <- en_sig %>%
          KD_gene = str_replace(KD_gene, '_vs_ctrl.txt',''))
 ```
 
-```{r}
+```{r eval=F}
 # what are those 8 genes are
 library(biomaRt)
 
@@ -168,8 +168,8 @@ SDE2_sig_info %>%
   kable_styling(full_width = F, position = 'left')
 
 
-ggvenn(intersect_set, slice = c(1, 2, 3 )) +
-  labs(title = 'An example Venn diagram showing the relationship\nof sig locus in different ENCODE KD experiments')
+# ggvenn(intersect_set, slice = c(1, 2, 3 )) +
+#   labs(title = 'An example Venn diagram showing the relationship\nof sig locus in different ENCODE KD experiments')
 # ggvenn(intersect_set, slice = c(4, 5, 6 ))
 # ggvenn(intersect_set, slice = c(2, 7, 8 ))
 ```
@@ -180,15 +180,19 @@ intersect_stats <- ret_intersect %>%
   imap_dfc(~ length(.)) %>% 
   gather(key = 'KD_gene',
          value = 'num') %>% 
-  full_join(symbol %>% 
-              rename(KD_gene = external_gene_name), by = 'KD_gene') %>% 
+  # full_join(symbol %>% 
+  #             rename(KD_gene = external_gene_name), by = 'KD_gene') %>% 
   full_join(encode_sig_df, by  = 'KD_gene') %>% 
   mutate(SDE2_intersect_num = length(SDE2_intersect))%>% 
   dplyr::select(KD_gene, 
-                num_sig,
-                SDE2_intersect_num,
-                overlap_num = num,
-                description) 
+                encode_sig = num_sig,
+                SDE2_intersect_sig = SDE2_intersect_num,
+                encode_SDE2_overlap = num)
+  # dplyr::select(KD_gene, 
+  #               num_sig,
+  #               SDE2_intersect_num,
+  #               overlap_num = num,
+  #               description) 
 
 intersect_stats %>% 
   kable(caption = "Summary of the encode gene KD sig IR events' overlap with the SDE2 14 & 89 intersected sig events") %>% 
@@ -202,4 +206,37 @@ intersect_stats %>%
 + SDE2_intersect_num: the number of sig events that exist in both 14 and 89
 + overlap_num: the number of overlapped locus between the previous two columns
 + description: the description of the KD gene
+ 
+## Fisher's exact test
+
+If the overlap is significant comparing each encode KD with SDE2
+
+```{r}
+bg <- 335436
+  
+fisher <- intersect_stats %>% 
+  mutate(a = encode_SDE2_overlap,
+         b = SDE2_intersect_sig - a,
+         c = encode_sig - a,
+         d = bg - a - b- c)
+
+do_fisher <- function(a,b,c,d){
+  cont <- matrix(c(a,b,c,d),ncol=2)
+  res <- fisher.test(cont)
+  return(res$p.value)
+}  
+
+fisher_res <- fisher %>% 
+  dplyr::select(a:d) %>% 
+  pmap_dfc(do_fisher) %>% 
+  gather(key = 'KD_gene',
+         value = 'P.val') %>% 
+  mutate(padj = p.adjust(P.val, method = 'BH')) %>% 
+  mutate(KD_gene = fisher$KD_gene) %>% 
+  mutate(significance = if_else(padj < 0.05, 'sig','not'))
+
+
+fisher_res %>% 
+  kable(caption = 'Fisher exact test of the overlap between encode sig and SDE2 sig') %>%   kable_styling(full_width = F, position = 'left')
+```
 
