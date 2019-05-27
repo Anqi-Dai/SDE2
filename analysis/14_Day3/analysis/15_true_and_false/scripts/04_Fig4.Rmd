@@ -71,31 +71,60 @@ pos <- res %>%
 ## GC content
 
 ```{r}
-gc <- res %>%
-    gghistogram(x = 'GC_per',
+# change the format of the res sig table in the above way
+IRfinder <- res %>% 
+  dplyr::select(locus,
+                intronLen = RI_len,
+                category = Significance,
+                GC_per,
+                ss5_score,
+                ss3_score)
+
+# load the data from the non-as in the background
+non_AS <- read_csv('../../05_IRfinder/data/03_non_AS_seq_info.csv') %>% 
+  filter(!locus %in% IRfinder$locus)
+
+# bind them together
+all <- bind_rows(
+  IRfinder,
+  non_AS
+)
+
+```
+
+
+```{r}
+gc <- all %>%
+    ggboxplot(x = 'category', y = 'GC_per',
               palette = 'lancet',
-              color = 'white', fill = 'Significance', 
-              bins = 40,
-              add = "median",
-              title = 'Histogram of GC% (median shown)',
-              xlab = 'GC% ') 
+              color = 'category', 
+              title = 'Boxplot of GC% ',
+              xlab = 'GC% ',
+              ylab = 'GC%') +
+  theme(axis.text=element_text(size=8)) +
+  stat_compare_means(comparisons = list(c('Sig', 'Non-sig'),
+                                        c('Non-AS-short','Non-AS-long'),
+                                        c('Sig','Non-AS-short')), label = "p.signif")
   
 ```
 
 ## Splice site strength
 
 ```{r}
-strength <- res %>%
-  dplyr::select(locus, Significance, ss5_score, ss3_score) %>%
-  ggboxplot(x = 'Significance', y = c('ss5_score','ss3_score'),combine = T,
-            ylab = 'Score', xlab = '',
-            add = 'jitter', 
-            add.params = list(alpha = 0.15, fill = 'Significance'),
-            title = 'Distribution of the ss5 and ss3\nMaxEnt score',
-            palette = 'lancet', color = 'Significance')   +
-  stat_compare_means(comparisons = list(c('Sig', 'Non-sig')), label = "p.signif") +
-  ylim(-30, 23) +
-  scale_color_manual(values = c( '#EC0000','#00468B'))
+strength <- all %>%
+  dplyr::select(locus, category, ss5_score, ss3_score) %>%
+  ggboxplot(x = 'category', y = c('ss5_score','ss3_score'),combine = T,
+            ylab = 'Splice site score', xlab = '',
+            #add = 'jitter', 
+            add.params = list(alpha = 0.15, fill = 'category'),
+            title = 'Boxplot of the ss5 and ss3\nMaxEnt score',
+            palette = 'lancet', color = 'category')   +
+  stat_compare_means(comparisons = list(c('Sig', 'Non-sig'),
+                                        c('Non-AS-short','Non-AS-long'),
+                                        c('Sig','Non-AS-short')), label = "p.signif") +   
+  scale_color_manual(values = c( '#EC0000','#00468B','#42B440','#1799B1')) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 0.5, vjust = 0.6),
+        axis.text=element_text(size=8))
 ```
 
 ## Length
@@ -181,7 +210,7 @@ gsea_plot <- gsea %>%
 ## Assemble
  
 ```{r out.width=800}
-g <- ggarrange(compare_plot, pos, gc, strength, len, gsea_plot, 
+g <- ggarrange(compare_plot, pos, len, gc, strength, gsea_plot, 
           ncol = 2, nrow = 3, 
           align = c("v"),
           labels = 'auto', label.x = 0, hjust = -3) +
