@@ -15,6 +15,7 @@ knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
 library(tidyverse)
 library(ggpubr)
 library(scales)
+library(extrafont)
 ```
 
 ```{r}
@@ -23,39 +24,50 @@ res <- read_csv('../../05_IRfinder/data/02_intersect_sig_and_intersect_non_sig_a
 ```
 
 
-
 # SiSDE2-1 (Si14 only)
 
 ```{r}
 table(res$Significance)
 ```
 
-## SDE2 IR events VS IRfinder events
+```{r}
+# parameters about the size of the text and the axis text(for publication level of plots)
+axis_text_size <- 9
+general_text_size <- 10
+rotation_angle <- 30
+our_font <- 'Arial'
+```
+
+## a: SDE2 IR events VS IRfinder events
 
 ```{r}
 # make the 14 89 named si-1 and si-2
 compare <- read_csv('../output/paper and our KD events compare.csv') %>%
-  mutate(gene = str_replace(gene, 'RF14', 'si-1'),
-         gene = str_replace(gene, 'RF89', 'si-2'))
+  mutate(gene = str_replace(gene, ' RF14', '-1'),
+         gene = str_replace(gene, ' RF89', '-2')) %>% 
+  mutate(gene = if_else(str_detect(gene, 'SDE2'),
+                        str_glue('si{gene}'),
+                        gene))
 
 compare_plot <- compare %>%
   mutate(gene = str_replace(gene, 'RF', 'Si'))  %>%
-  mutate(group = if_else(str_detect(gene, 'SDE2'), ' SDE2 data', ' IRfinder paper')) %>%
+  mutate(group = if_else(str_detect(gene, 'SDE2'), ' SDE2 data', ' IRfinder paper  ')) %>%
   ggbarplot(x = 'gene', y ='increased',
             color = 'group', fill = 'group',
-            ylab = 'Number of events', 
-            title = 'Comparison of increased IR events\nafter gene KD')  +
+            ylab = 'Number of events')  +
   ylim(0, 6800) +
   geom_text(aes(label = increased_in_perc), vjust = -1, size = 3 ) +
   scale_color_manual(values = c('#EEBF2B', '#1175C0'))  +
   scale_fill_manual(values = c('#EEBF2B', '#1175C0'))  +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
-      axis.text=element_text(size=8),
-      axis.title.x=element_blank(),
-      legend.title = element_blank())
+  theme(text = element_text(family = our_font),
+        axis.text.x = element_text(angle = rotation_angle, hjust = 1),
+        axis.text=element_text(size=axis_text_size),
+        axis.title.x=element_blank(),
+        axis.title.y=element_text(size = general_text_size),
+        legend.title = element_blank())
 ```
 
-## Position
+## b: Position
 
 ```{r}
 pos <- res %>%
@@ -64,73 +76,13 @@ pos <- res %>%
               color = 'white', fill = 'Significance', 
               bins = 40,
               add = "median",
-              title = 'Histogram of RI position\n(median shown)',
-              xlab = 'RI position')
+              xlab = 'RI position') + 
+  theme(text = element_text(family = our_font),
+        axis.text=element_text(size=axis_text_size),
+        axis.title=element_text(size = general_text_size))
 ```
 
-## GC content
-
-```{r}
-# change the format of the res sig table in the above way
-IRfinder <- res %>% 
-  dplyr::select(locus,
-                intronLen = RI_len,
-                category = Significance,
-                GC_per,
-                ss5_score,
-                ss3_score)
-
-# load the data from the non-as in the background
-non_AS <- read_csv('../../05_IRfinder/data/03_non_AS_seq_info.csv') %>% 
-  filter(!locus %in% IRfinder$locus)
-
-# bind them together
-all <- bind_rows(
-  IRfinder,
-  non_AS
-)
-
-```
-
-
-```{r}
-gc <- all %>%
-    ggboxplot(x = 'category', y = 'GC_per',
-              palette = 'lancet',
-              color = 'category', 
-              title = 'Boxplot of GC% ',
-              xlab = 'GC% ',
-              ylab = 'GC%') +
-  theme(axis.text=element_text(size=8),
-        legend.title = element_blank()) +
-  stat_compare_means(comparisons = list(c('Sig', 'Non-sig'),
-                                        c('Non-AS-short','Non-AS-long'),
-                                        c('Sig','Non-AS-short')), label = "p.signif")+   
-  scale_color_manual(values = c( '#EC0000','#00468B','#42B440','#1799B1')) 
-  
-```
-
-## Splice site strength
-
-```{r}
-strength <- all %>%
-  dplyr::select(locus, category, ss5_score, ss3_score) %>%
-  ggboxplot(x = 'category', y = c('ss5_score','ss3_score'),combine = T,
-            ylab = 'Splice site score', xlab = '',
-            #add = 'jitter', 
-            add.params = list(alpha = 0.15, fill = 'category'),
-            title = 'Boxplot of the ss5 and ss3\nMaxEnt score',
-            palette = 'lancet', color = 'category')   +
-  stat_compare_means(comparisons = list(c('Sig', 'Non-sig'),
-                                        c('Non-AS-short','Non-AS-long'),
-                                        c('Sig','Non-AS-short')), label = "p.signif") +   
-  scale_color_manual(values = c( '#EC0000','#00468B','#42B440','#1799B1')) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 0.5, vjust = 0.6),
-        axis.text=element_text(size=8),
-        legend.title = element_blank())
-```
-
-## Length
+## c: Length
  
 ```{r}
 # add a third box which is all the background introns other than the first two
@@ -172,21 +124,91 @@ annotation_height <- all %>%
 len <- all %>%
   ggboxplot(x = "Significance", y = 'RI_len',  color = 'Significance',
             ylab = 'Length of retained intron', xlab = '',
-            palette = 'lancet',
-            title = 'Len of RI boxplot') +
+            palette = 'lancet') +
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
               labels = trans_format("log10", math_format(10^.x)))  +
   annotation_logticks(sides = "l")  +
   scale_color_manual(values = c('#EC0000','#00468B', '#374E54'))  +
   stat_compare_means(comparisons = list(c('Sig', 'Non-sig'),
-                                        c('Sig','Non-AS'),
-                                        c('Non-sig','Non-AS')),
+                                        c('Non-sig','Non-AS'),
+                                        c('Sig','Non-AS')),
                      label = "p.signif") +
   geom_text(data = tally, aes(x = Significance, y = annotation_height, label = Freq)) +
-  theme(legend.title = element_blank())
+  theme(text = element_text(family = our_font),
+        axis.text=element_text(size=axis_text_size),
+        axis.title.y=element_text(size = general_text_size),
+        legend.position="none")
 ```
- 
-## GSEA 
+
+
+## d: GC content
+
+```{r}
+# change the format of the res sig table in the above way
+IRfinder <- res %>% 
+  dplyr::select(locus,
+                intronLen = RI_len,
+                category = Significance,
+                GC_per,
+                ss5_score,
+                ss3_score)
+
+# load the data from the non-as in the background
+non_AS <- read_csv('../../05_IRfinder/data/03_non_AS_seq_info.csv') %>% 
+  filter(!locus %in% IRfinder$locus)
+
+# bind them together
+all <- bind_rows(
+  IRfinder,
+  non_AS
+)
+
+```
+
+
+```{r}
+gc <- all %>%
+    ggboxplot(x = 'category', y = 'GC_per',
+              palette = 'lancet',
+              color = 'category', 
+              xlab = 'GC% ',
+              ylab = 'GC%') +
+    scale_y_continuous(breaks=seq(0, 100, 25)) +
+    stat_compare_means(comparisons = list(c('Sig', 'Non-sig'),
+                                          c('Non-AS-short','Non-AS-long'),
+                                          c('Sig','Non-AS-short')), label = "p.signif")+   
+    scale_color_manual(values = c( '#EC0000','#00468B','#42B440','#1799B1')) +
+    theme(text = element_text(family = our_font),
+        legend.position="none",
+        axis.title.x=element_blank(),
+        axis.text=element_text(size=axis_text_size),
+        axis.title.y=element_text(size = general_text_size)) 
+  
+```
+
+## e: Splice site strength
+
+```{r}
+strength <- all %>%
+  dplyr::select(locus, category, ss5_score, ss3_score) %>%
+  ggboxplot(x = 'category', y = c('ss5_score','ss3_score'),combine = T,
+            ylab = 'Splice site score', xlab = '',
+            #add = 'jitter', 
+            add.params = list(alpha = 0.15, fill = 'category'),
+            palette = 'lancet', color = 'category')   +
+  stat_compare_means(comparisons = list(c('Sig', 'Non-sig'),
+                                        c('Non-AS-short','Non-AS-long'),
+                                        c('Sig','Non-AS-short')), label = "p.signif") +   
+  scale_color_manual(values = c( '#EC0000','#00468B','#42B440','#1799B1')) +
+  theme(text = element_text(family = our_font),  
+        axis.text=element_text(size=axis_text_size),
+        axis.text.x = element_text(angle = rotation_angle, hjust = 1),
+        axis.title.y=element_text(size = general_text_size),
+        legend.position="none") + 
+  ggsave('../figs/the score.jpg', width = 8, height = 6)
+```
+
+## f: GSEA 
 
 ```{r}
 # the gsea of the significant genes
@@ -199,16 +221,24 @@ res %>%
 gsea <- read_csv('../output/Metascape/day3_sig_gene/all/Enrichment_GO/GO_AllLists.csv') %>%
   top_n(n = -10, wt = `Log(q-value)`) %>%
   mutate(neg_log_q = abs(`Log(q-value)`)) %>%
-  mutate(Description = str_replace(Description, ' \\(..+$','')) 
+  mutate(Description = str_replace(Description, ' \\(..+$',''))  %>% 
+  mutate(Description = if_else(str_detect(Description, 'precursor'),
+                               'Biosynthesis of the\nN-glycan precursor',
+                               Description)) %>% 
+    mutate(Description = if_else(str_detect(Description, 'cellular protein catabolic process'),
+                               'cellular protein\ncatabolic process',
+                               Description)) 
 
 gsea_plot <- gsea %>%
   ggbarplot(x = 'Description', y = 'neg_log_q',
             xlab = '', ylab = '-log10(q)',
-            title = 'GSEA of the genes\nwithsignificant RI', color = 'white',
-            fill = 'neg_log_q') +
+            color = 'white', fill = '#00468B') +
   coord_flip() +
-  theme(axis.text.y = element_text(size = 7),
-        legend.position="none")
+  theme(text = element_text(family = our_font),  
+        axis.text.x=element_text(size=axis_text_size),
+        axis.title.x=element_text(size = general_text_size),
+        axis.text.y = element_text(size = 8),
+        legend.position="none") 
 
 ```  
 
@@ -217,8 +247,8 @@ gsea_plot <- gsea %>%
 ```{r out.width=800}
 g <- ggarrange(compare_plot, pos, len, gc, strength, gsea_plot, 
           ncol = 2, nrow = 3, 
-          align = c("v"),
-          labels = 'auto', label.x = 0, hjust = -3) +
+          align = "hv",
+          labels = 'auto', label.x = 0, hjust = 0) +
   ggsave('../figs/d3_Assembled_fig4_intersection.jpg', width = 8, height = 12, dpi = 300)
 ```
 
