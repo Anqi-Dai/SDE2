@@ -16,6 +16,8 @@ library(tidyverse)
 library(ggpubr)
 library(scales)
 library(extrafont)
+library(grid)
+library(cowplot)
 ```
 
 ```{r}
@@ -243,6 +245,15 @@ gsea_plot <- gsea %>%
 ```  
 
 ## Assemble
+
+```{r}
+g<- plot_grid(compare_plot, pos, len, gc, strength, gsea_plot,  
+          nrow = 3, 
+          align = 'hv',
+          axis = 'rlbt')  +
+  ggsave('../figs/00000.jpg', width = 8, height = 12, dpi = 300)
+```
+
  
 ```{r out.width=800}
 g <- ggarrange(compare_plot, pos, len, gc, strength, gsea_plot, 
