@@ -53,7 +53,7 @@ compare <- read_csv('../output/paper and our KD events compare.csv') %>%
 
 compare_plot <- compare %>%
   mutate(gene = str_replace(gene, 'RF', 'Si'))  %>%
-  mutate(group = if_else(str_detect(gene, 'SDE2'), ' SDE2 data', ' IRfinder paper  ')) %>%
+  mutate(group = if_else(str_detect(gene, 'SDE2'), ' SDE2 data', ' ENCODE data ')) %>%
   ggbarplot(x = 'gene', y ='increased',
             color = 'group', fill = 'group',
             ylab = 'Number of events')  +
@@ -81,7 +81,9 @@ pos <- res %>%
               xlab = 'RI position') + 
   theme(text = element_text(family = our_font),
         axis.text=element_text(size=axis_text_size),
-        axis.title=element_text(size = general_text_size))
+        axis.title=element_text(size = general_text_size),
+        axis.title.x=element_blank(),
+        legend.title = element_blank())
 ```
 
 ## c: Length
@@ -196,19 +198,18 @@ strength <- all %>%
   ggboxplot(x = 'category', y = c('ss5_score','ss3_score'),combine = T,
             ylab = 'Splice site score', xlab = '',
             palette = 'lancet', color = 'category')   +
-  scale_y_continuous(limits = c(-10, 25)) +
   stat_compare_means(comparisons = list(c('Sig', 'Non-sig'),
                                         c('Non-AS-short','Non-AS-long'),
                                         c('Sig','Non-AS-short')), 
                      label = "p.signif",
-                     label.y = c(18, 20, 24)) +   
+                     label.y = c(18, 20, 23)) +   
   scale_color_manual(values = c( '#EC0000','#00468B','#42B440','#1799B1')) +
   theme(text = element_text(family = our_font),  
         axis.text=element_text(size=axis_text_size),
         axis.text.x = element_text(angle = rotation_angle, hjust = 1),
         axis.title.y=element_text(size = general_text_size),
-        legend.position="none") + 
-  ggsave('../figs/the score.jpg', width = 8, height = 6)
+        legend.position="none") +
+  coord_cartesian(ylim = c(0, 24))
 ```
 
 ## f: GSEA 
@@ -239,7 +240,7 @@ gsea_plot <- gsea %>%
   coord_flip() +
   theme(text = element_text(family = our_font),  
         axis.text.x=element_text(size=axis_text_size),
-        axis.title.x=element_text(size = general_text_size),
+        axis.title.x=element_blank(),
         axis.text.y = element_text(size = 8),
         legend.position="none") 
 
@@ -255,7 +256,6 @@ g <- plot_grid(compare_plot, pos, len, gc, strength, gsea_plot,
           axis = 'b')  +
   ggsave('../figs/d3_Assembled_fig4_intersection.jpg', width = 8, height = 12, dpi = 300)
 ```
-
 
 # Side note
 
