@@ -58,7 +58,7 @@ compare_plot <- compare %>%
             color = 'group', fill = 'group',
             ylab = 'Number of events')  +
   ylim(0, 6800) +
-  geom_text(aes(label = increased_in_perc), vjust = -1, size = 3 ) +
+  geom_text(aes(label = increased_in_perc), vjust = -1, size = 2 ) +
   scale_color_manual(values = c('#EEBF2B', '#1175C0'))  +
   scale_fill_manual(values = c('#EEBF2B', '#1175C0'))  +
   theme(text = element_text(family = our_font),
@@ -188,19 +188,20 @@ gc <- all %>%
   
 ```
 
-## e: Splice site strength
+## e: Splice site strength 
 
 ```{r}
 strength <- all %>%
   dplyr::select(locus, category, ss5_score, ss3_score) %>%
   ggboxplot(x = 'category', y = c('ss5_score','ss3_score'),combine = T,
             ylab = 'Splice site score', xlab = '',
-            #add = 'jitter', 
-            add.params = list(alpha = 0.15, fill = 'category'),
             palette = 'lancet', color = 'category')   +
+  scale_y_continuous(limits = c(-10, 25)) +
   stat_compare_means(comparisons = list(c('Sig', 'Non-sig'),
                                         c('Non-AS-short','Non-AS-long'),
-                                        c('Sig','Non-AS-short')), label = "p.signif") +   
+                                        c('Sig','Non-AS-short')), 
+                     label = "p.signif",
+                     label.y = c(18, 20, 24)) +   
   scale_color_manual(values = c( '#EC0000','#00468B','#42B440','#1799B1')) +
   theme(text = element_text(family = our_font),  
         axis.text=element_text(size=axis_text_size),
@@ -247,21 +248,14 @@ gsea_plot <- gsea %>%
 ## Assemble
 
 ```{r}
-g<- plot_grid(compare_plot, pos, len, gc, strength, gsea_plot,  
+g <- plot_grid(compare_plot, pos, len, gc, strength, gsea_plot,  
           nrow = 3, 
           align = 'hv',
-          axis = 'rlbt')  +
-  ggsave('../figs/00000.jpg', width = 8, height = 12, dpi = 300)
-```
-
- 
-```{r out.width=800}
-g <- ggarrange(compare_plot, pos, len, gc, strength, gsea_plot, 
-          ncol = 2, nrow = 3, 
-          align = "hv",
-          labels = 'auto', label.x = 0, hjust = 0) +
+          labels = 'AUTO',
+          axis = 'b')  +
   ggsave('../figs/d3_Assembled_fig4_intersection.jpg', width = 8, height = 12, dpi = 300)
 ```
+
 
 # Side note
 
