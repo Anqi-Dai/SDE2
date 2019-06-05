@@ -40,7 +40,7 @@ png('../figs/FDR005 Splicing type pie chart in SIG events.png',pointsize = 8, re
 pie(res$count,
     labels = res$lbl, 
     col= res$color,
-    cex=0.6)
+    cex=1.2)
 dev.off() 
 ```
 
@@ -67,6 +67,12 @@ res %>%
 ```
 
 ```{r}
+# my general settings
+axis_text_size <- 9
+general_text_size <- 10
+```
+
+```{r}
 # the bar chart with the specific numbers
 bar <- final %>%
   group_by(type) %>%
@@ -77,11 +83,16 @@ bar <- final %>%
 
 bar %>% 
   ggbarplot(x ='type', y = 'cts', 
-            label = TRUE, 
-            color = 'black', fill = 'type',
+            label = TRUE,  lab.size = 2,
+            color = 'white', fill = 'type',
+            size = 0,
+            ylab = 'count',
+            xlab = '',
             palette = bar$color) +
-  theme(legend.position = 'none') +
-  ggsave('../figs/AS type of the FDR < 0.05 locus.jpg', dpi = 300, width = 10, height = 6)
+  theme(legend.position = 'none',
+        axis.text=element_text(size=axis_text_size),
+        axis.title.y=element_text(size = general_text_size)) +
+  ggsave('../figs/AS type of the FDR < 0.05 locus.jpg', dpi = 300, width = 4, height = 3)
 ```
 
 ```{r}
