@@ -84,14 +84,7 @@ barplot <- bar %>%
 # assemble the pie and the bar together
 plot_grid(piechart, barplot,
           nrow = 1, align = 'v', axis = 'b') +
-  ggsave('../figs/assembled_fig1.jpg', width = 13, height = 7, dpi = 300)
+  ggsave('../figs/day5_assembled_fig1.jpg', width = 13, height = 7, dpi = 300)
 ```
 
-
-```{r}
-# how many unique genes
-final %>%
-  distinct(ensembl_gene_id) %>%
-  nrow
-```
 
