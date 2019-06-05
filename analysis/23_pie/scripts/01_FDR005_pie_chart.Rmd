@@ -15,7 +15,7 @@ library(ggpubr)
 
 ```{r}
 # load the data 
-final <- read_csv('../../16_THE_PSI/output/day3_sig_events_all_tools_not_filtered_by_PSI.csv')
+final <- read_csv('../../22_PSI/output/day5_sig_events_all_tools_not_filtered_by_PSI.csv')
 ```
 
 ```{r}
@@ -41,11 +41,14 @@ res <- final %>%
 res <- colorPal %>%
   left_join(res, by = 'type') %>%
           mutate(lbl = paste(type, perc , sep = ' '))
+
+factor_levels <- res %>% 
+  pull(lbl)
 ```
 
 ```{r}
 piechart <- res %>%  
-  mutate(lbl = factor(lbl, levels = c("AD 1%", "TS 11%", "MXE 0%", "RI 57%", "AF 0%", "CE 13%", "AA 3%", "AL 0%", "TE 14%"))) %>% 
+  mutate(lbl = factor(lbl, levels = factor_levels)) %>% 
   ggpie(x = 'count',
         label = 'lbl',
         color = 'white',   

@@ -16,7 +16,7 @@ Day 3.
 knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
 library(tidyverse)
 library(ggpubr)
-library(kableExtra)
+library(kableExtra) 
 ```
 
 Get the significant results in each tool.

@@ -1,27 +1,32 @@
 ---
-title: "Remove the IRfinder results and summarize on the other two"
+title: "PSI14 and 89"
 author: "Anqi Dai"
-date: "6/5/2019"
-output: html_document
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    code_folding: hide
 ---
 
-Day 3.
+Day 5.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
 library(tidyverse)
 library(ggpubr)
-library(kableExtra)
+library(kableExtra)  
 ```
 
-Get the significant results in Whippet and rMATS.
+Get the significant results in each tool.
 
 How to get the intersection in each tool:
 
 + Get the significant results in 14 and 89 respectively
 + Take the intersection 
 
-# Whippet intersection
+# Whippet intersection 
 
 ```{r}
 # data path for whippet
@@ -51,6 +56,37 @@ whippet_ol  <- whippet_sig[[1]] %>%
         
 ```
 
+# IRfinder intersection
+
+```{r}
+data_path <- '../../05_IRfinder/data/rawIRfinderResult/'
+fns <- list.files(data_path, pattern = 'txt', full.names = T)
+
+IRfinder_sig <- fns %>%
+  map(~ read_tsv(.,comment = '#',col_names = T)  %>%
+        mutate(Start = Start + 1) %>%
+        mutate(locus = paste(Chr,paste(Start, End, sep = '-'), sep = ':' ) ) %>%
+        rename_all(funs(stringr::str_replace_all(., '-', '_') )) %>%
+        separate(names(.)[4], into = c('Symbol', 'GeneID', 'Category'), sep = '/') %>%
+        mutate(ensembl_gene_id = str_replace_all(string = GeneID, pattern = '\\..*$', replacement = ''),
+               padj = p.adjust(p_diff, method = 'BH')) %>%
+        filter(! Category == 'known-exon') %>%
+        filter(A_IRok != 'MinorIsoform' &  B_IRok != 'MinorIsoform' ) %>%
+        filter(padj < 0.05)  %>%
+        mutate(type = "RI",
+               tool = 'IRfinder') %>%
+        dplyr::select(ensembl_gene_id, 
+                      locus,
+                      type,
+                      Psi_A = A_IRratio, 
+                      Psi_B = B_IRratio,
+                      tool))
+
+IRfinder_ol <- IRfinder_sig[[1]] %>%
+  rename(Psi_14 = Psi_A) %>%
+  inner_join(IRfinder_sig[[2]] %>%
+               dplyr::select(Psi_89 = Psi_A, locus), by = 'locus')
+```
 
 # rMATS intersection
 
@@ -166,24 +202,51 @@ rMATS_ol <- rMATS_sig[[1]] %>%
   rename(Psi_14 = Psi_A) %>%
   inner_join(rMATS_sig[[2]] %>% 
                dplyr::select(Psi_89 = Psi_A, locus), by = 'locus')
-``` 
-
-# Combine two
+```
 
 ```{r}
-all_sig <- bind_rows(    
+# how many of them each
+tibble(
+  IRfinder_ol = nrow(IRfinder_ol),
+  whippet_ol = nrow(whippet_ol),
+  rMATS_ol = nrow(rMATS_ol)
+) %>%
+  kable(caption = 'Number of overlapped sig events between 14 and 89 in each tool') %>%
+  kable_styling(full_width = F, position = 'left')
+```
+
+
+# Combine three
+
++ Combine all the significant results from three tools together, and remove duplicated locus.
++ PSI_KD is the mean of Psi_14 and Psi_89.
++ PSI_KD - PSI_WT = deltaPSI
++ The table is sorted in the descending order of abs(deltaPSI)
+
+```{r}
+all_sig <- bind_rows(
+  IRfinder_ol,
   whippet_ol,
   rMATS_ol
 ) %>%
   distinct(locus, .keep_all = TRUE) 
 ```
 
+```{r}
+# calculate the mean of 14 and 89 as the PSI_KD and
+# PSI_KD - PSI_B = deltaPSI
+ret <- all_sig %>%
+  rowwise() %>%
+  mutate(PSI_KD = mean(c(Psi_14, Psi_89), na.rm = T)) %>%
+  rename(PSI_WT = Psi_B) %>%
+  mutate(deltaPSI = PSI_KD - PSI_WT) %>%
+  arrange(desc(abs(deltaPSI)))
+```
+
 
 ```{r}
-res <- all_sig %>%
-          group_by(type) %>%
-          summarise(count = n())%>%
-          mutate(perc = paste0(round((count / sum(count)) * 100), '%') ) %>% 
-          arrange(desc(count)) 
+# write out the above table . this is the result of sig events not filtered by PSI or deltaPSI
+ret %>%
+  write_csv('../output/day5_sig_events_all_tools_not_filtered_by_PSI.csv')
 ```
 
