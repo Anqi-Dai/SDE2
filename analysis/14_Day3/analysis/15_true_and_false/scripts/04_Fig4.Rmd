@@ -209,7 +209,7 @@ strength <- all %>%
         axis.text.x = element_text(angle = rotation_angle, hjust = 1),
         axis.title.y=element_text(size = general_text_size),
         legend.position="none") +
-  coord_cartesian(ylim = c(0, 24))
+  coord_cartesian(ylim = c(0, 24))    
 ```
 
 ## f: GSEA 

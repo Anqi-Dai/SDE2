@@ -20,9 +20,10 @@ final <- read_csv('../../16_THE_PSI/output/day3_sig_events_all_tools_not_filtere
 ```{r}
 # get the data in table right
 hex <- c(brewer.pal(n = 8, name = "Dark2"), '#00468B')
-
+hex <- c( "#D95F02", "#7570B3", "#E7298A", "#66A61E", "#E6AB02", "#A6761D", "#666666","#1B9E77", "#00468B")
+  
 colorPal <- data_frame(
-  type = c('AL','AD','TS','MXE','RI','AF','CE','AA','TE'), 
+  type = c('AD','TS','MXE','RI','AF','CE','AA','AL','TE'), 
   color = hex) 
 
 res <- final %>%
@@ -36,20 +37,50 @@ res <- colorPal %>%
 
 # actually draw the pie chart
 png('../figs/FDR005 Splicing type pie chart in SIG events.png',pointsize = 8, res = 300, width = 4, height = 4, units = 'in')
-pie(res$count,labels = res$lbl, col= res$color, main = 'FDR005 Splicing type pie chart in SIG events')
-dev.off()
+pie(res$count,
+    labels = res$lbl, 
+    col= res$color,
+    cex=0.6)
+dev.off() 
+```
+
+```{r}
+# ggpubr is not sufficient to make customized plot, I will have to do in ggplot
+# to manually set the factor level of the lables so that I can control how the portions are arranged 
+
+
+res %>%  
+  mutate(lbl = factor(lbl, levels = c("AD 1%", "TS 11%", "MXE 0%", "RI 57%", "AF 0%", "CE 13%", "AA 3%", "AL 0%", "TE 14%"))) %>% 
+  ggplot(aes(x="", y=count, fill=lbl)) +
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar("y", start=2) + 
+  scale_fill_manual(values=hex) + 
+  theme_minimal() +
+  theme(
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    panel.border = element_blank(),
+    axis.text = element_blank(),
+    panel.grid=element_blank(),
+    axis.ticks = element_blank()
+  ) 
 ```
 
 ```{r}
 # the bar chart with the specific numbers
-final %>%
+bar <- final %>%
   group_by(type) %>%
   summarise(cts = n()) %>%
   arrange(desc(cts)) %>% 
+  full_join(colorPal, by = 'type')
+
+
+bar %>% 
   ggbarplot(x ='type', y = 'cts', 
-            palette = 'lancet',label = TRUE,
-            title = 'AS type of the FDR < 0.05 locus',
-            color = '#00468B', fill = '#00468B') +
+            label = TRUE, 
+            color = 'black', fill = 'type',
+            palette = bar$color) +
+  theme(legend.position = 'none') +
   ggsave('../figs/AS type of the FDR < 0.05 locus.jpg', dpi = 300, width = 10, height = 6)
 ```
 
