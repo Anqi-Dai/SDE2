@@ -1,0 +1,190 @@
+---
+title: "Remove the IRfinder results and summarize on the other two"
+author: "Anqi Dai"
+date: "6/5/2019"
+output: html_document
+---
+
+Day 3.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
+library(tidyverse)
+library(ggpubr)
+library(kableExtra)
+```
+
+Get the significant results in Whippet and rMATS.
+
+How to get the intersection in each tool:
+
++ Get the significant results in 14 and 89 respectively
++ Take the intersection 
+
+# Whippet intersection
+
+```{r}
+# data path for whippet
+data_path <- '../../03_ASprofile/data/whippetResult'
+fns <- list.files(data_path, pattern = 'output.diff', full.names = T)
+
+# read the data and select the columns
+whippet_sig <- fns %>%
+  map(~ read_tsv(.,col_names = T)  %>%
+        mutate(absDeltaPsi = abs(DeltaPsi)) %>%
+        filter(absDeltaPsi > 0.1 & Probability > 0.9 & Psi_A > 0.1) %>%
+        mutate(tool = 'Whippet') %>%
+        dplyr::select(ensembl_gene_id = Gene, 
+                      locus = Coord, 
+                      type = Type,
+                      Psi_A, 
+                      Psi_B,
+                      tool) %>%
+        mutate(ensembl_gene_id = str_replace_all( ensembl_gene_id, '\\..*$', ''))
+   )
+
+# find the intersection by inner join
+whippet_ol  <- whippet_sig[[1]] %>%
+  rename(Psi_14 = Psi_A) %>%
+  inner_join(whippet_sig[[2]] %>%
+               dplyr::select(Psi_89 = Psi_A, locus), by = 'locus')
+        
+```
+
+
+# rMATS intersection
+
+```{r}
+# the function of combine all of the types of results in rMATS
+# input Name could be: RF14 or RF89.
+   
+  
+read_rMATS_all_types <- function(Name) {
+
+  path <- str_glue('../../06_rMATS/data/rMATS_result/{Name}_control')
+  fns <- file.path(path, list.files(path, 'JCEC.txt'))
+  
+  # 1. A3SS  
+  A3SS <- read_tsv(fns[1]) %>% 
+    filter(FDR < 0.05) %>%
+    rename(start = longExonStart_0base, 
+           end = shortES, 
+           Psi_A = IncLevel1, 
+           Psi_B = IncLevel2) %>%
+    mutate(start = start + 1,
+           locus = paste(chr, paste(start,end, sep='-'),sep=':'),
+           tool = 'rMATS',
+           type = 'AA') %>%
+    separate(Psi_A, into = c('Psi_A1','Psi_A2','Psi_A3'), sep = ',', convert = T) %>%
+    separate(Psi_B, into = c('Psi_B1','Psi_B2','Psi_B3'), sep = ',', convert = T) %>%
+    rowwise() %>%
+    mutate(Psi_A = mean(c(Psi_A1, Psi_A2, Psi_A3), na.rm = T),
+           Psi_B = mean(c(Psi_B1, Psi_B2, Psi_B3), na.rm = T))  %>%
+    dplyr::select(ensembl_gene_id = GeneID, locus, type, Psi_A,  Psi_B, tool) %>%
+    mutate(ensembl_gene_id = str_replace_all( ensembl_gene_id, '\\..*$', ''))
+
+  
+  # 2. A5SS   
+  A5SS <- read_tsv(fns[2]) %>%
+    filter(FDR < 0.05) %>% 
+    rename(start = shortEE, end = longExonEnd, Psi_A = IncLevel1, Psi_B = IncLevel2) %>%
+    mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':'),
+       tool = 'rMATS',
+       type = 'AD') %>%
+    separate(Psi_A, into = c('Psi_A1','Psi_A2','Psi_A3'), sep = ',', convert = T) %>%
+    separate(Psi_B, into = c('Psi_B1','Psi_B2','Psi_B3'), sep = ',', convert = T) %>%
+    rowwise() %>%
+    mutate(Psi_A = mean(c(Psi_A1, Psi_A2, Psi_A3), na.rm = T),
+           Psi_B = mean(c(Psi_B1, Psi_B2, Psi_B3), na.rm = T))  %>%
+    dplyr::select(ensembl_gene_id = GeneID, locus, type, Psi_A,  Psi_B, tool) %>%
+    mutate(ensembl_gene_id = str_replace_all( ensembl_gene_id, '\\..*$', ''))
+    
+  #  RI 
+  RI <- read_tsv(fns[4]) %>%
+    filter(FDR < 0.05) %>% 
+    rename(start = upstreamEE, end = downstreamES, Psi_A = IncLevel1, Psi_B = IncLevel2) %>%
+    separate(Psi_A, into = c('Psi_A1','Psi_A2','Psi_A3'), sep = ',', convert = T) %>%
+    separate(Psi_B, into = c('Psi_B1','Psi_B2','Psi_B3'), sep = ',', convert = T) %>%
+    rowwise() %>%
+    mutate(Psi_A = mean(c(Psi_A1, Psi_A2, Psi_A3), na.rm = T),
+           Psi_B = mean(c(Psi_B1, Psi_B2, Psi_B3), na.rm = T))  %>%
+    mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':'),
+           tool = 'rMATS',
+           type = 'RI') %>%
+    dplyr::select(ensembl_gene_id = GeneID, locus, type, Psi_A,  Psi_B, tool) %>%
+    mutate(ensembl_gene_id = str_replace_all( ensembl_gene_id, '\\..*$', ''))
+
+  
+  #  SE 
+  SE <-  read_tsv(fns[5]) %>%
+    filter(FDR < 0.05) %>% 
+    rename(start = exonStart_0base, end = exonEnd, Psi_A = IncLevel1, Psi_B = IncLevel2) %>%
+    mutate(start = start + 1,
+           locus = paste(chr, paste(start,end, sep='-'),sep=':'),
+           tool = 'rMATS',
+           type = 'CE') %>%
+    separate(Psi_A, into = c('Psi_A1','Psi_A2','Psi_A3'), sep = ',', convert = T) %>%
+    separate(Psi_B, into = c('Psi_B1','Psi_B2','Psi_B3'), sep = ',', convert = T) %>%
+    rowwise() %>%
+    mutate(Psi_A = mean(c(Psi_A1, Psi_A2, Psi_A3), na.rm = T),
+           Psi_B = mean(c(Psi_B1, Psi_B2, Psi_B3), na.rm = T))  %>%
+    dplyr::select(ensembl_gene_id = GeneID, locus, type, Psi_A,  Psi_B, tool) %>%
+    mutate(ensembl_gene_id = str_replace_all( ensembl_gene_id, '\\..*$', ''))
+  
+  #  MXE
+  MXE <- read_tsv(fns[3]) %>%
+    filter(FDR < 0.05) %>% 
+    rename(start = upstreamES, end = downstreamEE, Psi_A = IncLevel1, Psi_B = IncLevel2) %>%
+    mutate(locus = paste(chr, paste(start,end, sep='-'),sep=':'),
+           tool = 'rMATS',
+           type = 'MXE') %>%
+    separate(Psi_A, into = c('Psi_A1','Psi_A2','Psi_A3'), sep = ',', convert = T) %>%
+    separate(Psi_B, into = c('Psi_B1','Psi_B2','Psi_B3'), sep = ',', convert = T) %>%
+    rowwise() %>%
+    mutate(Psi_A = mean(c(Psi_A1, Psi_A2, Psi_A3), na.rm = T),
+           Psi_B = mean(c(Psi_B1, Psi_B2, Psi_B3), na.rm = T))  %>%
+    dplyr::select(ensembl_gene_id = GeneID, locus, type, Psi_A,  Psi_B, tool) %>%
+    mutate(ensembl_gene_id = str_replace_all( ensembl_gene_id, '\\..*$', ''))
+
+  
+  # combine them together
+  sig <- bind_rows(A3SS, A5SS, RI, SE, MXE) %>%
+    distinct(locus, .keep_all = TRUE) 
+  
+  return(sig)
+}
+
+```
+
+```{r}
+# call the above function
+rMATS_sig <- c('RF14','RF89') %>%
+  map(~ read_rMATS_all_types(.))
+  
+# join to find the intersection
+rMATS_ol <- rMATS_sig[[1]] %>%
+  rename(Psi_14 = Psi_A) %>%
+  inner_join(rMATS_sig[[2]] %>% 
+               dplyr::select(Psi_89 = Psi_A, locus), by = 'locus')
+``` 
+
+# Combine two
+
+```{r}
+all_sig <- bind_rows(    
+  whippet_ol,
+  rMATS_ol
+) %>%
+  distinct(locus, .keep_all = TRUE) 
+```
+
+
+```{r}
+res <- all_sig %>%
+          group_by(type) %>%
+          summarise(count = n())%>%
+          mutate(perc = paste0(round((count / sum(count)) * 100), '%') ) %>% 
+          arrange(desc(count)) 
+  
+```
+
