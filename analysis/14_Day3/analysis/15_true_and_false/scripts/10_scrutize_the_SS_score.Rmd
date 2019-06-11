@@ -1,12 +1,17 @@
 ---
 title: "Scrutinize the SS score"
 author: "Anqi Dai"
-date: "6/11/2019"
-output: html_document
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    code_folding: hide
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
 library(ggpubr)
 library(kableExtra)
 library(tidyverse)
@@ -88,14 +93,100 @@ score5 <- score4/2
 score6 <- (score4 + score5)/2
 
 # wait a min, why am I writing so much repetative code?
-res <- map(list(min_ss5_score, score0, score1, score2, score3, score4, score5, score6),
-           get_correct_seqs_perc)
+scores <- c(min_ss5_score, score0, score1, score2, score3, score4, score5, score6)
+
+res_ss5 <- scores %>% 
+  set_names(scores) %>% 
+  map_dfc(~ get_correct_seqs_perc(.)) %>% 
+  gather(key = Score, value = Percentage) %>% 
+  mutate(Score = as.numeric(Score)) %>% 
+  arrange(Score)
 ```
 
 ```{r}
+res_ss5 %>% 
+  kable(caption = 'Percentage of seqs with correct SS5 signal at the score threshold') %>% 
+  kable_styling(full_width = F)
+```
 
-res %>% 
-  kable(caption = 'Percentage of seqs with correct SS signal at the score threshold') %>% 
+## SS3
+
+
+```{r}
+# slightly change the function to accomodate the ss3 part
+# make it a function of retrieving the ss5 seq from the score that is the input
+
+get_ss3_seq_of_score <- function(lower, upper) {
+  df = all_bg %>% 
+    filter(ss3_score <= upper & ss3_score >= lower)
+  
+  # retrieve the ss3 sequences
+  grange3 <-  makeGRangesFromDataFrame(df, 
+                                       seqnames.field=c("chr"),  
+                                       start.field="ss3_start", 
+                                       end.field=c("ss3_end"), 
+                                       strand.field="strand")
+  df <- df %>% 
+    mutate(ss3_seq = as.character(BSgenome::getSeq(genome, grange3))) %>% 
+    dplyr::select(ss3_seq, ss3_score, category)
+  
+  return(df)
+}
+
+
+# the percentage of the seqs that have AG at 19,20
+get_correct_seqs_perc_ss3 <- function(Score){
+  ret = get_ss3_seq_of_score(floor(Score), ceiling(Score))
+  perc = ret %>% 
+    pull(ss3_seq) %>% 
+    str_locate('AG') %>% 
+    as.data.frame %>% 
+    filter(start == 19 & end == 20) %>% 
+    summarise(correct_seqs_perc = round(nrow(.)/nrow(ret)*100,2)) %>% 
+    pull(correct_seqs_perc)
+  return(perc)
+}
+```
+
+```{r}
+# the lowest score in ss3_score
+min_ss3_score <- min(all_bg$ss3_score)
+   
+# when score == 0
+score0 <- 0
+
+# when score is half of min_ss3_score
+score1 <- min_ss3_score/2
+
+# the next search will be the middle point between min_ss3_score and score1
+score2 <- (min_ss3_score + score1)/2
+
+# the next search will be the middle point between score2 and score1
+score3 <- (score2 + score1)/2
+
+# would like to see the middle point between score1 and 0 too
+score4 <- score1/2
+
+# would like to see the middle point between score4 and 0
+score5 <- score4/2
+
+# the middle point between score4 and score5
+score6 <- (score4 + score5)/2
+
+# wait a min, why am I writing so much repetative code?
+scores <- c(min_ss3_score, score0, score1, score2, score3, score4, score5, score6)
+
+res_ss3 <- scores %>% 
+  set_names(scores) %>% 
+  map_dfc(~ get_correct_seqs_perc_ss3(.)) %>% 
+  gather(key = Score, value = Percentage) %>% 
+  mutate(Score = as.numeric(Score)) %>% 
+  arrange(Score)
+```
+
+```{r}
+res_ss3 %>% 
+  kable(caption = 'Percentage of seqs with correct SS3 signal at the score threshold') %>% 
   kable_styling(full_width = F)
 ```
 
