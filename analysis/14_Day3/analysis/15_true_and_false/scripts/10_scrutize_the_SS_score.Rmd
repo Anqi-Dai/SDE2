@@ -1,0 +1,112 @@
+---
+title: "Scrutinize the SS score"
+author: "Anqi Dai"
+date: "6/11/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggpubr)
+library(kableExtra)
+library(tidyverse)
+library(GenomicRanges)
+library(BSgenome)
+library(BSgenome.Hsapiens.NCBI.GRCh38)
+library(seqinr)
+```
+
+```{r}
+# load all of the bg introns seq info
+all_bg <- read_csv('../../05_IRfinder/data/03_non_AS_seq_info.csv')
+```
+
+## SS5 
+
+(The 4,5 should be G,T)
+
+```{r}
+# make it a function of retrieving the ss5 seq from the score that is the input
+genome <- BSgenome.Hsapiens.NCBI.GRCh38
+seqlevelsStyle(genome) = "UCSC"
+
+get_ss5_seq_of_score <- function(lower, upper) {
+  df = all_bg %>% 
+    filter(ss5_score <= upper & ss5_score >= lower)
+  
+  # retrieve the ss5 sequences
+  grange5 <-  makeGRangesFromDataFrame(df, 
+                                       seqnames.field=c("chr"),  
+                                       start.field="ss5_start", 
+                                       end.field=c("ss5_end"), 
+                                       strand.field="strand")
+  df <- df %>% 
+    mutate(ss5_seq = as.character(BSgenome::getSeq(genome, grange5))) %>% 
+    dplyr::select(ss5_score, ss5_seq, ss3_score, category)
+  
+  return(df)
+}
+
+
+# the percentage of the seqs that have GT at 4,5
+get_correct_seqs_perc <- function(Score){
+  ret = get_ss5_seq_of_score(floor(Score), ceiling(Score))
+  perc = ret %>% 
+    pull(ss5_seq) %>% 
+    str_locate('GT') %>% 
+    as.data.frame %>% 
+    filter(start == 4 & end == 5) %>% 
+    summarise(correct_seqs_perc = round(nrow(.)/nrow(ret)*100,2)) %>% 
+    pull(correct_seqs_perc)
+  return(perc)
+}
+```
+
+```{r}
+# the lowest score in ss5_score
+min_ss5_score <- min(all_bg$ss5_score)
+perc_min <- get_correct_seqs_perc(min_ss5_score)
+   
+# when score == 0
+score0 <- 0
+perc0 <- get_correct_seqs_perc(score0)
+
+# when score is half of min_ss5_score
+score1 <- min_ss5_score/2
+perc1 <- get_correct_seqs_perc(score1)
+  
+# the next search will be the middle point between min_ss5_score and score1
+score2 <- (min_ss5_score + score1)/2
+perc2 <- get_correct_seqs_perc(score2)
+
+# the next search will be the middle point between score2 and score1
+score3 <- (score2 + score1)/2
+perc3 <- get_correct_seqs_perc(score3)
+
+# would like to see the middle point between score1 and 0 too
+score4 <- score1/2
+perc4 <- get_correct_seqs_perc(score4)
+
+# would like to see the middle point between score4 and 0
+score5 <- score4/2
+perc5 <- get_correct_seqs_perc(score5)
+
+#
+score6 <- (score4 + score5)/2
+perc6 <- get_correct_seqs_perc(score6)
+
+
+```
+
+```{r}
+# form them into a table so to see more clearly
+res <- tibble(
+  Score = c(min_ss5_score,  score2, score3, score1, score4, score6, score5, score0),
+  Percentage = c(perc_min, perc2, perc3, perc1, perc4, perc6, perc5, perc0)
+) 
+
+res %>% 
+  kable(caption = 'Percentage of seqs with correct SS signal at the score threshold') %>% 
+  kable_styling(full_width = F)
+```
+

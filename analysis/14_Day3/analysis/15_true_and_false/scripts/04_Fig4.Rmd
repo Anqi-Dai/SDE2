@@ -167,6 +167,16 @@ all <- bind_rows(
   non_AS
 )
 
+# add the number of the events in the 4 groups
+tally_4 <- table(all$category) %>%
+  data.frame %>%
+  dplyr::rename(category = names(.)[1])
+
+
+annotation_height <- all %>%
+  filter(category == 'Non-AS-long') %>%
+  summarise(mini = min(GC_per))%>%
+  unlist
 ```
 
 
@@ -182,6 +192,7 @@ gc <- all %>%
                                           c('Non-AS-short','Non-AS-long'),
                                           c('Sig','Non-AS-short')), label = "p.signif")+   
     scale_color_manual(values = c( '#EC0000','#00468B','#42B440','#1799B1')) +
+    geom_text(data = tally_4, aes(x = category, y = annotation_height, label = Freq)) +
     theme(text = element_text(family = our_font),
         legend.position="none",
         axis.title.x=element_blank(),

@@ -4,13 +4,13 @@ author: "Anqi Dai"
 date: "5/23/2019" 
 output: html_document
 ---  
-   
+     
 ```{r setup, include=FALSE}  
 knitr::opts_chunk$set(echo = TRUE)
 library(GenomicRanges)
 library(BSgenome)
 library(BSgenome.Hsapiens.NCBI.GRCh38)
-library(seqinr)
+library(seqinr)    
 ```
 
 ## Load data for all the bg introns
@@ -109,7 +109,7 @@ ret <- ret %>%
 # some Seq seems empty not because the seqs are not retrieved but the seq is too long to fit into the space 
 
 ret %>% 
-  dplyr::select(locus:category, GC_per, ss5_score:ss3_score) %>% 
+  dplyr::select(chr, ss5_start:ss3_end, strand, locus:category, GC_per, ss5_score:ss3_score) %>% 
   write_csv('../data/03_non_AS_seq_info.csv')
   
 
