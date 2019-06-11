@@ -65,45 +65,34 @@ get_correct_seqs_perc <- function(Score){
 ```{r}
 # the lowest score in ss5_score
 min_ss5_score <- min(all_bg$ss5_score)
-perc_min <- get_correct_seqs_perc(min_ss5_score)
    
 # when score == 0
 score0 <- 0
-perc0 <- get_correct_seqs_perc(score0)
 
 # when score is half of min_ss5_score
 score1 <- min_ss5_score/2
-perc1 <- get_correct_seqs_perc(score1)
-  
+
 # the next search will be the middle point between min_ss5_score and score1
 score2 <- (min_ss5_score + score1)/2
-perc2 <- get_correct_seqs_perc(score2)
 
 # the next search will be the middle point between score2 and score1
 score3 <- (score2 + score1)/2
-perc3 <- get_correct_seqs_perc(score3)
 
 # would like to see the middle point between score1 and 0 too
 score4 <- score1/2
-perc4 <- get_correct_seqs_perc(score4)
 
 # would like to see the middle point between score4 and 0
 score5 <- score4/2
-perc5 <- get_correct_seqs_perc(score5)
 
-#
+# the middle point between score4 and score5
 score6 <- (score4 + score5)/2
-perc6 <- get_correct_seqs_perc(score6)
 
-
+# wait a min, why am I writing so much repetative code?
+res <- map(list(min_ss5_score, score0, score1, score2, score3, score4, score5, score6),
+           get_correct_seqs_perc)
 ```
 
 ```{r}
-# form them into a table so to see more clearly
-res <- tibble(
-  Score = c(min_ss5_score,  score2, score3, score1, score4, score6, score5, score0),
-  Percentage = c(perc_min, perc2, perc3, perc1, perc4, perc6, perc5, perc0)
-) 
 
 res %>% 
   kable(caption = 'Percentage of seqs with correct SS signal at the score threshold') %>% 
