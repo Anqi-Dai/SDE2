@@ -44,6 +44,12 @@ res <- colorPal %>%
 
 factor_levels <- res %>% 
   pull(lbl)
+
+
+# annotate the total number of events underneath the pie chart
+total_number <- res %>% 
+  summarise(total = sum(count)) %>% 
+  pull(total)
 ```
 
 ```{r}
@@ -54,7 +60,9 @@ piechart <- res %>%
         color = 'white',   
         size = 0,
         lab.font = c(6,'plain','red'), 
-        fill = res$color)  
+        fill = res$color)  + 
+  labs(tag = str_glue('Total number of AS events: {total_number}')) +
+  theme(plot.tag.position = c(0.55, 0))
 ```
 
 ```{r}
