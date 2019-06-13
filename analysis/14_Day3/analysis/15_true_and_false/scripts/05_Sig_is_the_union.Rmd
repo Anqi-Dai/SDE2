@@ -90,7 +90,6 @@ kd_union <- fns %>%
 
 
 
-
 kd_union %>%
   write_csv('../data/01_union_sig_and_intersect_non_sig_locus.csv')
 ```

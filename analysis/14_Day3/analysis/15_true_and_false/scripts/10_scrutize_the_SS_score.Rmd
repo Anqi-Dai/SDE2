@@ -35,7 +35,10 @@ all_bg <- read_csv('../../05_IRfinder/data/03_non_AS_seq_info.csv')
 genome <- BSgenome.Hsapiens.NCBI.GRCh38
 seqlevelsStyle(genome) = "UCSC"
 
-get_ss5_seq_of_score <- function(lower, upper) {
+get_ss5_seq_of_score <- function(Score) {
+  upper = Score + 0.2
+  lower = Score - 0.2
+  
   df = all_bg %>% 
     filter(ss5_score <= upper & ss5_score >= lower)
   
@@ -55,7 +58,7 @@ get_ss5_seq_of_score <- function(lower, upper) {
 
 # the percentage of the seqs that have GT at 4,5
 get_correct_seqs_perc <- function(Score){
-  ret = get_ss5_seq_of_score(floor(Score), ceiling(Score))
+  ret = get_ss5_seq_of_score(Score)
   perc = ret %>% 
     pull(ss5_seq) %>% 
     str_locate('GT') %>% 
@@ -105,9 +108,26 @@ res_ss5 <- scores %>%
 
 ```{r}
 res_ss5 %>% 
-  kable(caption = 'Percentage of seqs with correct SS5 signal at the score threshold') %>% 
+  kable(caption = 'Percentage of seqs with correct SS5
+        signal at the score threshold') %>% 
   kable_styling(full_width = F)
 ```
+
+
+```{r}
+# so the plan is to remove any of the seqs that have a score below the threshold where half of the seqs don't have the correct signal at that place
+guess <- seq(-8, -6, by = 0.2)
+guess_res <- guess %>% 
+  set_names(guess) %>% 
+  map_dfc(~ get_correct_seqs_perc(.)) %>% 
+  gather(key = Score, value = Percentage) %>% 
+  mutate(Score = as.numeric(Score)) %>% 
+  arrange(Score)
+
+```
+
+-7.2 score corresponds to the percentage being 50%. So that means seqs that have score in range [-7.4, -7.0] have 50% of them have the correct signal at the location.
+
 
 ## SS3
 
@@ -116,7 +136,10 @@ res_ss5 %>%
 # slightly change the function to accomodate the ss3 part
 # make it a function of retrieving the ss5 seq from the score that is the input
 
-get_ss3_seq_of_score <- function(lower, upper) {
+get_ss3_seq_of_score <- function(Score) {
+  upper = Score + 0.2
+  lower = Score - 0.2
+  
   df = all_bg %>% 
     filter(ss3_score <= upper & ss3_score >= lower)
   
@@ -136,7 +159,7 @@ get_ss3_seq_of_score <- function(lower, upper) {
 
 # the percentage of the seqs that have AG at 19,20
 get_correct_seqs_perc_ss3 <- function(Score){
-  ret = get_ss3_seq_of_score(floor(Score), ceiling(Score))
+  ret = get_ss3_seq_of_score(Score)
   perc = ret %>% 
     pull(ss3_seq) %>% 
     str_locate('AG') %>% 
@@ -188,5 +211,16 @@ res_ss3 <- scores %>%
 res_ss3 %>% 
   kable(caption = 'Percentage of seqs with correct SS3 signal at the score threshold') %>% 
   kable_styling(full_width = F)
+```
+
+```{r}
+# same to do the process at SS3
+guess <- seq(1.1, 1.4, by = 0.05)
+guess_res_ss3 <- guess %>% 
+  set_names(guess) %>% 
+  map_dfc(~ get_correct_seqs_perc_ss3(.)) %>% 
+  gather(key = Score, value = Percentage) %>% 
+  mutate(Score = as.numeric(Score)) %>% 
+  arrange(Score)
 ```
 
