@@ -224,3 +224,12 @@ guess_res_ss3 <- guess %>%
   arrange(Score)
 ```
 
+```{r}
+# get the score threshold intended programatically
+two <- list(ss5 = guess_res, ss3 = guess_res_ss3)
+two %>% 
+  map_dfc(~ mutate(.data = ., diff = abs(50 - Percentage)) %>%
+        filter(diff == min(.$diff)) %>% 
+        pull(Score))
+```
+
