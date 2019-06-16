@@ -86,69 +86,12 @@ pos <- res %>%
         legend.title = element_blank())
 ```
 
-## c: Length
+## c: Length 
  
 ```{r}
 # add a third box which is all the background introns other than the first two
-# load the background introns
-bg <- read_csv('../data/unique_introns_for_expressive_genes.csv') %>%
-  filter(intronLen > 30)
 
-# 
-IRfinder <- res %>%
-    dplyr::select(ensembl_gene_id, locus, Significance, RI_len)
-
-
-all <- bind_rows(
-  bg %>%
-    filter(!locus %in% IRfinder$locus) %>%
-    mutate(Significance = 'Non-AS') %>%
-    dplyr::select(Significance, RI_len = intronLen),
-  IRfinder %>%
-    dplyr::select(Significance, RI_len)
-) %>%
-  mutate(Significance = factor(Significance, levels = c('Sig','Non-sig','Non-AS')))
-
-
-# wanna add a label of how many events in each type of Significance
-tally <- table(all$Significance) %>%
-  data.frame %>%
-  dplyr::rename(Significance = names(.)[1])
-
-all <- all %>%
-  split(.$Significance) %>%
-  map_df(~  mutate(.data = ., Num = nrow(.)))
-
-# annotation_height to be the min of the Non-AS
-annotation_height <- all %>%
-  filter(Significance == 'Non-AS') %>%
-  summarise(mini = min(RI_len))%>%
-  unlist
-
-len <- all %>%
-  ggboxplot(x = "Significance", y = 'RI_len',  color = 'Significance',
-            ylab = 'Length of retained intron', xlab = '',
-            palette = 'lancet') +
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-              labels = trans_format("log10", math_format(10^.x)))  +
-  annotation_logticks(sides = "l")  +
-  scale_color_manual(values = c('#EC0000','#00468B', '#374E54'))  +
-  stat_compare_means(comparisons = list(c('Sig', 'Non-sig'),
-                                        c('Non-sig','Non-AS'),
-                                        c('Sig','Non-AS')),
-                     label = "p.signif") +
-  geom_text(data = tally, aes(x = Significance, y = annotation_height, label = Freq)) +
-  theme(text = element_text(family = our_font),
-        axis.text=element_text(size=axis_text_size),
-        axis.title.y=element_text(size = general_text_size),
-        legend.position="none")
-```
-
-
-## d: GC content
-
-```{r}
-# change the format of the res sig table in the above way
+# change the format of the res sig table in the below way
 IRfinder <- res %>% 
   dplyr::select(locus,
                 intronLen = RI_len,
@@ -157,21 +100,71 @@ IRfinder <- res %>%
                 ss5_score,
                 ss3_score)
 
-# load the data from the non-as in the background
+# load the background introns
 non_AS <- read_csv('../../05_IRfinder/data/03_non_AS_seq_info.csv') %>% 
-  filter(!locus %in% IRfinder$locus)
+  filter(intronLen > 30) %>% 
+  filter(!locus %in% IRfinder$locus) %>% 
+  dplyr::select(locus,
+                intronLen ,
+                category ,
+                GC_per,
+                ss5_score,
+                ss3_score) 
 
-# bind them together
 all <- bind_rows(
-  IRfinder,
-  non_AS
-)
+ IRfinder,
+ non_AS %>% 
+    mutate(category = 'Non-AS')
+) %>%
+  mutate(category = factor(category, levels = c('Sig','Non-sig','Non-AS')))
+
+
+# wanna add a label of how many events in each type of Significance
+tally <- table(all$category) %>%
+  data.frame %>%
+  dplyr::rename(category = names(.)[1])
+
+all <- all %>%
+  split(.$category) %>%
+  map_df(~  mutate(.data = ., Num = nrow(.)))
+
+# annotation_height to be the min of the Non-AS
+annotation_height <- all %>%
+  filter(category == 'Non-AS') %>%
+  summarise(mini = min(intronLen))%>%
+  unlist
+  
+len <- all %>%
+  ggboxplot(x = "category", y = 'intronLen',  color = 'category',
+            ylab = 'Length of retained intron', xlab = '') +
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+              labels = trans_format("log10", math_format(10^.x)))  +
+  annotation_logticks(sides = "l")  +
+  scale_color_manual(values = c('#EC0000','#00468B', '#374E54'))  +
+  stat_compare_means(comparisons = list(c('Sig', 'Non-sig'),
+                                        c('Non-sig','Non-AS'),
+                                        c('Sig','Non-AS')),
+                     label = "p.signif") +
+  geom_text(data = tally, aes(x = category, y = annotation_height, label = Freq)) +
+  theme(text = element_text(family = our_font),
+        axis.text=element_text(size=axis_text_size),
+        axis.title.y=element_text(size = general_text_size),
+        legend.position="none")
+```
+ 
+## d: GC content
+
+```{r}
+all <- bind_rows(
+ IRfinder,
+ non_AS 
+) %>% 
+  mutate(category = factor(category, levels = c('Sig','Non-sig','Non-AS-short','Non-AS-long')))
 
 # add the number of the events in the 4 groups
 tally_4 <- table(all$category) %>%
   data.frame %>%
   dplyr::rename(category = names(.)[1])
-
 
 annotation_height <- all %>%
   filter(category == 'Non-AS-long') %>%
@@ -179,11 +172,9 @@ annotation_height <- all %>%
   unlist
 ```
 
-
 ```{r}
 gc <- all %>%
     ggboxplot(x = 'category', y = 'GC_per',
-              palette = 'lancet',
               color = 'category', 
               xlab = 'GC% ',
               ylab = 'GC%') +
@@ -194,33 +185,50 @@ gc <- all %>%
     scale_color_manual(values = c( '#EC0000','#00468B','#42B440','#1799B1')) +
     geom_text(data = tally_4, aes(x = category, y = annotation_height, label = Freq)) +
     theme(text = element_text(family = our_font),
-        legend.position="none",
-        axis.title.x=element_blank(),
-        axis.text=element_text(size=axis_text_size),
-        axis.title.y=element_text(size = general_text_size)) 
-  
+          legend.position="none",
+          axis.title.x=element_blank(),
+          axis.text=element_text(size=axis_text_size),
+          axis.title.y=element_text(size = general_text_size)) 
 ```
 
-## e: Splice site strength 
+## e: Splice site strength  
 
 ```{r}
-strength <- all %>%
+#   filter(ss5_score >= -7.2 & ss3_score >= 1.4) %>% 
+list_strength <- all %>% 
   dplyr::select(locus, category, ss5_score, ss3_score) %>%
-  ggboxplot(x = 'category', y = c('ss5_score','ss3_score'),combine = T,
-            ylab = 'Splice site score', xlab = '',
-            palette = 'lancet', color = 'category')   +
+  gather(key = 'type', value = 'score', ss5_score:ss3_score) %>% 
+  split(.$type)
+
+# we are doing the splitting and combining because the ss5 and ss3 have to be filtered separately, thanks Adam for this brilliant idea!
+df_strength <- bind_rows(
+  list_strength$ss3_score %>% 
+    filter(score >= 1.4),
+  list_strength$ss5_score %>% 
+    filter(score >= -7.2)
+)
+
+table(df_strength$type)
+  
+strength <- df_strength %>% 
+  mutate(type = factor(type, levels = c('ss5_score','ss3_score'))) %>% 
+  ggboxplot(x = 'category', y = 'score',
+            ylab = 'Splice site score', xlab = '', color = 'category')   +
   stat_compare_means(comparisons = list(c('Sig', 'Non-sig'),
                                         c('Non-AS-short','Non-AS-long'),
                                         c('Sig','Non-AS-short')), 
                      label = "p.signif",
                      label.y = c(18, 20, 23)) +   
   scale_color_manual(values = c( '#EC0000','#00468B','#42B440','#1799B1')) +
+  facet_wrap(~type) +
   theme(text = element_text(family = our_font),  
         axis.text=element_text(size=axis_text_size),
         axis.text.x = element_text(angle = rotation_angle, hjust = 1),
         axis.title.y=element_text(size = general_text_size),
+        panel.border = element_rect(colour = "black", size=0.5),
         legend.position="none") +
-  coord_cartesian(ylim = c(0, 24))    
+  coord_cartesian(ylim = c(0, 24)) 
+  
 ```
 
 ## f: GSEA 
