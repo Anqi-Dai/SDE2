@@ -156,6 +156,36 @@ res_non_AS <- pmap_dfr(input_all, function(lower, upper, numSelect){
 
 ```
 
+
+```{r}
+# from here I get the sequences in two groups that have a length < 100 and output the df
+out <- bind_rows(
+  res_AS %>% 
+    mutate(category = 'Sig') %>% 
+    filter(RIlen < 100),
+  res_non_AS %>% 
+    mutate(category = 'Non-sig') %>% 
+    filter(RIlen < 100)
+)
+
+out200 <- bind_rows(
+  res_AS %>% 
+    mutate(category = 'Sig') %>% 
+    filter(RIlen < 200),
+  res_non_AS %>% 
+    mutate(category = 'Non-sig') %>% 
+    filter(RIlen < 200)
+)
+
+out %>% 
+  write_csv('../output/two_groups_seq_info_len_100.csv')
+
+out200 %>% 
+  write_csv('../output/two_groups_seq_info_len_200.csv')
+```
+
+
+
 ```{r}
 # plan to use the gene that only have one event and the length is about 400-500
 unique_gene_AS <- as_locus %>%

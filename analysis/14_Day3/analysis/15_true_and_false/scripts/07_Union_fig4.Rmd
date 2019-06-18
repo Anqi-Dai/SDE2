@@ -9,7 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(ggpubr)
-library(scales)
+library(scales)  
 ```
 
 ```{r}
@@ -47,7 +47,6 @@ compare_plot <- compare %>%
       axis.title.x=element_blank(),
       legend.position = "none")
 ```
-
 
 ## Position
 
@@ -165,5 +164,3 @@ ggarrange(compare_plot, pos, gc, strength, len, gsea_plot,
           labels = 'auto', label.x = 0, hjust = -3) +
   ggsave('../figs/d3_Assembled_fig4_union.jpg', width = 8, height = 12, dpi = 300)
 ```
-
-

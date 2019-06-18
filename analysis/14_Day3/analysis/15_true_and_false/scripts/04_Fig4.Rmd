@@ -166,7 +166,7 @@ tally_4 <- table(all$category) %>%
   data.frame %>%
   dplyr::rename(category = names(.)[1])
 
-annotation_height <- all %>%
+annotation_height_GC <- all %>%
   filter(category == 'Non-AS-long') %>%
   summarise(mini = min(GC_per))%>%
   unlist
@@ -183,7 +183,7 @@ gc <- all %>%
                                           c('Non-AS-short','Non-AS-long'),
                                           c('Sig','Non-AS-short')), label = "p.signif")+   
     scale_color_manual(values = c( '#EC0000','#00468B','#42B440','#1799B1')) +
-    geom_text(data = tally_4, aes(x = category, y = annotation_height, label = Freq)) +
+    geom_text(data = tally_4, aes(x = category, y = annotation_height_GC, label = Freq)) +
     theme(text = element_text(family = our_font),
           legend.position="none",
           axis.title.x=element_blank(),
@@ -211,23 +211,26 @@ df_strength <- bind_rows(
 table(df_strength$type)
   
 strength <- df_strength %>% 
-  mutate(type = factor(type, levels = c('ss5_score','ss3_score'))) %>% 
+  mutate(type = str_replace(type, '_score','')) %>% 
+  mutate(type = factor(type, levels = c('ss5','ss3'))) %>% 
   ggboxplot(x = 'category', y = 'score',
             ylab = 'Splice site score', xlab = '', color = 'category')   +
   stat_compare_means(comparisons = list(c('Sig', 'Non-sig'),
                                         c('Non-AS-short','Non-AS-long'),
                                         c('Sig','Non-AS-short')), 
                      label = "p.signif",
-                     label.y = c(18, 20, 23)) +   
+                     label.y = c(17, 18, 21)) +   
   scale_color_manual(values = c( '#EC0000','#00468B','#42B440','#1799B1')) +
-  facet_wrap(~type) +
+  facet_grid(~type) +
   theme(text = element_text(family = our_font),  
         axis.text=element_text(size=axis_text_size),
         axis.text.x = element_text(angle = rotation_angle, hjust = 1),
         axis.title.y=element_text(size = general_text_size),
-        panel.border = element_rect(colour = "black", size=0.5),
+        panel.border = element_rect( colour = "black",fill=NA, size=0.8),
+        axis.line = element_line(colour = "black", size = 0),
+        strip.text = element_text(size=general_text_size),
         legend.position="none") +
-  coord_cartesian(ylim = c(0, 24)) 
+  coord_cartesian(ylim = c(0, 22)) 
   
 ```
 
