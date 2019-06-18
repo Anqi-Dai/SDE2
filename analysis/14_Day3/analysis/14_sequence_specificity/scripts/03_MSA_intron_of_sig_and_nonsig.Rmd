@@ -7,6 +7,10 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(GenomicRanges)
+library(BSgenome)
+library(BSgenome.Hsapiens.NCBI.GRCh38)
+library(seqinr)
 library(kableExtra)
 library(tidyverse)
 library(ggpubr)
@@ -15,6 +19,45 @@ library(ggpubr)
 This is not a logo plot, just a multiple sequence alignment to see if any signal comes out of the intron itself in sig and non-sig respectively.
 
 ```{r}
+# load the seqs output from the 01 script of this folder
+seqs <- read_csv('../output/two_groups_seq_info_len_100.csv')
 
+```
+
+```{r}
+# get the actual seqs from ensembl
+genome <- BSgenome.Hsapiens.NCBI.GRCh38
+seqlevelsStyle(genome) = "UCSC"
+
+grange = makeGRangesFromDataFrame(seqs, 
+                                  seqnames.field=c("chr"), 
+                                  start.field="start",
+                                  end.field=c("end"), 
+                                  strand.field="direction")
+seq = BSgenome::getSeq(genome, grange)
+ 
+res <- seqs %>%
+  mutate(sequence = as.character(seq))
+
+# and I need to output them to 2 different files so that I can do MSA separately
+ret <- res %>% 
+  split(.$category) 
+
+# need to write out as FASTA file format
+nonsig <- ret$`Non-sig` %>% 
+  select(sequence) %>% 
+  mutate(id = seq(1, nrow(.))) 
+
+write.fasta(sequences = as.list(nonsig$sequence), 
+            names = nonsig$id,
+            file.out =  '../data/Non-sig.seq.fasta')
+   
+sig <- ret$Sig %>% 
+  select(sequence) %>% 
+  mutate(id = seq(1, nrow(.))) 
+
+write.fasta(sequences = as.list(sig$sequence), 
+            names = sig$id,
+            file.out =  '../data/Sig.seq.fasta')
 ```
 
