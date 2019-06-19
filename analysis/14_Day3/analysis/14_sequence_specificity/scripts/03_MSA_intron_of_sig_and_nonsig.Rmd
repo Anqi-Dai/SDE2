@@ -18,45 +18,72 @@ library(ggpubr)
 
 This is not a logo plot, just a multiple sequence alignment to see if any signal comes out of the intron itself in sig and non-sig respectively.
 
+
 ```{r}
-# load the seqs output from the 01 script of this folder
-seqs <- read_csv('../output/two_groups_seq_info_len_100.csv')
+# make it a function
+genome <- BSgenome.Hsapiens.NCBI.GRCh38
+seqlevelsStyle(genome) = "UCSC"
+len <- 300
+get_two_fasta <- function(len){
+  seqs <- read_csv(str_glue('/Users/angelD/Downloads/git_repo/SDE2/analysis/14_Day3/analysis/14_sequence_specificity/output/two_groups_seq_info_len_{len}.csv'))
+  
+  grange = makeGRangesFromDataFrame(seqs, 
+                                  seqnames.field=c("chr"), 
+                                  start.field="start",
+                                  end.field=c("end"), 
+                                  strand.field="direction")
+  seq = BSgenome::getSeq(genome, grange)
+   
+  res <- seqs %>%
+    mutate(sequence = as.character(seq))
+  
+  # and I need to output them to 2 different files so that I can do MSA separately
+  
+  # need to write out as FASTA file format
+  nonsig <- res %>% 
+    filter(catetory == 'Non-sig') %>% 
+    select(sequence) %>% 
+    mutate(id = seq(1, nrow(.))) 
+  
+  write.fasta(sequences = as.list(nonsig$sequence), 
+              names = nonsig$id,
+              file.out =  str_glue('../data/Non-sig.seq_{len}.fasta'))
+      
+  sig <- res %>% 
+    filter(catetory == 'Sig') %>% 
+    select(sequence) %>% 
+    mutate(id = seq(1, nrow(.))) 
+  
+  write.fasta(sequences = as.list(sig$sequence), 
+              names = sig$id,
+              file.out =  str_glue('../data/Sig.seq_{len}.fasta'))
+
+}
+
+get_two_fasta(300)
 ```
 
 ```{r}
-# get the actual seqs from ensembl
-genome <- BSgenome.Hsapiens.NCBI.GRCh38
-seqlevelsStyle(genome) = "UCSC"
+# get the seq fasta for the non-as
+nashort <- read_csv('../output/two_groups_seq_info_len_300_non_AS.csv')
 
-grange = makeGRangesFromDataFrame(seqs, 
+grange = makeGRangesFromDataFrame(nashort, 
                                   seqnames.field=c("chr"), 
                                   start.field="start",
                                   end.field=c("end"), 
                                   strand.field="direction")
 seq = BSgenome::getSeq(genome, grange)
  
-res <- seqs %>%
+res <- nashort %>%
   mutate(sequence = as.character(seq))
 
-# and I need to output them to 2 different files so that I can do MSA separately
 
-# need to write out as FASTA file format
-nonsig <- res %>% 
-  filter(catetory == 'Non-sig') %>% 
+nashort_df <- res %>% 
   select(sequence) %>% 
-  mutate(id = seq(1, nrow(.))) 
+  mutate(id = seq(1, nrow(.)))    
 
-write.fasta(sequences = as.list(nonsig$sequence), 
-            names = nonsig$id,
-            file.out =  '../data/Non-sig.seq.fasta')
-    
-sig <- res %>% 
-  filter(catetory == 'Sig') %>% 
-  select(sequence) %>% 
-  mutate(id = seq(1, nrow(.))) 
-
-write.fasta(sequences = as.list(sig$sequence), 
-            names = sig$id,
-            file.out =  '../data/Sig.seq.fasta')
+write.fasta(sequences = as.list(nashort_df$sequence), 
+            names = nashort_df$id,
+            file.out = '../data/Non-AS-short.seq_300.fasta')
 ```
 

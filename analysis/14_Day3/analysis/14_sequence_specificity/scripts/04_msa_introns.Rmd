@@ -1,0 +1,21 @@
+---
+title: "MSA in R"
+author: "Anqi Dai"
+date: "6/19/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(msa)
+```
+
+```{r}
+seq <- readDNAStringSet('../data/Sig.seq_300.fasta') 
+ClustalOmega <- msa(seq,"ClustalOmega")
+
+msaPrettyPrint(ClustalOmega, output="pdf", showNames="none",
+showLogo="none", askForOverwrite=FALSE, verbose=FALSE)
+```
+
+ 

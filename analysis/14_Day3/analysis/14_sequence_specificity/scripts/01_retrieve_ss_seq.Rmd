@@ -13,13 +13,14 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
 library(tidyverse)
-library(knitr)
+library(ggpubr)
 library(kableExtra)
+
 ```
 
 ```{r}
 # get the sig and non sig separatly for two comparisons.
-# FLIP THE START AND END COORD FOR THE EVENT ON THE NEGATIVE STRAND!
+
 data_path <- '../../05_IRfinder/data/rawIRfinderResult/'
 fns <- list.files(data_path, pattern = 'txt', full.names = T)
 
@@ -62,7 +63,7 @@ tibble(sig_locus = length(sig_locus),
 ```
   
 ```{r}
-# finding the true and false locus that are of comparable length
+# getting the length of the locus
 sig_df <-  sig[[1]] %>%
   filter(locus %in% sig_locus) %>%
   dplyr::select(chr = Chr, start = Start, end = End, direction = Direction)  %>%
@@ -123,7 +124,7 @@ res_sig <- pmap_dfr(input_all, function(lower, upper, numSelect){
 })
 
 
-# for non-as
+# for non-sig
 records_in_interval_non_sig <- function(lower, upper,numSelect) {
   ret = non_Sig_df %>%
     filter(RIlen > lower & RIlen <= upper) %>%
@@ -137,9 +138,8 @@ res_non_sig <- pmap_dfr(input_all, function(lower, upper, numSelect){
 
 ```
 
-
 ```{r}
-# from here I get the sequences in two groups that have a length < 100 and output the df
+# from here I get the sequences in two groups that have a length < certain threshold and output the df
 out <- bind_rows(
   res_sig %>% 
     filter(RIlen < 100),
@@ -147,41 +147,47 @@ out <- bind_rows(
     filter(RIlen < 100)
 )
 
-out200 <- bind_rows(
+out300 <- bind_rows(
   res_sig %>% 
-    filter(RIlen < 200),
+    filter(RIlen < 300),
   res_non_sig %>% 
-    filter(RIlen < 200)
-)
+    filter(RIlen < 300)
+)  
 
 out %>% 
   write_csv('../output/two_groups_seq_info_len_100.csv')
 
-out200 %>% 
-  write_csv('../output/two_groups_seq_info_len_200.csv')
+out300 %>% 
+  write_csv('../output/two_groups_seq_info_len_300.csv')
+
+table(out300$catetory) 
 ```
 
+
+# getting the sequences from non-AS-short(nashort) 
 
 ```{r}
-# generate the start and end coord for 5 and 3 site for those two
+# the subsets that are non-as-short
+nashort <- read_csv('../../05_IRfinder/data/03_non_AS_seq_info.csv')  %>% 
+  filter(intronLen < 358) %>% 
+  dplyr::select(direction = strand, locus, RIlen = intronLen, category) %>% 
+  separate(col = locus, into = c('chr','coord'), sep = ':', remove = T) %>%
+  separate(coord, into = c('start','end'), sep = '-', convert = T)
 
-generate_ss_seq_coord <- function(df){
-  ret = df %>%
-    mutate(ss5_start = start - 30,
-         ss5_end = start + 29,
-         ss3_start = end - 30,
-         ss3_end = end + 29 )
-  return(ret)
+# then a function to get a sample size which is the same number to the sig and non-sig counterpart sequences under a len threshold which is the same to the other two too
+get_non_AS_locus <- function(len){
+  numSelect = res_sig %>% 
+    filter(RIlen < len) %>% 
+    nrow
+  
+  ret = nashort %>%
+    filter(RIlen < len) %>%
+    sample_n(numSelect)
+  
+  ret %>% 
+    write_csv(str_glue('../output/two_groups_seq_info_len_{len}_non_AS.csv'))
 }
 
-as_seq <- generate_ss_seq_coord(res_AS)
-no_seq <- generate_ss_seq_coord(res_non_AS)
 
-# write out the table
-as_seq %>%
-  write_csv('../data/as_RI_seq_coord.csv')
-
-no_seq %>%
-  write_csv('../data/no_as_RI_seq_coord.csv')
+get_non_AS_locus(300)
 ```
-
