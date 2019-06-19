@@ -7,7 +7,7 @@ output:
     toc: true
     toc_float: true
     toc_depth: 3
-    code_folding: hide
+    code_folding: hide 
 ---
 
 ```{r setup, include=FALSE}
@@ -18,140 +18,121 @@ library(kableExtra)
 ```
 
 ```{r}
-# pick comparable RI length of AS and non-AS from the IRfinder result using the day 3 data.
+# get the sig and non sig separatly for two comparisons.
+# FLIP THE START AND END COORD FOR THE EVENT ON THE NEGATIVE STRAND!
+data_path <- '../../05_IRfinder/data/rawIRfinderResult/'
+fns <- list.files(data_path, pattern = 'txt', full.names = T)
 
-# re-do the IRfinder FDR 0.05
-data_path <- '../../05_IRfinder/data/rawIRfinderResult'
-fns <- file.path(data_path, list.files(data_path, pattern = 'txt'))
-# format the table like below (generate the locus ID, change the colnames, format the geneID string, separate that one column to three, generate the padj value.)
-raw_df_list <- lapply(fns, function(fn){
-  res = read_tsv(fn,comment = '#',col_names = T) %>%
-    mutate(Locus =paste(Chr,paste(Start, End, sep = '-'), sep = ':' ) ) 
-  
-  colnames(res) <- colnames(res) %>%
-    gsub('-', '_', .)
-  
-  res = res %>%
-    separate('Intron_GeneName/GeneID', into = c('Symbol', 'GeneID', 'Category'), sep = '/') %>%
-    # get rid of the . and digits after that in GeneID
-    mutate(GeneID = str_replace_all(string = GeneID, pattern = '\\..*$', replacement = '')) %>%
-    mutate(padj = p.adjust(p_diff, method = 'BH')) 
-})
-##################################################################################
-# filter the result like below:
-# * Remove records marked with "known-exon". 
-# * Remove records marked with "MinorIsoform" either in experiment or control. 
-# * Adjust the P-value with BH method 
-# * Select the records with padj < 0.25
-true_df_list <- lapply(raw_df_list, function(df) {
-  res = df  %>%
-    filter(! Category == 'known-exon') %>%
-    filter( A_IRok != 'MinorIsoform' &  B_IRok != 'MinorIsoform' ) %>%
-    filter(padj < 0.05) 
-  return(res)
-} )
+sig <- fns %>%
+  map(~ read_tsv(.,comment = '#',col_names = T)  %>%
+        mutate(Start = Start + 1) %>%
+        mutate(locus = paste(Chr,paste(Start, End, sep = '-'), sep = ':' ) ) %>%
+        rename_all(funs(stringr::str_replace_all(., '-', '_') )) %>%
+        separate(names(.)[4], into = c('Symbol', 'GeneID', 'Category'), sep = '/') %>%
+        mutate(GeneID = str_replace_all(string = GeneID, pattern = '\\..*$', replacement = ''),
+               padj = p.adjust(p_diff, method = 'BH')) %>%
+        filter(! Category == 'known-exon') %>%
+        filter(A_IRok != 'MinorIsoform' &  B_IRok != 'MinorIsoform' ) %>%
+        filter(padj < 0.05) 
+      )
 
-false_df_list <- lapply(raw_df_list, function(df) {
-  res = df  %>%
-    filter(! Category == 'known-exon') %>%
-    filter( A_IRok != 'MinorIsoform' &  B_IRok != 'MinorIsoform' ) %>%
-    filter(padj >= 0.05) 
-  return(res)
-} )
-
-##################################################################################
-# TRUE: sig in both (AS)
-# FALSE: sig in neither but overlapped in both (non AS)
-true_locus <- intersect(true_df_list[[1]]$Locus, true_df_list[[2]]$Locus)
-false_locus <- intersect(false_df_list[[1]]$Locus, false_df_list[[2]]$Locus)
+non_Sig <- fns %>%
+  map(~ read_tsv(.,comment = '#',col_names = T)  %>%
+        mutate(Start = Start + 1) %>%
+        mutate(locus = paste(Chr,paste(Start, End, sep = '-'), sep = ':' ) ) %>%
+        rename_all(funs(stringr::str_replace_all(., '-', '_') )) %>%
+        separate(names(.)[4], into = c('Symbol', 'GeneID', 'Category'), sep = '/') %>%
+        mutate(GeneID = str_replace_all(string = GeneID, pattern = '\\..*$', replacement = ''),
+               padj = p.adjust(p_diff, method = 'BH')) %>%
+        filter(! Category == 'known-exon') %>%
+        filter(A_IRok != 'MinorIsoform' &  B_IRok != 'MinorIsoform' ) %>%
+        filter(padj >= 0.05) 
+      )
 ```
+ 
+```{r}
+# now the sig locus is the intersection
+# and the nonSig is still the intersection
+sig_locus <- intersect(sig[[1]]$locus, sig[[2]]$locus)
 
+non_Sig_locus <- intersect(non_Sig[[1]]$locus, non_Sig[[2]]$locus)
+ 
+tibble(sig_locus = length(sig_locus),
+       non_Sig_locus = length(non_Sig_locus)) 
+```
+  
 ```{r}
 # finding the true and false locus that are of comparable length
-as_locus <-  true_df_list[[1]] %>%
-  filter(Locus %in% true_locus) %>%
-  dplyr::select(ensemble_gene_id = GeneID, symbol = Symbol, locus = Locus, direction = Direction)  %>%
-  separate(locus, into = c('chr','coord'), sep = ':') %>%
-  separate(coord, into = c('start','end'),sep = '-', convert = T)  %>%
-  mutate(RIlen = end - start) %>%
-  arrange(RIlen)
+sig_df <-  sig[[1]] %>%
+  filter(locus %in% sig_locus) %>%
+  dplyr::select(chr = Chr, start = Start, end = End, direction = Direction)  %>%
+  mutate(RIlen = end - start,
+         catetory = 'Sig') %>%
+  arrange(RIlen)  
 
-nonAs_locus <-  false_df_list[[1]] %>%
-  filter(Locus %in% false_locus) %>%
-  dplyr::select(ensemble_gene_id = GeneID, symbol = Symbol, locus = Locus, direction = Direction)  %>%
-  separate(locus, into = c('chr','coord'), sep = ':') %>%
-  separate(coord, into = c('start','end'),sep = '-', convert = T)  %>%
-  mutate(RIlen = end - start) %>%
-  arrange(RIlen)
-
+non_Sig_df <-  non_Sig[[1]] %>%
+  filter(locus %in% non_Sig_locus) %>%
+  dplyr::select(chr = Chr, start = Start, end = End, direction = Direction)  %>%
+  mutate(RIlen = end - start,
+         catetory = 'Non-sig') %>%
+  arrange(RIlen)  
+ 
 ```
 
 ```{r}
-# for every sig locus pick non-sig one of similar length
-# see the distribution of the length first
-list(AS = as_locus, non_AS = nonAs_locus) %>%
-  map(~ ggplot(., aes(RIlen)) + geom_histogram(binwidth =100) )
+# bin them into every smaller per bin and count how many in them 
 
-```
-
-```{r}
-# bin them into every 100 per bin and count how many in them 
-# as_locus %>%
-#   dplyr::select(RIlen) %>%
-as_bin <- table(cut_interval(as_locus$RIlen, length=50)) %>%
-  as.data.frame
+sig_bin <- table(cut_interval(sig_df$RIlen, length=50)) %>%
+  as.data.frame %>% 
+  select(interval = Var1,
+         sig = Freq)
   
-
-no_bin <- table(cut_interval(nonAs_locus$RIlen, length=50)) %>%
-  as.data.frame 
+non_sig_bin <- table(cut_interval(non_Sig_df$RIlen, length=50)) %>%
+  as.data.frame %>% 
+  select(interval = Var1,
+         non_sig = Freq)
 
 # the way I decided how many to select for each interval
-all <- no_bin %>%
-  left_join(as_bin, by = 'Var1') %>%
-  rename(interval = Var1, non_AS = Freq.x, AS = Freq.y) %>%
+all <- sig_bin %>%
+  left_join(non_sig_bin, by = 'interval') %>%
   rowwise() %>%
-  mutate(numSelect = min(non_AS, AS)) %>%
+  mutate(numSelect = min(non_sig, sig)) %>%
   filter(!is.na(numSelect))
-
-all %>%
-  kable(caption = "Number of AS and non-AS events to select for each interval") %>%
-  kable_styling(full_width = F)
-
 
 # if I can use a df as input for every row
 input_all <- all %>%
   mutate(interval = str_replace_all(string = interval, pattern = "]$",replacement = '')) %>%
   mutate(interval = str_replace_all(string = interval, pattern = "\\(|\\[",replacement = '')) %>%
   separate(interval, into = c('lower','upper'), convert = T) %>%
-  dplyr::select(-non_AS, -AS)
+  dplyr::select(-non_sig, -sig) 
 
 ```
 
 ```{r}
 # a function that takes a interval and return the rows that meet that interval
 
-records_in_interval_AS <- function(lower, upper,numSelect) {
-  ret = as_locus %>%
+records_in_interval_sig <- function(lower, upper,numSelect) {
+  ret = sig_df %>%
     filter(RIlen > lower & RIlen <= upper) %>%
     sample_n(numSelect)
   return(ret)
 } 
 
-res_AS <- pmap_dfr(input_all, function(lower, upper, numSelect){
-  records_in_interval_AS(lower, upper, numSelect)
+res_sig <- pmap_dfr(input_all, function(lower, upper, numSelect){
+  records_in_interval_sig(lower, upper, numSelect)
 })
 
 
 # for non-as
-records_in_interval_non_AS <- function(lower, upper,numSelect) {
-  ret = nonAs_locus %>%
+records_in_interval_non_sig <- function(lower, upper,numSelect) {
+  ret = non_Sig_df %>%
     filter(RIlen > lower & RIlen <= upper) %>%
     sample_n(numSelect)
   return(ret)
 } 
 
-res_non_AS <- pmap_dfr(input_all, function(lower, upper, numSelect){
-  records_in_interval_non_AS(lower, upper, numSelect)
+res_non_sig <- pmap_dfr(input_all, function(lower, upper, numSelect){
+  records_in_interval_non_sig(lower, upper, numSelect)
 })
 
 ```
@@ -160,20 +141,16 @@ res_non_AS <- pmap_dfr(input_all, function(lower, upper, numSelect){
 ```{r}
 # from here I get the sequences in two groups that have a length < 100 and output the df
 out <- bind_rows(
-  res_AS %>% 
-    mutate(category = 'Sig') %>% 
+  res_sig %>% 
     filter(RIlen < 100),
-  res_non_AS %>% 
-    mutate(category = 'Non-sig') %>% 
+  res_non_sig %>% 
     filter(RIlen < 100)
 )
 
 out200 <- bind_rows(
-  res_AS %>% 
-    mutate(category = 'Sig') %>% 
+  res_sig %>% 
     filter(RIlen < 200),
-  res_non_AS %>% 
-    mutate(category = 'Non-sig') %>% 
+  res_non_sig %>% 
     filter(RIlen < 200)
 )
 
@@ -184,43 +161,6 @@ out200 %>%
   write_csv('../output/two_groups_seq_info_len_200.csv')
 ```
 
-
-
-```{r}
-# plan to use the gene that only have one event and the length is about 400-500
-unique_gene_AS <- as_locus %>%
-  group_by(symbol) %>%
-  arrange(RIlen, .by_group = TRUE) %>%
-  summarise(RI_len_all = paste0(RIlen, collapse = ","),
-            cnt = n()) %>%
-  arrange(desc(cnt)) %>%
-  filter(cnt == 1) %>%
-  mutate(RI_len_all = as.numeric(RI_len_all)) %>%
-  filter(RI_len_all > 400 & RI_len_all < 500) %>%
-  rename(RIlen = RI_len_all)
-
-unique_gene_non_AS <- nonAs_locus %>%
-  group_by(symbol) %>%
-  arrange(RIlen, .by_group = TRUE) %>%
-  summarise(RI_len_all = paste0(RIlen, collapse = ","),
-            cnt = n()) %>%
-  arrange(desc(cnt)) %>%
-  filter(cnt == 1) %>%
-  mutate(RI_len_all = as.numeric(RI_len_all)) %>%
-  filter(RI_len_all > 400 & RI_len_all < 500) %>%
-  rename(RIlen = RI_len_all)
-
-
-# join the tables so I have the RI locus coords
-as_select <- unique_gene_AS %>%
-  left_join(as_locus %>% 
-              dplyr::select(-RIlen), by = 'symbol')
-
-no_select <-  unique_gene_non_AS %>%
-  left_join(nonAs_locus %>% 
-              dplyr::select(-RIlen), by = 'symbol')
-
-```
 
 ```{r}
 # generate the start and end coord for 5 and 3 site for those two

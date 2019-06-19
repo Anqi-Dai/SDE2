@@ -4,7 +4,7 @@ author: "Anqi Dai"
 date: "6/18/2019"
 output: html_document
 ---
-
+ 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(GenomicRanges)
@@ -21,7 +21,6 @@ This is not a logo plot, just a multiple sequence alignment to see if any signal
 ```{r}
 # load the seqs output from the 01 script of this folder
 seqs <- read_csv('../output/two_groups_seq_info_len_100.csv')
-
 ```
 
 ```{r}
@@ -40,19 +39,19 @@ res <- seqs %>%
   mutate(sequence = as.character(seq))
 
 # and I need to output them to 2 different files so that I can do MSA separately
-ret <- res %>% 
-  split(.$category) 
 
 # need to write out as FASTA file format
-nonsig <- ret$`Non-sig` %>% 
+nonsig <- res %>% 
+  filter(catetory == 'Non-sig') %>% 
   select(sequence) %>% 
   mutate(id = seq(1, nrow(.))) 
 
 write.fasta(sequences = as.list(nonsig$sequence), 
             names = nonsig$id,
             file.out =  '../data/Non-sig.seq.fasta')
-   
-sig <- ret$Sig %>% 
+    
+sig <- res %>% 
+  filter(catetory == 'Sig') %>% 
   select(sequence) %>% 
   mutate(id = seq(1, nrow(.))) 
 
