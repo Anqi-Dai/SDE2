@@ -12,6 +12,9 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(ggpubr)
 library(scales)  
+library(extrafont)
+library(grid)
+library(cowplot)
 ```
 
 ```{r}
@@ -258,9 +261,10 @@ gsea_plot <- gsea %>%
 ## Assemble 
 
 ```{r out.width=800}
-ggarrange(compare_plot, pos, gc, strength, len, gsea_plot, 
-          ncol = 2, nrow = 3, 
-          align = c("v"),
-          labels = 'auto', label.x = 0, hjust = -3) +
+g <- plot_grid(compare_plot, pos, len, gc, strength, gsea_plot,  
+          nrow = 3, 
+          align = 'hv',
+          labels = 'AUTO',
+          axis = 'b')  +
   ggsave('../figs/d3_Assembled_fig4_union.jpg', width = 8, height = 12, dpi = 300)
 ```
