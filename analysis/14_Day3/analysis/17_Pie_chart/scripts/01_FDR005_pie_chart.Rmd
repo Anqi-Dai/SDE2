@@ -57,7 +57,7 @@ piechart <- res %>%
         size = 0,
         lab.font = c(6,'plain','red'), 
         fill = res$color) + 
-  labs(tag = str_glue('Total number of AS events: {total_number}')) +
+  labs(tag = str_glue('Total number of significant AS events: {total_number}')) +
   theme(plot.tag.position = c(0.55, 0))
 ```
 
