@@ -8,14 +8,17 @@ output:
     toc_float: true
     toc_depth: 3
     code_folding: hide 
----
+--- 
+
+This script will do:
+Get all of the sig and non-sig sequences under len 300.
+Get a same number of sampling of sequences in the non-AS-short twice.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
 library(tidyverse)
 library(ggpubr)
 library(kableExtra)
-
 ```
 
 ```{r}
@@ -68,101 +71,29 @@ sig_df <-  sig[[1]] %>%
   filter(locus %in% sig_locus) %>%
   dplyr::select(chr = Chr, start = Start, end = End, direction = Direction)  %>%
   mutate(RIlen = end - start,
-         catetory = 'Sig') %>%
+         category = 'Sig') %>%
   arrange(RIlen)  
 
 non_Sig_df <-  non_Sig[[1]] %>%
   filter(locus %in% non_Sig_locus) %>%
   dplyr::select(chr = Chr, start = Start, end = End, direction = Direction)  %>%
   mutate(RIlen = end - start,
-         catetory = 'Non-sig') %>%
+         category = 'Non-sig') %>%
   arrange(RIlen)  
  
 ```
 
 ```{r}
-# bin them into every smaller per bin and count how many in them 
+# get all of the sig and non-sig sequences under len 300
+AS_thre <- bind_rows(sig_df, non_Sig_df) %>% 
+  filter(RIlen < 300)
 
-sig_bin <- table(cut_interval(sig_df$RIlen, length=50)) %>%
-  as.data.frame %>% 
-  select(interval = Var1,
-         sig = Freq)
-  
-non_sig_bin <- table(cut_interval(non_Sig_df$RIlen, length=50)) %>%
-  as.data.frame %>% 
-  select(interval = Var1,
-         non_sig = Freq)
+# output these info so that I can retrieve the sequences later
+AS_thre %>% 
+  write_csv('../output/sig_and_nonsig_under_len_300_info.csv')
 
-# the way I decided how many to select for each interval
-all <- sig_bin %>%
-  left_join(non_sig_bin, by = 'interval') %>%
-  rowwise() %>%
-  mutate(numSelect = min(non_sig, sig)) %>%
-  filter(!is.na(numSelect))
-
-# if I can use a df as input for every row
-input_all <- all %>%
-  mutate(interval = str_replace_all(string = interval, pattern = "]$",replacement = '')) %>%
-  mutate(interval = str_replace_all(string = interval, pattern = "\\(|\\[",replacement = '')) %>%
-  separate(interval, into = c('lower','upper'), convert = T) %>%
-  dplyr::select(-non_sig, -sig) 
-
+Num <- nrow(AS_thre)
 ```
-
-```{r}
-# a function that takes a interval and return the rows that meet that interval
-
-records_in_interval_sig <- function(lower, upper,numSelect) {
-  ret = sig_df %>%
-    filter(RIlen > lower & RIlen <= upper) %>%
-    sample_n(numSelect)
-  return(ret)
-} 
-
-res_sig <- pmap_dfr(input_all, function(lower, upper, numSelect){
-  records_in_interval_sig(lower, upper, numSelect)
-})
-
-
-# for non-sig
-records_in_interval_non_sig <- function(lower, upper,numSelect) {
-  ret = non_Sig_df %>%
-    filter(RIlen > lower & RIlen <= upper) %>%
-    sample_n(numSelect)
-  return(ret)
-} 
-
-res_non_sig <- pmap_dfr(input_all, function(lower, upper, numSelect){
-  records_in_interval_non_sig(lower, upper, numSelect)
-})
-
-```
-
-```{r}
-# from here I get the sequences in two groups that have a length < certain threshold and output the df
-out <- bind_rows(
-  res_sig %>% 
-    filter(RIlen < 100),
-  res_non_sig %>% 
-    filter(RIlen < 100)
-)
-
-out300 <- bind_rows(
-  res_sig %>% 
-    filter(RIlen < 300),
-  res_non_sig %>% 
-    filter(RIlen < 300)
-)  
-
-out %>% 
-  write_csv('../output/two_groups_seq_info_len_100.csv')
-
-out300 %>% 
-  write_csv('../output/two_groups_seq_info_len_300.csv')
-
-table(out300$catetory) 
-```
-
 
 # getting the sequences from non-AS-short(nashort) 
 
@@ -172,22 +103,20 @@ nashort <- read_csv('../../05_IRfinder/data/03_non_AS_seq_info.csv')  %>%
   filter(intronLen < 358) %>% 
   dplyr::select(direction = strand, locus, RIlen = intronLen, category) %>% 
   separate(col = locus, into = c('chr','coord'), sep = ':', remove = T) %>%
-  separate(coord, into = c('start','end'), sep = '-', convert = T)
+  separate(coord, into = c('start','end'), sep = '-', convert = T) %>%
+  dplyr::select(chr:end, direction, RIlen:category)
 
-# then a function to get a sample size which is the same number to the sig and non-sig counterpart sequences under a len threshold which is the same to the other two too
-get_non_AS_locus <- function(len){
-  numSelect = res_sig %>% 
-    filter(RIlen < len) %>% 
-    nrow
+# then a function to do a subsampling in the na-short to have the same number of the sig and non-sig combined
+get_nashort_info <- function(Num){
   
   ret = nashort %>%
-    filter(RIlen < len) %>%
-    sample_n(numSelect)
+    filter(RIlen < 300) %>%
+    sample_n(Num)
   
   ret %>% 
-    write_csv(str_glue('../output/two_groups_seq_info_len_{len}_non_AS.csv'))
+    write_csv(str_glue('../output/sampling_{Num}_non_AS_under_300_info.csv'))
 }
 
 
-get_non_AS_locus(300)
+get_nashort_info(Num)
 ```
