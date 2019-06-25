@@ -11,79 +11,50 @@ library(GenomicRanges)
 library(BSgenome)
 library(BSgenome.Hsapiens.NCBI.GRCh38)
 library(seqinr)
-library(kableExtra)
 library(tidyverse)
-library(ggpubr)
 ```
 
 This is not a logo plot, just a multiple sequence alignment to see if any signal comes out of the intron itself in sig and non-sig respectively.
 
-
 ```{r}
-# make it a function
-genome <- BSgenome.Hsapiens.NCBI.GRCh38
-seqlevelsStyle(genome) = "UCSC"
-len <- 300
-get_two_fasta <- function(len){
-  seqs <- read_csv(str_glue('/Users/angelD/Downloads/git_repo/SDE2/analysis/14_Day3/analysis/14_sequence_specificity/output/two_groups_seq_info_len_{len}.csv'))
-  
-  grange = makeGRangesFromDataFrame(seqs, 
+# reformat the function so that the function's job is to take a df as input and return a df that has an additinal column as the sequences that got retrieved
+get_seq_from_df <- function(df){
+  genome <- BSgenome.Hsapiens.NCBI.GRCh38
+  seqlevelsStyle(genome) = "UCSC"
+
+  grange = makeGRangesFromDataFrame(df, 
                                   seqnames.field=c("chr"), 
-                                  start.field="start",
+                                  start.field=c("start"),
                                   end.field=c("end"), 
-                                  strand.field="direction")
+                                  strand.field=c("direction"))
   seq = BSgenome::getSeq(genome, grange)
    
-  res <- seqs %>%
+  ret = df %>%
     mutate(sequence = as.character(seq))
-  
-  # and I need to output them to 2 different files so that I can do MSA separately
-  
-  # need to write out as FASTA file format
-  nonsig <- res %>% 
-    filter(catetory == 'Non-sig') %>% 
-    select(sequence) %>% 
-    mutate(id = seq(1, nrow(.))) 
-  
-  write.fasta(sequences = as.list(nonsig$sequence), 
-              names = nonsig$id,
-              file.out =  str_glue('../data/Non-sig.seq_{len}.fasta'))
-      
-  sig <- res %>% 
-    filter(catetory == 'Sig') %>% 
-    select(sequence) %>% 
-    mutate(id = seq(1, nrow(.))) 
-  
-  write.fasta(sequences = as.list(sig$sequence), 
-              names = sig$id,
-              file.out =  str_glue('../data/Sig.seq_{len}.fasta'))
-
+  return(ret)
 }
-
-get_two_fasta(300)
 ```
 
 ```{r}
-# get the seq fasta for the non-as
-nashort <- read_csv('../output/two_groups_seq_info_len_300_non_AS.csv')
+fns <- list.files('../output', pattern = 'under', full.names = T)
+out <- fns %>% 
+  set_names(fns) %>% 
+  map(~ read_csv(.)) %>% 
+  map(~ get_seq_from_df(.))
+  
+out_seq <- out %>% 
+  imap(~ mutate(.data = ., fn = .y) %>% 
+         mutate(id = seq(1, nrow(.))) %>% 
+         dplyr::select(sequence, id, fn))
+       
+# so the write.fasta function that writes out the fasta do not fit well into a pipe. it has to be done separately
+for(i in 1:length(out_seq)) {
+  df = out_seq[[i]]
+  fn = unique(df$fn)
+  write.fasta(sequences = as.list(df$sequence), 
+              names = df$id,
+              file.out = str_glue('{fn}.fa'))
+}
 
-grange = makeGRangesFromDataFrame(nashort, 
-                                  seqnames.field=c("chr"), 
-                                  start.field="start",
-                                  end.field=c("end"), 
-                                  strand.field="direction")
-seq = BSgenome::getSeq(genome, grange)
- 
-res <- nashort %>%
-  mutate(sequence = as.character(seq))
-
-
-nashort_df <- res %>% 
-  select(sequence) %>% 
-  mutate(id = seq(1, nrow(.)))    
-
-write.fasta(sequences = as.list(nashort_df$sequence), 
-            names = nashort_df$id,
-            file.out = '../data/Non-AS-short.seq_300.fasta')
 ```
 
