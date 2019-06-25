@@ -69,12 +69,15 @@ compare_plot <- compare %>%
 
 ```{r}
 pos <- res %>%
+  mutate(Significance = factor(Significance, levels = c('Sig','Non-sig'))) %>% 
   gghistogram(x = 'RI_prop',
               palette = 'lancet',
               color = 'white', fill = 'Significance', 
               bins = 40,
               add = "median",
               xlab = 'RI position') + 
+  scale_color_manual(values = c('#EC0000','#00468B')) +
+  scale_fill_manual(values = c('#EC0000','#00468B')) +
   theme(text = element_text(family = our_font),
         axis.text=element_text(size=axis_text_size),
         axis.title=element_text(size = general_text_size),
