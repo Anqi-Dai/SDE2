@@ -1,26 +1,23 @@
 ---
-title: "Retrieve sequences near splice site"
+title: "retrieve sequence info for AS and non AS 500 seqs"
 author: "Anqi Dai"
-date: "`r Sys.Date()`"
-output:
-  html_document:
-    toc: true
-    toc_float: true
-    toc_depth: 3
-    code_folding: hide 
---- 
-
-This script will do:
-Get all of the sig and non-sig sequences under len 300.
-Sort by len ascending order and get the top 500(since Muscle can only take 500 sequences maximum)
-Get a same number of sampling of sequences in the non-AS-short twice.
+date: "6/26/2019"
+output: html_document
+---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
+knitr::opts_chunk$set(echo = TRUE)
+library(GenomicRanges)
+library(BSgenome)
+library(BSgenome.Hsapiens.NCBI.GRCh38)
+library(seqinr)
 library(tidyverse)
-library(ggpubr)
-library(kableExtra)
 ```
+
+* Get all of the sig and non-sig sequences under len 300.
+* Sort by len ascending order and get the top 500 (since Muscle can only take 500 sequences maximum)
+* Get all of the non AS short sequences below the len of the previous step
+* Get the two groups sequences and its GC content.
 
 ```{r}
 # get the sig and non sig separatly for two comparisons.
@@ -85,40 +82,58 @@ non_Sig_df <-  non_Sig[[1]] %>%
 ```
 
 ```{r}
-# get all of the sig and non-sig sequences under len 300
+# get all of the sig and non-sig sequences under len 300 and sort by len ascending order and get the top 500
 AS_thre <- bind_rows(sig_df, non_Sig_df) %>% 
   filter(RIlen < 300) %>% 
-  arrange(RIlen)
+  arrange(RIlen) 
 
-# output these info so that I can retrieve the sequences later
-AS_thre %>% 
-  write_csv('../output/sig_and_nonsig_under_len_300_info.csv')
+N <- 500
 
-Num <- nrow(AS_thre)
+AS_thre_N <- AS_thre[1:N,] 
+
+# # output these info so that I can retrieve the sequences later
+# AS_thre %>% 
+#   write_csv('../output/sig_and_nonsig_under_len_300_info.csv')
 ```
 
-# getting the sequences from non-AS-short(nashort) 
-
 ```{r}
-# the subsets that are non-as-short
-nashort <- read_csv('../../05_IRfinder/data/03_non_AS_seq_info.csv')  %>% 
+# Get all of the non AS short sequences below the len of the previous step
+len_thre_AS <- max(AS_thre_N$RIlen)
+
+
+nashort_thre <- read_csv('../../05_IRfinder/data/03_non_AS_seq_info.csv')  %>% 
   filter(intronLen < 358) %>% 
   dplyr::select(direction = strand, locus, RIlen = intronLen, category) %>% 
   separate(col = locus, into = c('chr','coord'), sep = ':', remove = T) %>%
   separate(coord, into = c('start','end'), sep = '-', convert = T) %>%
-  dplyr::select(chr:end, direction, RIlen:category)
-
-# then a function to do a subsampling in the na-short to have the same number of the sig and non-sig combined
-get_nashort_info <- function(Num){
-  
-  ret = nashort %>%
-    filter(RIlen < 300) %>%
-    sample_n(Num)
-  
-  ret %>% 
-    write_csv(str_glue('../output/sampling_{Num}_non_AS_under_300_info.csv'))
-}
-
-
-get_nashort_info(Num)
+  dplyr::select(chr:end, direction, RIlen:category) %>% 
+  filter(RIlen < len_thre_AS) %>% 
+  arrange(RIlen)
 ```
+```{r}
+# get the sequences and the GC content for the above two tables
+# reformat the function so that the function's job is to take a df as input and return a df that has an additinal column as the sequences that got retrieved
+get_seq_from_df <- function(df){
+  genome <- BSgenome.Hsapiens.NCBI.GRCh38
+  seqlevelsStyle(genome) = "UCSC"
+
+  grange = makeGRangesFromDataFrame(df, 
+                                  seqnames.field=c("chr"), 
+                                  start.field=c("start"),
+                                  end.field=c("end"), 
+                                  strand.field=c("direction"))
+  seq = BSgenome::getSeq(genome, grange)
+   
+  ret = df %>%
+    mutate(sequence = as.character(seq)) %>% 
+    mutate(GC = stringr::str_count(sequence, "G") + stringr::str_count(sequence, "C")) %>%
+    mutate(GC_per = GC / stringr::str_length(sequence) * 100)
+  return(ret)
+}
+```
+
+```{r}
+# run the above function on nashort_thre and AS_thre_N
+
+```
+

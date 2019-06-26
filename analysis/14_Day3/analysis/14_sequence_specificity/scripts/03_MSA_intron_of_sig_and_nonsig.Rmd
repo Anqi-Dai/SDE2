@@ -14,7 +14,6 @@ library(seqinr)
 library(tidyverse)
 ```
 
-This is not a logo plot, just a multiple sequence alignment to see if any signal comes out of the intron itself in sig and non-sig respectively.
 
 ```{r}
 # reformat the function so that the function's job is to take a df as input and return a df that has an additinal column as the sequences that got retrieved
@@ -30,7 +29,9 @@ get_seq_from_df <- function(df){
   seq = BSgenome::getSeq(genome, grange)
    
   ret = df %>%
-    mutate(sequence = as.character(seq))
+    mutate(sequence = as.character(seq)) %>% 
+    mutate(GC = stringr::str_count(sequence, "G") + stringr::str_count(sequence, "C")) %>%
+    mutate(GC_per = GC / stringr::str_length(sequence) * 100)
   return(ret)
 }
 ```
