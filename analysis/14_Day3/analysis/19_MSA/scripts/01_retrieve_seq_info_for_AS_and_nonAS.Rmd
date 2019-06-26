@@ -134,6 +134,39 @@ get_seq_from_df <- function(df){
 
 ```{r}
 # run the above function on nashort_thre and AS_thre_N
+# combine the gc and RIlen to make a new column
+out <- list(nonas = nashort_thre,
+            as = AS_thre_N) %>% 
+  map(~ get_seq_from_df(.) %>% 
+        dplyr::select(RIlen, sequence, GC_per) %>% 
+        mutate(id = seq(1, nrow(.)),
+               combi = paste(RIlen, floor(GC_per), sep = '-'))) 
 
+
+# filter the nonas by that combi first
+unique_combi <- unique(out$as$combi)
+  
+nonas_fil <- out$nonas %>% 
+  filter(combi %in% unique_combi) 
+
+# get two samples
+nonas_sample1 <- nonas_fil %>% 
+  sample_n(N) 
+
+nonas_sample2 <- nonas_fil %>% 
+  sample_n(N)
+
+# write out to fasta
+out_list <- list(as = out$as,
+                 nonas_sample1 = nonas_sample1,
+                 nonas_sample2 = nonas_sample2)
+
+for(i in 1:length(out_list)) {
+  df = out_list[[i]]
+  name = names(out_list)[i]
+  write.fasta(sequences = as.list(df$sequence), 
+              names = df$id,
+              file.out = str_glue('{name}_gc_len_comparable_sampling.fa'))
+}
 ```
 
