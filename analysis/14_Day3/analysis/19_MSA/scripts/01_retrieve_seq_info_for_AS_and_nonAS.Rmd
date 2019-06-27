@@ -87,18 +87,15 @@ AS_thre <- bind_rows(sig_df, non_Sig_df) %>%
   filter(RIlen < 300) %>% 
   arrange(RIlen) 
 
-N <- 500
-
+N <- nrow(AS_thre)
+ 
 AS_thre_N <- AS_thre[1:N,] 
 
-# # output these info so that I can retrieve the sequences later
-# AS_thre %>% 
-#   write_csv('../output/sig_and_nonsig_under_len_300_info.csv')
 ```
 
 ```{r}
 # Get all of the non AS short sequences below the len of the previous step
-len_thre_AS <- max(AS_thre_N$RIlen)
+len_thre_AS <- max(AS_thre$RIlen)
 
 
 nashort_thre <- read_csv('../../05_IRfinder/data/03_non_AS_seq_info.csv')  %>% 
@@ -136,7 +133,7 @@ get_seq_from_df <- function(df){
 # run the above function on nashort_thre and AS_thre_N
 # combine the gc and RIlen to make a new column
 out <- list(nonas = nashort_thre,
-            as = AS_thre_N) %>% 
+            as = AS_thre) %>% 
   map(~ get_seq_from_df(.) %>% 
         dplyr::select(RIlen, sequence, GC_per) %>% 
         mutate(id = seq(1, nrow(.)),
@@ -166,7 +163,8 @@ for(i in 1:length(out_list)) {
   name = names(out_list)[i]
   write.fasta(sequences = as.list(df$sequence), 
               names = df$id,
-              file.out = str_glue('{name}_gc_len_comparable_sampling.fa'))
+              file.out = str_glue('../output/{name}_gc_len_comparable_sampling_len_lt_300_all.fa'))
 }
 ```
+
 
