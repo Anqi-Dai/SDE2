@@ -1,0 +1,16 @@
+# this snakefile will do the multiple sequence alignment using MUSCLE command line tool to align my sampled 100 non-as fasta files
+
+output_fns = ['../output/entropy_nonas_s'+str(i)+'.fa' for i in range(1, 101)]
+
+rule all:
+    input:
+        output_fns
+
+
+rule run_muscle_cli:
+    input:
+        '../output/s{sample_number}_gc_len_comparable_sampling_len_lt_300_all.fa'
+    output:
+        '../output/entropy_nonas_s{sample_number}.fa'
+    shell:
+        '~/SDE2/analysis/14_Day3/analysis/19_MSA/output/muscle -in {input} -out {output}'
