@@ -10,12 +10,13 @@ knitr::opts_chunk$set(echo = TRUE)
 library(seqinr)
 library(tidyverse)
 library(ggpubr)
+library(kableExtra)
 ```
 
 The shadedness is the percentage of the dominant nulcetide among all the base in that locus.
 
 ```{r}
-fasta.res  <- read.alignment(file = '../output/as_all.fa',
+fasta.res  <- read.alignment(file = '../output/nonas2.fa',
  format = "fasta")
 
 # how long is each string
@@ -71,27 +72,43 @@ RES <- domninant %>%
   bind_rows %>% 
   mutate(colu_name = names(domninant))
 
-# now join them together to have a table with both total number of nonzeros and the number of dominant digits
-# totalnonzero should be at least 80% of the total sequences
-result <- RES %>% 
+# use a series of threshold to decide which cutoff to choose as there are enough nt aligning at that locus
+all <- RES %>% 
   left_join(total_nonzeros, by= 'colu_name') %>% 
   arrange(desc(Freq)) %>% 
   mutate(total_seq = fasta.res$nb) %>% 
-  mutate(perc_nonzero = total_non0/total_seq) %>% 
-  filter(perc_nonzero > 0.9) %>% 
-  mutate(perc_domi = round(Freq/total_non0, 2),
-         nt = factor(ifelse(colu == 2, 'G', ifelse(colu == 3, 'C', ifelse(colu == 4, 'T', 'A')))))
+  mutate(perc_nonzero = total_non0/total_seq)
 
-# plot a boxplot
-result %>% 
+# bind that together to make a df
+cutoffs <- seq(0.6, 0.9, 0.05) 
+
+cutoff <- cutoffs %>% 
+  set_names(cutoffs) %>% 
+  map_dfc(~ filter(.data = all, perc_nonzero > .) %>% 
+          nrow(.)) %>% 
+  gather(key = threshold, value = number)
+
+
+cutoff %>% 
+  kable(caption = 'the number of surviving locus after filtering the percentage of non-gap sequences') %>% 
+  kable_styling(full_width = F, position = 'left')
+```
+
+```{r}
+
+# now join them together to have a table with both total number of nonzeros and the number of dominant digits
+# totalnonzero should be at least 80% of the total sequences
+cutoffs %>% 
+  map(~ filter(.data = all, perc_nonzero > .) %>% 
+  mutate(perc_domi = round(Freq/total_non0, 2),
+         nt = factor(ifelse(colu == 2, 'G', ifelse(colu == 3, 'C', ifelse(colu == 4, 'T', 'A'))))) %>% 
   ggplot(aes(x = nt, y = perc_domi)) +
   geom_boxplot() + 
-  geom_jitter(width = 0.2, color = '#EC0000') +
+  geom_jitter(width = 0.3, color = '#EC0000', size = 2) +
   labs(x = 'nucleotide',
        y = 'percent of the dominant nucleotide',
-       title = '')
-
-
+       title = str_glue('percentage of non-gap sequences: {.}')) +
+    ggsave(str_glue('../figs/NONAS2/boxplot perc of the dom nucleotide- cutoff {.}.jpg'), width = 5, height =4, dpi = 300))
 
 ```
 
