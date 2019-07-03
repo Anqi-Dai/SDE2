@@ -1,0 +1,71 @@
+---
+title: "The entropy thing"
+author: "Anqi Dai"
+date: "7/3/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(seqinr)
+library(tidyverse)
+library(ggpubr)
+library(kableExtra)
+```
+
+So the plan is to 
+write a function that calculates a single file's ave entropy
+1. entropy for each column: (The hard part is tally how many ATGC in each column)
+2. get a sum of the entropy for all of the columns
+
+3. do that for 100(10000) samples of the nonas
+4. plot the distribution of the nonas entropys and see where the as falls
+
+## Functions
+
+```{r}
+# extract the sequences from the fasta file and break it into a matrix of characters
+get_char_matrix <- function(fn){
+  # reading the fasta file
+  fasta.res = read.alignment(file = fn, format = "fasta")
+    
+  # retrieve and then break the sequences
+  res = fasta.res$seq %>% 
+    map(function(str){
+    str_split_fixed(str, pattern = '',
+                    n = nchar(fasta.res$seq[[1]])) %>% 
+        as.data.frame(stringsAsFactors = FALSE )
+  }) %>% 
+    bind_rows
+  return(res)
+}
+
+as <- get_char_matrix('../output/as_all.fa') %>% 
+  as.matrix
+
+
+# the total number of sequences in each file:
+fasta.res  <- read.alignment(file = '../output/nonas2.fa',
+ format = "fasta")
+total_seq_N = fasta.res$nb
+```
+
+```{r}
+ret <- apply(as, 2, function(colum){
+  tally = colum %>% 
+    table
+   
+  non0 = length(colum[colum != '-'])
+  all_items <- names(tally)
+  avail_nts <- all_items[all_items != '-']
+  for(nt in avail_nts){
+    s = 0
+    s = s +  tally[nt]*log2(tally[nt]/non0)
+  }
+  column_s_sum = -s/total_seq_N
+  return(column_s_sum)
+})
+
+
+```
+
