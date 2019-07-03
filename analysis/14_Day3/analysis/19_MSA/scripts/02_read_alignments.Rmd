@@ -50,8 +50,11 @@ num <- apply(ret, 2, converting_to_numeric)
 # out of the all of the nonzero digits, what is the percentage of the dominant digit? in each column?
 
 # find out the nonzero digit in each column
-total_nonzeros <- colSums(num != 0)
-table(total_nonzeros)
+total_nonzeros <- colSums(num != 0) %>% 
+  as.data.frame(stringsAsFactors = FALSE) %>% 
+  rownames_to_column('colu_name') %>% 
+  rename(total_non0 = names(.)[2])
+
 # find the most dominant nt and its number in each column
 domninant <- apply(num, 2, function(colu){
   ret = sort(table(colu)) %>% 
@@ -77,10 +80,25 @@ num_rm <- num[,-c(48, 654)]
 
 domninant_rm <- apply(num_rm, 2, function(colu){
   ret = sort(table(colu)) %>% 
-    as.data.frame %>% 
-    filter(colu != 0) 
+    as.data.frame(stringsAsFactors = FALSE ) %>% 
+    filter(colu != 0) %>% 
+    filter(Freq == max(Freq)) %>% 
+    head(1) 
   return(ret)
-})
+}) 
 
+RES <- domninant_rm %>% 
+  bind_rows %>% 
+  mutate(colu_name = names(domninant_rm))
+
+# now join them together to have a table with both total number of nonzeros and the number of dominant digits
+# totalnonzero should be at least 80% of the total sequences
+result <- RES %>% 
+  left_join(total_nonzeros, by= 'colu_name') %>% 
+  arrange(desc(Freq)) %>% 
+  mutate(total_seq = fasta.res$nb) %>% 
+  mutate(perc_nonzero = total_non0/total_seq) %>% 
+  filter(perc_nonzero > 0.9) %>% 
+  mutate(perc_domi = )
 ```
 
