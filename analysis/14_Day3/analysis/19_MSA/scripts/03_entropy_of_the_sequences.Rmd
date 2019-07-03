@@ -24,6 +24,11 @@ write a function that calculates a single file's ave entropy
 ## Functions
 
 ```{r}
+# the total number of sequences in each file:
+fasta.res  <- read.alignment(file = '../output/nonas2.fa',
+ format = "fasta")
+total_seq_N = fasta.res$nb
+
 # extract the sequences from the fasta file and break it into a matrix of characters
 get_char_matrix <- function(fn){
   # reading the fasta file
@@ -40,18 +45,8 @@ get_char_matrix <- function(fn){
   return(res)
 }
 
-as <- get_char_matrix('../output/as_all.fa') %>% 
-  as.matrix
-
-
-# the total number of sequences in each file:
-fasta.res  <- read.alignment(file = '../output/nonas2.fa',
- format = "fasta")
-total_seq_N = fasta.res$nb
-```
-
-```{r}
-ret <- apply(as, 2, function(colum){
+# getting the entropy for a single column
+entropy_single_column <- function(colum){
   tally = colum %>% 
     table
    
@@ -64,8 +59,26 @@ ret <- apply(as, 2, function(colum){
   }
   column_s_sum = -s/total_seq_N
   return(column_s_sum)
-})
+}
+
+```
 
 
+```{r}
+# the main function to run the entropy thing on all of the alignment files
+MSA_fns <- list.files('../output', pattern = '^entropy', full.names = T)
+
+MSA_fns %>% 
+  set_names(str_replace_all(MSA_fns, '../output/entropy_','')) %>% 
+  map_dfr(function(fn){
+    seq_char_matrix = get_char_matrix(fn) %>% 
+  as.matrix
+
+  each_column_entropy = apply(seq_char_matrix, 2, entropy_single_column)
+  
+  # getting the ave entropy for all of the columns
+  ave_entropy = sum(each_column_entropy)/length(each_column_entropy)
+  } )
+    
 ```
 
