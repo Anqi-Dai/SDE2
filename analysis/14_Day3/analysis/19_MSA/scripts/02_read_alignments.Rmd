@@ -1,0 +1,36 @@
+---
+title: "Reading the alignments in fasta format"
+author: "Anqi Dai"
+date: "7/2/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(seqinr)
+library(tidyverse)
+```
+
+The shadedness is the percentage of the dominant nulcetide among all the base in that locus.
+
+```{r}
+fasta.res  <- read.alignment(file = '../output/as_all.fa',
+ format = "fasta")
+
+# how long is each string
+len <- nchar(fasta.res$seq[[1]])
+  
+
+res <- fasta.res$seq %>% 
+  map(function(str){
+  str_split_fixed(str, pattern = '',
+                  n = len) %>% 
+      as.data.frame(stringsAsFactors = FALSE )
+})
+
+ret <- res %>% 
+  bind_rows
+
+
+```
+
