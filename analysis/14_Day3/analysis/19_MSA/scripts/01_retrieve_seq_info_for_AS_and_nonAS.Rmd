@@ -167,4 +167,22 @@ for(i in 1:length(out_list)) {
 }
 ```
 
+```{r}
+set.seed(123)
+# get 100 or more samples of the non-AS
+sample_times <- 100
+n_samples <- rerun(sample_times, nonas_fil %>% 
+                     sample_n(N))
+names(n_samples) <- seq(1,sample_times)
+
+# write out to disk which will do the msa later
+for(i in 1:length(n_samples)) {
+  df = n_samples[[i]]
+  name = names(n_samples)[i]
+  write.fasta(sequences = as.list(df$sequence), 
+              names = df$id,
+              file.out = str_glue('../output/s{name}_gc_len_comparable_sampling_len_lt_300_all.fa'))
+}
+```
+
 
