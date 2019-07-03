@@ -9,6 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 library(seqinr)
 library(tidyverse)
+library(ggpubr)
 ```
 
 The shadedness is the percentage of the dominant nulcetide among all the base in that locus.
@@ -55,31 +56,9 @@ total_nonzeros <- colSums(num != 0) %>%
   rownames_to_column('colu_name') %>% 
   rename(total_non0 = names(.)[2])
 
-# find the most dominant nt and its number in each column
+
 domninant <- apply(num, 2, function(colu){
-  ret = sort(table(colu)) %>% 
-    as.data.frame 
-  return(ret)
-})
-# for some reason there are columns went rouge
-# find how many rows each item in the list dominant has
-n_row <- map_dfr(domninant, ~nrow(.)) %>% 
-  gather(key = 'id',
-         value = 'num') %>% 
-  group_by(num) %>% 
-  summarise(cnt = n())
-
-# finding out the weird items with only one row and remove it in the list
-ids_rm <- n_row <- map_dfr(domninant, ~nrow(.)) %>% 
-  gather(key = 'id',
-         value = 'num') %>% 
-  filter(num == 1) %>% 
-  pull(id)
-
-num_rm <- num[,-c(48, 654)]
-
-domninant_rm <- apply(num_rm, 2, function(colu){
-  ret = sort(table(colu)) %>% 
+  ret = table(colu) %>% 
     as.data.frame(stringsAsFactors = FALSE ) %>% 
     filter(colu != 0) %>% 
     filter(Freq == max(Freq)) %>% 
@@ -87,9 +66,10 @@ domninant_rm <- apply(num_rm, 2, function(colu){
   return(ret)
 }) 
 
-RES <- domninant_rm %>% 
+
+RES <- domninant %>% 
   bind_rows %>% 
-  mutate(colu_name = names(domninant_rm))
+  mutate(colu_name = names(domninant))
 
 # now join them together to have a table with both total number of nonzeros and the number of dominant digits
 # totalnonzero should be at least 80% of the total sequences
@@ -99,6 +79,19 @@ result <- RES %>%
   mutate(total_seq = fasta.res$nb) %>% 
   mutate(perc_nonzero = total_non0/total_seq) %>% 
   filter(perc_nonzero > 0.9) %>% 
-  mutate(perc_domi = )
+  mutate(perc_domi = round(Freq/total_non0, 2),
+         nt = factor(ifelse(colu == 2, 'G', ifelse(colu == 3, 'C', ifelse(colu == 4, 'T', 'A')))))
+
+# plot a boxplot
+result %>% 
+  ggplot(aes(x = nt, y = perc_domi)) +
+  geom_boxplot() + 
+  geom_jitter(width = 0.2, color = '#EC0000') +
+  labs(x = 'nucleotide',
+       y = 'percent of the dominant nucleotide',
+       title = '')
+
+
+
 ```
 
