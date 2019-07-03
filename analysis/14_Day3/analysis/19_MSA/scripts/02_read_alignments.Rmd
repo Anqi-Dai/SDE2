@@ -32,5 +32,55 @@ ret <- res %>%
   bind_rows
 
 
+# converting it to numeric values : -:0, A:1, G:2, C:3, T:4
+
+converting_to_numeric <- function(column){
+  case_when(
+    column == '-' ~ 0,
+    column == 'a' ~ 1,
+    column == 'g' ~ 2,
+    column == 'c' ~ 3,
+    column == 't' ~ 4,
+  )
+}
+
+num <- apply(ret, 2, converting_to_numeric)
+
+# 0 doesn't engage in any calculations!
+# out of the all of the nonzero digits, what is the percentage of the dominant digit? in each column?
+
+# find out the nonzero digit in each column
+total_nonzeros <- colSums(num != 0)
+table(total_nonzeros)
+# find the most dominant nt and its number in each column
+domninant <- apply(num, 2, function(colu){
+  ret = sort(table(colu)) %>% 
+    as.data.frame 
+  return(ret)
+})
+# for some reason there are columns went rouge
+# find how many rows each item in the list dominant has
+n_row <- map_dfr(domninant, ~nrow(.)) %>% 
+  gather(key = 'id',
+         value = 'num') %>% 
+  group_by(num) %>% 
+  summarise(cnt = n())
+
+# finding out the weird items with only one row and remove it in the list
+ids_rm <- n_row <- map_dfr(domninant, ~nrow(.)) %>% 
+  gather(key = 'id',
+         value = 'num') %>% 
+  filter(num == 1) %>% 
+  pull(id)
+
+num_rm <- num[,-c(48, 654)]
+
+domninant_rm <- apply(num_rm, 2, function(colu){
+  ret = sort(table(colu)) %>% 
+    as.data.frame %>% 
+    filter(colu != 0) 
+  return(ret)
+})
+
 ```
 
