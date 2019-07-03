@@ -78,16 +78,32 @@ main_function <- function(fn){
 # the main function to run the entropy thing on all of the alignment files
 MSA_fns <- list.files('../output', pattern = '^entropy', full.names = T)
 
-MSA_fns %>% 
+as_value <- MSA_fns %>% 
   set_names(str_replace_all(MSA_fns, '../output/entropy_','')) %>% 
-  map_dfr( main_function)
-    
-
+  map_dfr( main_function)  %>% 
+  pull(var = -1)
+  
 # the 100 samples of the nonas 
 nonas_fns <- list.files('../output/nonas_output', pattern = '^entropy', full.names = T)
 
 nonas_res <- nonas_fns %>% 
   set_names(str_replace_all(nonas_fns, '../output/nonas_output/entropy_','')) %>% 
-  map_dfr( main_function)
+  map_dfr( main_function) 
+
+nonas <- nonas_res %>% 
+  gather(key = 'samples', value = 'ave_ent')
+
+nonas %>% 
+  gghistogram(x = 'ave_ent', bins = 30, color = 'white', fill = '#00468B',
+              xlab = 'Average entropy of a sample',
+              title = 'Histogram of the ave entropy for 100 samples') +
+  geom_vline(xintercept = as_value, color = '#EC0000') +
+  ggsave('../figs/Histogram of the ave entropy for 100 samples.jpg', width = 5, height = 4, dpi = 300) 
+
+# p value
+pval <- nonas %>% 
+  filter(ave_ent > as_value) %>% 
+  summarise(pval = nrow(.)/nrow(nonas)) %>% 
+  pull(pval)
 ```
 
