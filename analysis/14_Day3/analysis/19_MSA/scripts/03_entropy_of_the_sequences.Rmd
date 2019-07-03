@@ -61,6 +61,16 @@ entropy_single_column <- function(colum){
   return(column_s_sum)
 }
 
+main_function <- function(fn){
+    seq_char_matrix = get_char_matrix(fn) %>% 
+  as.matrix
+
+  each_column_entropy = apply(seq_char_matrix, 2, entropy_single_column)
+  
+  # getting the ave entropy for all of the columns
+  ave_entropy = sum(each_column_entropy)/length(each_column_entropy)
+  }
+
 ```
 
 
@@ -70,15 +80,14 @@ MSA_fns <- list.files('../output', pattern = '^entropy', full.names = T)
 
 MSA_fns %>% 
   set_names(str_replace_all(MSA_fns, '../output/entropy_','')) %>% 
-  map_dfr(function(fn){
-    seq_char_matrix = get_char_matrix(fn) %>% 
-  as.matrix
-
-  each_column_entropy = apply(seq_char_matrix, 2, entropy_single_column)
-  
-  # getting the ave entropy for all of the columns
-  ave_entropy = sum(each_column_entropy)/length(each_column_entropy)
-  } )
+  map_dfr( main_function)
     
+
+# the 100 samples of the nonas 
+nonas_fns <- list.files('../output/nonas_output', pattern = '^entropy', full.names = T)
+
+nonas_res <- nonas_fns %>% 
+  set_names(str_replace_all(nonas_fns, '../output/nonas_output/entropy_','')) %>% 
+  map_dfr( main_function)
 ```
 
