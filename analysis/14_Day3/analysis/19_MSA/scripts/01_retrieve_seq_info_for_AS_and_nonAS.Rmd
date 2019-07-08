@@ -146,31 +146,13 @@ unique_combi <- unique(out$as$combi)
 nonas_fil <- out$nonas %>% 
   filter(combi %in% unique_combi) 
 
-# get two samples
-nonas_sample1 <- nonas_fil %>% 
-  sample_n(N) 
 
-nonas_sample2 <- nonas_fil %>% 
-  sample_n(N)
-
-# write out to fasta
-out_list <- list(as = out$as,
-                 nonas_sample1 = nonas_sample1,
-                 nonas_sample2 = nonas_sample2)
-
-for(i in 1:length(out_list)) {
-  df = out_list[[i]]
-  name = names(out_list)[i]
-  write.fasta(sequences = as.list(df$sequence), 
-              names = df$id,
-              file.out = str_glue('../output/{name}_gc_len_comparable_sampling_len_lt_300_all.fa'))
-}
 ```
 
 ```{r}
-set.seed(123)
-# get 100 or more samples of the non-AS
-sample_times <- 100
+set.seed(456)
+# get 1000 samples of the non-AS since 100 samples won't resolve.
+sample_times <- 1000
 n_samples <- rerun(sample_times, nonas_fil %>% 
                      sample_n(N))
 names(n_samples) <- seq(1,sample_times)
