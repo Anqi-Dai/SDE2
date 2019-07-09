@@ -150,9 +150,9 @@ nonas_fil <- out$nonas %>%
 ```
 
 ```{r}
-set.seed(456)
-# get 1000 samples of the non-AS since 100 samples won't resolve.
-sample_times <- 1000
+set.seed(789)
+# get 500 samples of the non-AS since 100 samples won't resolve.
+sample_times <- 500
 n_samples <- rerun(sample_times, nonas_fil %>% 
                      sample_n(N))
 names(n_samples) <- seq(1,sample_times)
@@ -163,7 +163,7 @@ for(i in 1:length(n_samples)) {
   name = names(n_samples)[i]
   write.fasta(sequences = as.list(df$sequence), 
               names = df$id,
-              file.out = str_glue('../output/s{name}_gc_len_comparable_sampling_len_lt_300_all.fa'))
+              file.out = str_glue('../output/s{name}___gc_len_comparable_sampling_len_lt_300_all.fa'))
 }
 ```
 

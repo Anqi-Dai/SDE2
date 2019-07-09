@@ -25,7 +25,7 @@ write a function that calculates a single file's ave entropy
 
 ```{r}
 # the total number of sequences in each file:
-fasta.res  <- read.alignment(file = '../output/nonas2.fa',
+fasta.res  <- read.alignment(file = '../output/entropy_as_all.fa',
  format = "fasta")
 total_seq_N = fasta.res$nb
 
@@ -83,7 +83,7 @@ as_value <- MSA_fns %>%
   map_dfr( main_function)  %>% 
   pull(var = -1)
   
-# the 100 samples of the nonas 
+# the 500 samples of the nonas 
 nonas_fns <- list.files('../output/nonas_output', pattern = '^entropy', full.names = T)
 
 nonas_res <- nonas_fns %>% 
@@ -96,9 +96,9 @@ nonas <- nonas_res %>%
 nonas %>% 
   gghistogram(x = 'ave_ent', bins = 30, color = 'white', fill = '#00468B',
               xlab = 'Average entropy of a sample',
-              title = 'Histogram of the ave entropy for 100 samples') +
+              title = 'Histogram of the ave entropy for 500 samples') +
   geom_vline(xintercept = as_value, color = '#EC0000') +
-  ggsave('../figs/Histogram of the ave entropy for 100 samples.jpg', width = 5, height = 4, dpi = 300) 
+  ggsave('../figs/Histogram of the ave entropy for 500 samples.jpg', width = 5, height = 4, dpi = 300) 
 
 # p value
 pval <- nonas %>% 
