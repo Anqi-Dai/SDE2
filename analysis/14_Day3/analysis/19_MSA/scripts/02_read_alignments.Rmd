@@ -16,7 +16,7 @@ library(kableExtra)
 The shadedness is the percentage of the dominant nulcetide among all the base in that locus.
 
 ```{r}
-fasta.res  <- read.alignment(file = '../output/nonas2.fa',
+fasta.res  <- read.alignment(file = '../output/entropy_as_all.fa',
  format = "fasta")
 
 # how long is each string
@@ -103,12 +103,12 @@ cutoffs %>%
   mutate(perc_domi = round(Freq/total_non0, 2),
          nt = factor(ifelse(colu == 2, 'G', ifelse(colu == 3, 'C', ifelse(colu == 4, 'T', 'A'))))) %>% 
   ggplot(aes(x = nt, y = perc_domi)) +
-  geom_boxplot() + 
-  geom_jitter(width = 0.3, color = '#EC0000', size = 2) +
-  labs(x = 'nucleotide',
-       y = 'percent of the dominant nucleotide',
-       title = str_glue('percentage of non-gap sequences: {.}')) +
-    ggsave(str_glue('../figs/NONAS2/boxplot perc of the dom nucleotide- cutoff {.}.jpg'), width = 5, height =4, dpi = 300))
+  geom_jitter(width = 0.1, color = '#EC0000', size = 1) +
+  theme_light() +
+  labs(x = 'Nucleotide',
+       y = 'Fraction of the dominant nucleotide',
+       title = str_glue('Fraction of non-gap sequences: threshold {.}')) +
+    ggsave(str_glue('../figs/AS/boxplot perc of the dom nucleotide- cutoff {.}.jpg'), width = 5, height =4, dpi = 300)) 
 
 ```
 
