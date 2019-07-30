@@ -2,7 +2,7 @@
 title: "Reading the alignments in fasta format"
 author: "Anqi Dai"
 date: "7/2/2019"
-output: html_document
+output: html_document 
 ---
 
 ```{r setup, include=FALSE}
@@ -15,8 +15,10 @@ library(kableExtra)
 
 The shadedness is the percentage of the dominant nulcetide among all the base in that locus.
 
+Due to the time constraint, the code is written in such a way that you have to substitute the following read.alignment with correct file to generate plots in different MSAs.
+
 ```{r}
-fasta.res  <- read.alignment(file = '../output/entropy_as_all.fa',
+fasta.res  <- read.alignment(file = '../output/nonas2.fa',
  format = "fasta")
 
 # how long is each string
@@ -108,7 +110,7 @@ cutoffs %>%
   labs(x = 'Nucleotide',
        y = 'Fraction of the dominant nucleotide',
        title = str_glue('Fraction of non-gap sequences: threshold {.}')) +
-    ggsave(str_glue('../figs/AS/boxplot perc of the dom nucleotide- cutoff {.}.jpg'), width = 5, height =4, dpi = 300)) 
+    ggsave(str_glue('../figs/NONAS2/boxplot perc of the dom nucleotide- cutoff {.}.jpg'), width = 5, height =4, dpi = 300)) 
 
 ```
 
